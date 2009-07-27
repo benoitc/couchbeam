@@ -1,0 +1,13 @@
+{application,ecouchdbkit,
+             [{description,"Erlang CouchDb kit"},
+              {vsn,"0.1"},
+              {modules,[ecouchdbkit,
+                        ecouchdbkit_client,
+                        couchdb_mochijson2,
+                        mochiweb_mochinum,
+                        ecouchdbkit_util,
+                        ecouchdbki_sup]},
+              {registered,[ecouchdbkit_sup]},
+              {applications,[kernel,stdlib,crypto]},
+			  {env, []},
+			  {mod, {ecouchdbkit, []}}]}.
