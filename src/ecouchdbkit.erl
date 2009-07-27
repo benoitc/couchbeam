@@ -18,22 +18,28 @@
 -behaviour(gen_server).
 -author('Benoît Chesneau <benoitc@e-engura.org').
 
--export([ start/2, stop/1, open_connection/1]).
+-export([start/0, start/2, stop/0, stop/1, open_connection/1]).
 -export([init/1, handle_call/3,sup_start_link/0]).
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
-         uuids/0, uuids/1, next_uuid/0,  save_doc/3, save_doc/4, save_docs/3,
-         save_docs/4, delete_doc/4, query_view/4, query_view/5]).
+         uuids/0, uuids/1, next_uuid/0, get_doc/3, get_doc/4, 
+         save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/4, 
+         query_view/4, query_view/5]).
          
 -include("ecouchdbkit.hrl").
 
-
-start(_Type, _InitArgs) ->
+start() ->
     ecouchdbkit_sup:start_link().
+    
+stop() ->
+    ecouchdbkit_sup:stop().
+
+start(_Type, _StartArgs) ->
+    start().
      
 stop(_Reason) ->
-    ecouchdbkit_sup:stop().
+    stop().
     
 sup_start_link() ->
     gen_server:start_link({local, ecouchdbkit}, ecouchdbkit, [], []).
@@ -82,6 +88,18 @@ delete_db(NodeName, DbName) ->
 
 %% document operations
 
+get_doc(NodeName, DbName, DocId) ->
+    get_doc(NodeName, DbName, DocId, nil).
+get_doc(NodeName, DbName, DocId, Rev) ->
+    Path = "/" ++ DbName ++ "/" ++ DocId,
+    Resp = case Rev of
+        nil -> 
+            make_request(NodeName, 'GET', Path, []);
+        _Rev ->
+            make_request(NodeName, 'GET', Path, [], [{"rev", Rev}])
+        end,
+    do_reply(Resp).
+    
 save_doc(NodeName, DbName, Doc) ->
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
@@ -151,21 +169,6 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
 init([]) ->
     Tid = ets:new(ecouchdbkit, [public, ordered_set]),
     NodesTid = ets:new(ecouchdbkit_nodes, [set, private]),
-    
-    DefaultClient = {default,
-        {ecouchdbkit_client, start_link, {"127.0.0.1", 5984}},
-        permanent,
-        brutal_kill,
-        worker,
-        [ecouchdbkit_client]
-    },
-    
-    %%case supervisor:start_child(ecouchdbkit_sup, DefaultClient) of
-    %%{ok, Pid} ->
-    %%    io:format("{~p, ~p}~n", [default, Pid]),
-    %%    ets:insert(NodesTid, {default, Pid});
-    %%_ -> ok
-    %%end,
     
     State = #ecouchdbkit_srv{
         ets_tid=Tid,
