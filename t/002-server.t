@@ -24,11 +24,10 @@ test() ->
     etap:is(proplists:get_value(<<"couchdb">>, Data), <<"Welcome">>, "message ok"),
     F = fun() -> ecouchdbkit:server_info(test) end,
     etap_exception:throws_ok(F, {unknown_couchdb_node,<<"No couchdb node configured for test.">>}, "error node ok"),
-    etap:is(ecouchdbkit:open_connection({test, {"127.0.0.1", 5984}}), ok, "open connection"),
+    etap:is(ecouchdbkit:open_connection({test, {"127.0.0.1", 5984}}), ok, "open connection 1"),
     Data1 = ecouchdbkit:server_info(test),
     etap:is(proplists:get_value(<<"couchdb">>, Data1), <<"Welcome">>, "message on new connection ok"),
-    etap:is(ecouchdbkit:open_connection({test2, {"127.0.0.1", 5984}}), ok, "open connection"),
+    etap:is(ecouchdbkit:open_connection({test2, {"127.0.0.1", 5984}}), ok, "open connection 2"),
     Data2 = ecouchdbkit:server_info(test2),
     etap:is(proplists:get_value(<<"couchdb">>, Data2), <<"Welcome">>, "message on new connection ok"),
-    
     ok.

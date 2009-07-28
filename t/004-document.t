@@ -13,7 +13,7 @@ main(_) ->
             etap:bail()
     end,
     ok.
-    
+
 start_app() ->
     application:start(crypto),
     application:start(ecouchdbkit),

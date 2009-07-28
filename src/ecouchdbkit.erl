@@ -198,13 +198,13 @@ init([]) ->
     
 
 handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
-    R = case ets:lookup(NodesTid, NodeName) of
-    [] ->
+    AllNodes = supervisor:which_children(ecouchdbkit_nodes),
+    R = case find_node(AllNodes, NodeName) of
+    false ->
         Msg = lists:flatten(
             io_lib:format("No couchdb node configured for ~p.", [NodeName])),
         {error, {unknown_couchdb_node, ?l2b(Msg)}};
-    [{NodeName, Pid}] ->
-         Pid
+    Pid -> Pid
     end,
     {reply, R, State};
     
@@ -286,3 +286,14 @@ nodename(N) when is_list(N) ->
     list_to_atom(N);
 nodename(N) when is_atom(N) ->
     N.
+    
+find_node([], _Name) ->
+    false;
+find_node([Node|R], Name) ->
+    {Id, Pid, _, _} = Node,
+    if
+    Id =:= Name -> 
+        Pid;
+    true ->
+        find_node(R, Name)
+    end.
