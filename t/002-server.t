@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(6),
+    etap:plan(7),
     start_app(),
     case (catch test()) of
         ok ->
@@ -30,4 +30,7 @@ test() ->
     etap:is(ecouchdbkit:open_connection({test2, {"127.0.0.1", 5984}}), ok, "open connection 2"),
     Data2 = ecouchdbkit:server_info(test2),
     etap:is(proplists:get_value(<<"couchdb">>, Data2), <<"Welcome">>, "message on new connection ok"),
+    
+    %% try to override default
+    etap:is(ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}), ok, "override default ok"),
     ok.

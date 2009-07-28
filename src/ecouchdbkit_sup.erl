@@ -50,7 +50,7 @@ start_ecouchdbkit() ->
 start_nodes() ->
     Pid = supervisor:start_link({local, ecouchdbkit_nodes}, ecouchdbkit_sup,
         {{one_for_one, 10, 3600}, []}),
-        
+    %% add default node
     ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}),
     Pid.
     

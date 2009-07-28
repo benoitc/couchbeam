@@ -20,7 +20,7 @@
 
 -behaviour(gen_server).
 
--export([start/1, start_link/1, stop/1]).
+-export([start/1, start_link/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -29,6 +29,7 @@
 
 -define(MAX_CHUNK_SIZE, 1024*1024).
 -define(IDLE_TIMEOUT, infinity).
+-define(SERVER, ?MODULE).
 
 start(Args) ->
     gen_server:start(?MODULE, Args, []).
@@ -36,22 +37,14 @@ start(Args) ->
 start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
-stop(NodePid) ->
-    gen_server:call(NodePid, stop).
-      
         
 init({Host, Port}) ->
     State = #couchdb_node{host=Host, port=Port},
     {ok, State}.
     
-    
-
 handle_call({request, Method, Path, Body, Headers, Params}, _From, State) ->
     R = send_request(State, Method, Path, Body, Headers, Params),
-    {reply, R, State};
-
-handle_call(stop, _From, State) ->
-    {stop, ok, State}.
+    {reply, R, State}.
     
 send_request(State, Method, Path, Body, Headers, Params) ->
     Method1 = convert_method(Method),
