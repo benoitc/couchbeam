@@ -189,56 +189,37 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
     
 init([]) ->
     Tid = ets:new(ecouchdbkit_uuids, [public, ordered_set]),
-    NodesTid = ets:new(ecouchdbkit_nodes, [set, public]),
     State = #ecouchdbkit_srv{
-        ets_tid=Tid,
-        nodes_tid=NodesTid
+        ets_tid=Tid
     },
     {ok, State}.
     
 
-handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
+handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
     AllNodes = supervisor:which_children(ecouchdbkit_nodes),
+    ErrorMsg = lists:flatten(
+        io_lib:format("No couchdb node configured for ~p.", [NodeName])),
     R = case find_node(AllNodes, NodeName) of
     false ->
-        Msg = lists:flatten(
-            io_lib:format("No couchdb node configured for ~p.", [NodeName])),
-        {error, {unknown_couchdb_node, ?l2b(Msg)}};
+        case proplists:get_value(NodeName, Nodes) of
+        undefined ->
+                {error, {unknown_couchdb_node, ?l2b(ErrorMsg)}};
+        Node ->
+            #couchdb_node{
+                host=Host,
+                port=Port
+            } = proplists:unfold(Node),
+            {Pid, _} = open_connection1({NodeName, {Host, Port}}, Nodes),
+            Pid
+        end;
     Pid -> Pid
     end,
     {reply, R, State};
     
-handle_call({open_connection, {NodeName, {Host, Port}}}, From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
-    NodeName1 = nodename(NodeName),
-    Client = {NodeName1,
-        {ecouchdbkit_client, start_link, [{Host, Port}]},
-        permanent,
-        brutal_kill,
-        worker,
-        [ecouchdbkit_client]},
-    Pid = case supervisor:start_child(ecouchdbkit_nodes, Client) of
-        {ok, Pid1} -> Pid1;
-        {error, {already_started,Child}} ->
-            %% terminate child and create a new one with settings
-            supervisor:terminate_child(ecouchdbkit_nodes, NodeName1),
-            supervisor:delete_child(ecouchdbkit_nodes, NodeName1),
-            handle_call({open_connection, {NodeName, {Host, Port}}}, From, State);
-        {error, already_present} ->
-            case supervisor:start_child(ecouchdbkit_nodes, Client) of
-            {ok, Pid1} -> Pid1;
-            {error, already_present} ->
-                case supervisor:restart_child(ecouchdbkit_nodes, NodeName1) of
-                {ok, Pid1} -> Pid1;
-                {error, running} ->
-                    {error, {already_started, Pid1}} =
-                        supervisor:start_child(ecouchdbkit_nodes, Client),
-                    Pid1
-                end
-            end
-        end,
-    ets:insert(NodesTid, {NodeName1, Pid}),
-    {reply, ok, State};
-        
+handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
+    {_, Nodes1} = open_connection1({NodeName, {Host, Port}}, Nodes),
+    {reply, ok, State#ecouchdbkit_srv{nodes=Nodes1}};
+    
 handle_call(next_uuid, _From, #ecouchdbkit_srv{ets_tid=Tid}=State) ->
     R = case ets:lookup(Tid, uuids) of
     [] -> new_uuid(Tid);
@@ -271,6 +252,39 @@ handle_info(Info, _Server) ->
     exit({unknown_message, Info}).
     
 %% Internal API
+open_connection1({NodeName, {Host, Port}}, Nodes) ->
+    NodeName1 = nodename(NodeName),
+    Client = {NodeName1,
+        {ecouchdbkit_client, start_link, [{Host, Port}]},
+        permanent,
+        brutal_kill,
+        worker,
+        [ecouchdbkit_client]},
+    Pid = case supervisor:start_child(ecouchdbkit_nodes, Client) of
+    {ok, Pid1} -> Pid1;
+    {error, {already_started, _}} ->
+        %% terminate child and create a new one with settings
+        supervisor:terminate_child(ecouchdbkit_nodes, NodeName1),
+        supervisor:delete_child(ecouchdbkit_nodes, NodeName1),
+        Nodes1 = proplists:delete(NodeName1, Nodes),
+        open_connection1({NodeName, {Host, Port}}, Nodes1);
+    {error, already_present} ->
+        case supervisor:start_child(ecouchdbkit_nodes, Client) of
+        {ok, Pid1} -> Pid1;
+        {error, already_present} ->
+            case supervisor:restart_child(ecouchdbkit_nodes, NodeName1) of
+            {ok, Pid1} -> Pid1;
+            {error, running} ->
+                {error, {already_started, Pid1}} =
+                    supervisor:start_child(ecouchdbkit_nodes, Client),
+                Pid1
+            end
+        end
+    end,
+    Node = {NodeName1, #couchdb_node{host=Host, port=Port}},
+    Nodes2 = [Node|proplists:delete(NodeName1, Nodes)],
+    {Pid, Nodes2}.
+    
 new_uuid(Tid) ->
     [Id|Uuids] = ecouchdbkit_util:generate_uuids(1000),
     ets:insert(Tid, {uuids, Uuids}),

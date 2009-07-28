@@ -16,7 +16,7 @@
 
 -record(ecouchdbkit_srv,{
     ets_tid,
-    nodes_tid}).
+    nodes=[]}).
 
 -record(couchdb_node, {
     host,

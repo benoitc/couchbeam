@@ -33,4 +33,10 @@ test() ->
     
     %% try to override default
     etap:is(ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}), ok, "override default ok"),
+    
+    %% in case node server is down, we try to recreate it from state.
+    supervisor:terminate_child(ecouchdbkit_nodes, test),
+    supervisor:delete_child(ecouchdbkit_nodes, test),
+    etap:is(proplists:get_value(<<"couchdb">>, ecouchdbkit:server_info(test)), 
+        <<"Welcome">>, "message on new connection ok"),
     ok.
