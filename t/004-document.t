@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(3),
+    etap:plan(4),
     start_app(),
     case (catch test()) of
         ok ->
@@ -32,5 +32,9 @@ test() ->
         {ok, [{<<"id">>,<<"test">>}|_]} -> true;
         _ -> false
         end, "save do with id ok"),
-    
+    F = fun() -> 
+        ecouchdbkit:save_doc(default, "ecouchdbkit_testdb", 
+            {[{<<"_id">>,<<"test">>}, {<<"test">>,"blah"}]})
+    end,
+    etap_exception:throws_ok(F, conflict, "conflict raised"),
     ok.

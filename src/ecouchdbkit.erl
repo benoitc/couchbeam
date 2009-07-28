@@ -203,12 +203,12 @@ handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
     false ->
         case proplists:get_value(NodeName, Nodes) of
         undefined ->
-                {error, {unknown_couchdb_node, ?l2b(ErrorMsg)}};
+            {error, {unknown_couchdb_node, ?l2b(ErrorMsg)}};
         Node ->
             #couchdb_node{
                 host=Host,
                 port=Port
-            } = proplists:unfold(Node),
+            } = Node,
             {Pid, _} = open_connection1({NodeName, {Host, Port}}, Nodes),
             Pid
         end;

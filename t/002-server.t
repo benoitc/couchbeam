@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(7),
+    etap:plan(8),
     start_app(),
     case (catch test()) of
         ok ->
@@ -38,5 +38,5 @@ test() ->
     supervisor:terminate_child(ecouchdbkit_nodes, test),
     supervisor:delete_child(ecouchdbkit_nodes, test),
     etap:is(proplists:get_value(<<"couchdb">>, ecouchdbkit:server_info(test)), 
-        <<"Welcome">>, "message on new connection ok"),
+        <<"Welcome">>, "test recreate node service"),
     ok.
