@@ -14,6 +14,7 @@
 %%  limitations under the License.
 
 -module(ecouchdbkit_sup).
+-author('Benoît Chesneau <benoitc@e-engura.org').
 -behaviour(supervisor).
 
 -export([start_link/0, stop/0, init/1, start_nodes/0]).

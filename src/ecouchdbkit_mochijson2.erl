@@ -24,8 +24,9 @@
 %%      with binaries as strings, arrays as lists (without an {array, _})
 %%      wrapper and it only knows how to decode UTF-8 (and ASCII).
 %% 
-%% We include mochijosn2 from couchdb since it make sense to use CouchDB
+%% We include mochijson2 from couchdb since it make sense to use CouchDB
 %% to this file. We also include mochinum. 
+%% 
 
 
 -module(ecouchdbkit_mochijson2).
