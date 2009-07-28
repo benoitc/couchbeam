@@ -44,7 +44,10 @@ init({Host, Port}) ->
 
 handle_call({request, Method, Path, Body, Headers, Params}, _From, State) ->
     R = send_request(State, Method, Path, Body, Headers, Params),
-    {reply, R, State}.
+    {reply, R, State};
+
+handle_call(stop, _From, State) ->
+    {stop, ok, State}.
     
 send_request(State, Method, Path, Body, Headers, Params) ->
     Method1 = convert_method(Method),
@@ -98,13 +101,13 @@ do_req(Method, State, Path, Body, Headers) ->
                      #http_response{status=Status, phrase=Phrase} = R,
                      if
                      Status >= 400, Status == 404 ->
-                         not_found;
+                         {error, not_found};
                      Status >= 400, Status == 409 ->
-                         conflict;
+                         {error, conflict};
                      Status >= 400, Status == 412 ->
-                         precondition_failed;
+                         {error, precondition_failed};
                      Status >= 400 ->
-                         {unknown_error, Status};
+                         {error, {unknown_error, Status}};
                      true ->
                          if
                          Method == "HEAD" ->

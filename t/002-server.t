@@ -7,7 +7,6 @@ main(_) ->
     start_app(),
     case (catch test()) of
         ok ->
-            application:stop(ecouchdbkit),
             etap:end_tests();
         Other ->
             etap:diag(io_lib:format("Test died abnormally: ~p", [Other])),
@@ -23,9 +22,8 @@ start_app() ->
 test() ->
     Data = ecouchdbkit:server_info(default),
     etap:is(proplists:get_value(<<"couchdb">>, Data), <<"Welcome">>, "message ok"),
-    etap:is(ecouchdbkit:server_info(test), 
-        {error,{unknown_couchdb_node,<<"No couchdb node configured for test.">>}},
-        "error node ok"),
+    F = fun() -> ecouchdbkit:server_info(test) end,
+    etap_exception:throws_ok(F, {unknown_couchdb_node,<<"No couchdb node configured for test.">>}, "error node ok"),
     etap:is(ecouchdbkit:open_connection({test, {"127.0.0.1", 5984}}), ok, "open connection"),
     Data1 = ecouchdbkit:server_info(test),
     etap:is(proplists:get_value(<<"couchdb">>, Data1), <<"Welcome">>, "message on new connection ok"),

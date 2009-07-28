@@ -47,7 +47,7 @@ sup_start_link() ->
     gen_server:start_link({local, ecouchdbkit}, ecouchdbkit, [], []).
     
 open_connection({NodeName, {Host, Port}}) ->
-    gen_server:call(?SERVER, {open_connection, {NodeName, {Host, Port}}}).
+    gen_server:call(ecouchdbkit, {open_connection, {NodeName, {Host, Port}}}).
     
 json_encode(V) ->
     couchdb_mochijson2:encode(V).
@@ -62,13 +62,13 @@ server_info(NodeName) ->
     do_reply(Resp).
     
 uuids() ->
-    gen_server:call(?SERVER, uuids).
+    gen_server:call(ecouchdbkit, uuids).
     
 uuids(Count) ->
-    gen_server:call(?SERVER, {uuids, Count}).
+    gen_server:call(ecouchdbkit, {uuids, Count}).
     
 next_uuid() ->
-    gen_server:call(?SERVER, next_uuid).
+    gen_server:call(ecouchdbkit, next_uuid).
     
 all_dbs(NodeName) ->
     Resp = make_request(NodeName, 'GET', "/_all_dbs", []),
@@ -151,11 +151,12 @@ query_view(NodeName, DbName, DName, ViewName, Params) ->
     
 do_reply(Resp) ->
     case Resp of
+    {error, Reason} -> throw(Reason);
     {json, {[{<<"ok">>, true}]}} -> ok;
     {json, {[{<<"ok">>, true}|Res]}} -> {ok, Res};
     {json, {Obj}} -> Obj;
     {json, Obj} -> Obj;
-    Err -> {error, Err}
+    Other -> Other
     end.    
 make_request(NodeName, Method, Path, Headers) ->
     make_request(NodeName, Method, Path, nil, Headers, []).
@@ -166,7 +167,7 @@ make_request(NodeName, Method, Path, Headers, Params) ->
 make_request(NodeName, Method, Path, Body, Headers, Params) ->
     case gen_server:call(ecouchdbkit, {get, NodeName}) of
     {error, Reason} -> 
-        Reason;
+        {error, Reason};
     Pid -> 
         gen_server:call(Pid, {request, Method, Path, Body, Headers, Params})
     end.
@@ -184,14 +185,15 @@ init([]) ->
     
 
 handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
-    case ets:lookup(NodesTid, NodeName) of
+    R = case ets:lookup(NodesTid, NodeName) of
     [] ->
         Msg = lists:flatten(
             io_lib:format("No couchdb node configured for ~p.", [NodeName])),
-        {reply, {error, {unknown_couchdb_node, ?l2b(Msg)}}, State};
+        {error, {unknown_couchdb_node, ?l2b(Msg)}};
     [{NodeName, Pid}] ->
-         {reply, Pid, State}
-    end;
+         Pid
+    end,
+    {reply, R, State};
     
 handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
     NodeName1 = nodename(NodeName),

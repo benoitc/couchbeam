@@ -16,12 +16,12 @@
 -module(ecouchdbkit_sup).
 -behaviour(supervisor).
 
--export([start_link/0, stop/0, init/1]).
+-export([start_link/0, stop/0, init/1, start_nodes/0]).
 
 -include("ecouchdbkit.hrl").
 
 start_link() ->
-    case whereis(couchdbkit_sup) of
+    case whereis(ecouchdbkit_sup) of
     undefined -> 
         start_ecouchdbkit();
     _Else -> 
@@ -36,12 +36,21 @@ start_ecouchdbkit() ->
         permanent,
         brutal_kill,
         supervisor,
-        [ecouchdbkit]}]},
+        [ecouchdbkit]},
+    {ecouchdbkit_nodes,
+        {ecouchdbkit_sup, start_nodes, []},
+        permanent,
+        infinity,
+        supervisor,
+        [ecouchdbkit_sup]}]},
     application:start(crypto),
     Pid = supervisor:start_link({local, ecouchdbkit_sup}, ecouchdbkit_sup, ChildSpecs),
-    ecouchdbkit:open_connection({"default", {"127.0.0.1", 5984}}),
+    ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}),
     Pid.
     
+start_nodes() ->
+    supervisor:start_link({local, ecouchdbkit_nodes}, ecouchdbkit_sup,
+        {{one_for_one, 10, 3600}, []}).
     
 stop() ->
     catch exit(whereis(ecouchdbkit_sup), normal).
