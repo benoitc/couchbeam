@@ -7,7 +7,9 @@
                         mochiweb_mochinum,
                         ecouchdbkit_util,
                         ecouchdbki_sup]},
-              {registered,[ecouchdbkit_sup]},
+              {registered,[
+                        ecouchdbkit_sup,
+                        ecouchdbkit]},
               {applications,[kernel,stdlib,crypto]},
 			  {env, []},
 			  {mod, {ecouchdbkit, []}}]}.

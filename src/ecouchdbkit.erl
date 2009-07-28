@@ -28,6 +28,8 @@
          query_view/4, query_view/5]).
          
 -include("ecouchdbkit.hrl").
+-define(SERVER, ?MODULE).
+
 
 start() ->
     ecouchdbkit_sup:start_link().
@@ -45,7 +47,7 @@ sup_start_link() ->
     gen_server:start_link({local, ecouchdbkit}, ecouchdbkit, [], []).
     
 open_connection({NodeName, {Host, Port}}) ->
-    gen_server:call(ecouchdbkit, {config, {NodeName, {Host, Port}}}).
+    gen_server:call(?SERVER, {open_connection, {NodeName, {Host, Port}}}).
     
 json_encode(V) ->
     couchdb_mochijson2:encode(V).
@@ -60,13 +62,13 @@ server_info(NodeName) ->
     do_reply(Resp).
     
 uuids() ->
-    gen_server:call(ecouchdbkit, uuids).
+    gen_server:call(?SERVER, uuids).
     
 uuids(Count) ->
-    gen_server:call(ecouchdbkit, {uuids, Count}).
+    gen_server:call(?SERVER, {uuids, Count}).
     
 next_uuid() ->
-    gen_server:call(ecouchdbkit, next_uuid).
+    gen_server:call(?SERVER, next_uuid).
     
 all_dbs(NodeName) ->
     Resp = make_request(NodeName, 'GET', "/_all_dbs", []),
@@ -162,12 +164,16 @@ make_request(NodeName, Method, Path, Headers, Params) ->
     make_request(NodeName, Method, Path, nil, Headers, Params).
     
 make_request(NodeName, Method, Path, Body, Headers, Params) ->
-    Pid = gen_server:call(ecouchdbkit, {get, NodeName}),
-    gen_server:call(Pid, {request, Method, Path, Body, Headers, Params}).  
+    case gen_server:call(ecouchdbkit, {get, NodeName}) of
+    {error, Reason} -> 
+        Reason;
+    Pid -> 
+        gen_server:call(Pid, {request, Method, Path, Body, Headers, Params})
+    end.
     
     
 init([]) ->
-    Tid = ets:new(ecouchdbkit, [public, ordered_set]),
+    Tid = ets:new(ecouchdbkit_uuids, [public, ordered_set]),
     NodesTid = ets:new(ecouchdbkit_nodes, [set, private]),
     
     State = #ecouchdbkit_srv{
@@ -182,17 +188,18 @@ handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State
     [] ->
         Msg = lists:flatten(
             io_lib:format("No couchdb node configured for ~p.", [NodeName])),
-        {reply, {error, {unknown_couchdb_node, ?l2b(Msg)}}, NodesTid};
+        {reply, {error, {unknown_couchdb_node, ?l2b(Msg)}}, State};
     [{NodeName, Pid}] ->
          {reply, Pid, State}
     end;
     
-handle_call({config, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
-    NodeName1 = list_to_atom(NodeName),
-    case ets:lookup(NodesTid, NodeName) of
+handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
+    NodeName1 = nodename(NodeName),
+    case ets:lookup(NodesTid, NodeName) of    
+    [] -> 
+        ok;
     [{NodeName1, Pid}] ->
-        ecouchdbkit_client:stop(Pid);
-    [] -> ok
+        ecouchdbkit_client:stop(Pid)
     end,
     {ok, Pid1} = ecouchdbkit_client:start_link({Host, Port}),
     ets:insert(NodesTid, {NodeName1, Pid1}),
@@ -230,11 +237,6 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
-handle_info({'EXIT', Pid, _Reason}, #ecouchdbkit_srv{ets_tid=Tid, nodes_tid=NodesTid}=State) ->
-    true = ets:delete(Tid),
-    ets:match_delete(NodesTid, {'_', Pid}),
-    {noreply, State};
-    
 handle_info(Info, _Server) ->
     exit({unknown_message, Info}).
     
@@ -243,3 +245,10 @@ new_uuid(Tid) ->
     [Id|Uuids] = ecouchdbkit_util:generate_uuids(1000),
     ets:insert(Tid, {uuids, Uuids}),
     Id.
+    
+nodename(N) when is_binary(N) ->
+    list_to_atom(?b2l(N));
+nodename(N) when is_list(N) ->
+    list_to_atom(N);
+nodename(N) when is_atom(N) ->
+    N.
