@@ -1,2 +1,5 @@
 doc/
 ebin/
+*.swp
+*.dump
+edoc-info

@@ -26,7 +26,7 @@
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, next_uuid/0, get_doc/3, get_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/4, 
-         query_view/4, query_view/5]).
+         query_view/4, query_view/5, is_db/2, all_docs/3]).
          
 -include("ecouchdbkit.hrl").
 -define(SERVER, ?MODULE).
@@ -51,10 +51,10 @@ open_connection({NodeName, {Host, Port}}) ->
     gen_server:call(ecouchdbkit, {open_connection, {NodeName, {Host, Port}}}).
     
 json_encode(V) ->
-    couchdb_mochijson2:encode(V).
+    ecouchdbkit_mochijson2:encode(V).
     
 json_decode(V) ->
-    couchdb_mochijson2:decode(V).
+    ecouchdbkit_mochijson2:decode(V).
     
     
 %% server operations 
@@ -88,6 +88,10 @@ create_db(NodeName, DbName) ->
 delete_db(NodeName, DbName) ->
     Resp = make_request(NodeName, 'DELETE', "/" ++ DbName, []),
     do_reply(Resp).
+    
+is_db(NodeName, DbName) ->
+    AllDbs = all_dbs(NodeName),
+    lists:member(?l2b(DbName), AllDbs).
 
 %% document operations
 
@@ -121,9 +125,10 @@ save_docs(NodeName, DbName, Docs) ->
     save_docs(NodeName, DbName, Docs, []).
         
 save_docs(NodeName, DbName, Docs, Opts) ->
+    Docs1 = [maybe_docid(Doc) || Doc <- Docs],
     JsonObj = case proplists:get_value(all_or_nothing, Opts, false) of
-    true -> [{<< "all_or_nothing">>, true}, {<<"docs">>, Docs}];
-    false -> {[{<<"docs">>, Docs}]}
+    true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
+    false -> {[{<<"docs">>, Docs1}]}
     end,    
     Body = ecouchdbkit:json_encode(JsonObj),
     Path = "/" ++ DbName ++ "/_bulk_docs",
@@ -135,11 +140,18 @@ delete_doc(NodeName, DbName, DocId, Rev) ->
     Resp = make_request(NodeName, 'DELETE', Path, []),
     do_reply(Resp).
     
+all_docs(NodeName, DbName, Params) ->
+    Path = io_lib:format("/~s/_all_docs", [DbName]),
+    fetch_view(NodeName, Path, Params).
+    
 query_view(NodeName, DbName, DName, ViewName) ->
     query_view(NodeName, DbName, DName, ViewName, []).
     
 query_view(NodeName, DbName, DName, ViewName, Params) ->
     Path = io_lib:format("/~s/_design/~s/_view/~s", [DbName, DName, ViewName]),
+    fetch_view(NodeName, Path, Params).
+    
+fetch_view(NodeName, Path, Params) ->
     Resp = case proplists:get_value("keys", Params) of
         undefined -> 
             make_request(NodeName, 'GET', Path, [], Params);
@@ -176,7 +188,7 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
     
 init([]) ->
     Tid = ets:new(ecouchdbkit_uuids, [public, ordered_set]),
-    NodesTid = ets:new(ecouchdbkit_nodes, [set, private]),
+    NodesTid = ets:new(ecouchdbkit_nodes, [set, public]),
     
     State = #ecouchdbkit_srv{
         ets_tid=Tid,
@@ -198,14 +210,24 @@ handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State
     
 handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes_tid=NodesTid} = State) ->
     NodeName1 = nodename(NodeName),
-    case ets:lookup(NodesTid, NodeName) of    
-    [] -> 
-        ok;
-    [{NodeName1, Pid}] ->
-        ecouchdbkit_client:stop(Pid)
-    end,
-    {ok, Pid1} = ecouchdbkit_client:start_link({Host, Port}),
-    ets:insert(NodesTid, {NodeName1, Pid1}),
+    Client = {NodeName1,
+        {ecouchdbkit_client, start_link, [{Host, Port}]},
+        permanent,
+        brutal_kill,
+        worker,
+        [ecouchdbkit_client]},
+    Pid = case supervisor:start_child(ecouchdbkit_nodes, Client) of
+        {ok, Pid1} -> Pid1;
+        {error, already_present} ->
+            case supervisor:restart_child(ecouchdbkit_nodes, NodeName1) of
+            {ok, Pid1} -> Pid1;
+            {error, running} ->
+                {error, {already_started, Pid1}} =
+                    supervisor:start_child(ecouchdbkit_nodes, Client),
+                Pid1
+            end
+        end,
+    ets:insert(NodesTid, {NodeName1, Pid}),
     {reply, ok, State};
         
 handle_call(next_uuid, _From, #ecouchdbkit_srv{ets_tid=Tid}=State) ->
@@ -248,6 +270,15 @@ new_uuid(Tid) ->
     [Id|Uuids] = ecouchdbkit_util:generate_uuids(1000),
     ets:insert(Tid, {uuids, Uuids}),
     Id.
+    
+maybe_docid({DocProps}) ->
+    case proplists:get_value(<<"_id">>, DocProps) of
+        undefined ->
+            DocId = couchdbkit_util:new_uuid(),
+            {[{<<"_id">>, DocId}|DocProps]};
+        _DocId ->
+            {DocProps}
+    end.
     
 nodename(N) when is_binary(N) ->
     list_to_atom(?b2l(N));

@@ -45,13 +45,14 @@ start_ecouchdbkit() ->
         supervisor,
         [ecouchdbkit_sup]}]},
     application:start(crypto),
-    Pid = supervisor:start_link({local, ecouchdbkit_sup}, ecouchdbkit_sup, ChildSpecs),
-    ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}),
-    Pid.
+    supervisor:start_link({local, ecouchdbkit_sup}, ecouchdbkit_sup, ChildSpecs).
     
 start_nodes() ->
-    supervisor:start_link({local, ecouchdbkit_nodes}, ecouchdbkit_sup,
-        {{one_for_one, 10, 3600}, []}).
+    Pid = supervisor:start_link({local, ecouchdbkit_nodes}, ecouchdbkit_sup,
+        {{one_for_one, 10, 3600}, []}),
+        
+    ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}),
+    Pid.
     
 stop() ->
     catch exit(whereis(ecouchdbkit_sup), normal).

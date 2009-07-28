@@ -38,10 +38,12 @@ start_link(Args) ->
 
 stop(NodePid) ->
     gen_server:call(NodePid, stop).
+      
         
 init({Host, Port}) ->
     State = #couchdb_node{host=Host, port=Port},
     {ok, State}.
+    
     
 
 handle_call({request, Method, Path, Body, Headers, Params}, _From, State) ->
