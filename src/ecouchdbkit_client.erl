@@ -192,9 +192,7 @@ recv_unchunked_body(Sock, MaxHunk, DataLeft, Fun, Acc) ->
     
 recv_chunked_body(Sock, MaxChunkSize, Fun, Acc) ->
     case read_chunk_length(Sock) of
-    error -> 
-        {error, "Bad chunked transfer-encoding header"};
-    0 ->  
+    0 ->
         Bin = read_chunk(Sock, 0),
         Acc1 = Fun({Bin, done}, Acc),
         Acc1;     
@@ -206,7 +204,7 @@ recv_chunked_body(Sock, MaxChunkSize, LeftInChunk, Fun, Acc) ->
     case MaxChunkSize >= LeftInChunk of
     true ->
         Data1 = read_chunk(Sock, LeftInChunk),
-        Acc1 = Fun(Data1, Acc),
+        Acc1 = Fun({Data1, end_chunk}, Acc),
         recv_chunked_body(Sock, MaxChunkSize, Fun, Acc1);
     false ->
         {ok, Data2} = gen_tcp:recv(Sock, MaxChunkSize,
@@ -262,8 +260,10 @@ body_fun(Data, Acc) ->
     {<<>>, done} -> <<>>;
     {Data1, done} ->
         iolist_to_binary(lists:reverse([Data1|Acc]));
-    Data2 ->
-        [Data2|Acc]
+    {Data2, end_chunk} ->
+        [Data2|Acc];
+    Data3 ->
+        [Data3|Acc]
     end.
     
     
@@ -410,7 +410,7 @@ encode_query_value(K,V) ->
     _V -> V
     end,
     V1.
-    
+
 encode_value(V) ->
     V1 = ecouchdbkit:json_encode(V),
     ecouchdbkit_util:quote_plus(binary_to_list(iolist_to_binary(V1))).

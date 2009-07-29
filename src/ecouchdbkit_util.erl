@@ -20,7 +20,7 @@
 -module(ecouchdbkit_util).
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
-         join/2, revjoin/3, quote_plus/1]).
+         join/2, revjoin/3, quote_plus/1, split/2]).
 
 
 -define(PERCENT, 37).  % $\%
@@ -97,3 +97,19 @@ to_hex([H|T]) ->
 to_digit(N) when N < 10 -> $0 + N;
 to_digit(N)             -> $a + N-10.
 
+
+split(Bin, Chars) ->
+    split(Chars, Bin, 0, []).
+
+split(Chars, Bin, Idx, Acc) ->
+    case Bin of
+        <<This:Idx/binary, Char, Tail/binary>> ->
+                case lists:member(Char, Chars) of
+                        false ->
+                                split(Chars, Bin, Idx+1, Acc);
+                        true ->
+                                split(Chars, Tail, 0, [This|Acc])
+                end;
+        <<This:Idx/binary>> ->
+                lists:reverse(Acc, [This])
+    end.
