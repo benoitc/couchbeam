@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(5),
+    etap:plan(8),
     start_app(),
     case (catch test()) of
         ok ->
@@ -29,7 +29,7 @@ test() ->
         end, "save doc ok"),
     etap:ok(case ecouchdbkit:save_doc(default, "ecouchdbkit_testdb", 
             {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}) of
-        {ok, [{<<"id">>,<<"test">>}|_]} -> true;
+        {ok, {[{<<"id">>,<<"test">>}|_]}} -> true;
         _ -> false
         end, "save do with id ok"),
     F = fun() -> 
@@ -37,6 +37,19 @@ test() ->
             {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})
     end,
     etap_exception:throws_ok(F, conflict, "conflict raised"),
-    Doc = ecouchdbkit:open_doc(default, "ecouchdbkit_testdb", "test"),
+    {Doc} = ecouchdbkit:open_doc(default, "ecouchdbkit_testdb", "test"),
     etap:is(proplists:get_value(<<"test">>, Doc), <<"blah">>, "fetch doc ok"),
+    ecouchdbkit:save_doc(default, "ecouchdbkit_testdb", 
+        {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
+    F1 = fun() ->
+        ecouchdbkit:open_doc(default, "ecouchdbkit_testdb", "test2")
+    end,
+    Doc1 = F1(),
+    etap_exception:lives_ok(F1,"test2 has been created"),
+    etap:ok(case ecouchdbkit:delete_doc(default,"ecouchdbkit_testdb", Doc1) of
+        {ok, _} -> true;
+        _E2 -> false
+        end, "doc2 has been deleted"),
+    etap_exception:throws_ok(F1, not_found, "test2 not found"),
     ok.
+    

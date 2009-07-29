@@ -347,8 +347,7 @@ headers_to_str(Headers) ->
                 [make_io(K), <<": ">>, V, <<"\r\n">> | Acc]
         end,
     lists:foldl(F, [<<"\r\n">>], Headers).
-        
-
+    
 convert_method(Method) when is_atom(Method) ->
     atom_to_list(Method);
 convert_method(Method) when is_list(Method) ->

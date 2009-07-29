@@ -25,7 +25,7 @@
 -export([json_encode/1, json_decode/1]).
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, next_uuid/0, open_doc/3, open_doc/4, 
-         save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/4, 
+         save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
          query_view/4, query_view/5, is_db/2, all_docs/3]).
          
 -include("ecouchdbkit.hrl").
@@ -60,7 +60,8 @@ json_decode(V) ->
 %% server operations 
 server_info(NodeName) ->
     Resp = make_request(NodeName, 'GET', "/", []),
-    do_reply(Resp).
+    {Resp1} = do_reply(Resp),
+    Resp1.
     
 uuids() ->
     gen_server:call(ecouchdbkit, uuids).
@@ -135,11 +136,11 @@ save_docs(NodeName, DbName, Docs, Opts) ->
     Resp = make_request(NodeName, 'POST', Path, Body, [], []),
     do_reply(Resp).
     
-delete_doc(NodeName, DbName, DocId, Rev) ->
-    Path = io_lib:format("/~s/~s?rev=~s", [DbName, DocId, Rev]),
-    Resp = make_request(NodeName, 'DELETE', Path, []),
-    do_reply(Resp).
-    
+
+delete_doc(NodeName, DbName, {DocProps}) ->
+    Doc1 = {[{<<"_deleted">>, true}|DocProps]},
+    save_doc(NodeName, DbName, Doc1).
+
 all_docs(NodeName, DbName, Params) ->
     Path = io_lib:format("/~s/_all_docs", [DbName]),
     fetch_view(NodeName, Path, Params).
@@ -166,8 +167,8 @@ do_reply(Resp) ->
     case Resp of
     {error, Reason} -> throw(Reason);
     {json, {[{<<"ok">>, true}]}} -> ok;
-    {json, {[{<<"ok">>, true}|Res]}} -> {ok, Res};
-    {json, {Obj}} -> Obj;
+    {json, {[{<<"ok">>, true}|Res]}} -> {ok, {Res}};
+    %%{json, {Obj}} -> Obj;
     {json, Obj} -> Obj;
     Other -> Other
     end.

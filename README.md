@@ -39,27 +39,26 @@ Create a db :
 Create a doc :
 
 	5> ecouchdbkit:save_doc(mynode, "ecouchdbkit_testdb", {[{<<"somefield">>, <<"somevalue">>}]}).
-	{ok,[{<<"id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
-	     {<<"rev">>,<<"1-823bb845c558d9bacac274f54ea91399">>}]}
+	{ok,{[{<<"id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
+	     {<<"rev">>,<<"1-823bb845c558d9bacac274f54ea91399">>}]}}
 	
 Update doc :
 
 	6> ecouchdbkit:save_doc(mynode, "ecouchdbkit_testdb", {[{<<"_id">>, <<"1dfa7d290f555857762a4491c27705b0">>}, 		{<<"_rev">>, <<"1-823bb845c558d9bacac274f54ea91399">>}, {<<"somefield">>, <<"changedvalue">>}]}).
-	{ok,[{<<"id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
-	     {<<"rev">>,<<"2-89ede0192cf6beac8013fc229ff9eca7">>}]}
+	{ok,{[{<<"id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
+	     {<<"rev">>,<<"2-89ede0192cf6beac8013fc229ff9eca7">>}]}}
 	
 Get doc :
 	
 	7> ecouchdbkit:get_doc(mynode, "ecouchdbkit_testdb", "1dfa7d290f555857762a4491c27705b0").
-	[{<<"_id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
+	{[{<<"_id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
 	 {<<"_rev">>,<<"2-89ede0192cf6beac8013fc229ff9eca7">>},
-	 {<<"somefield">>,<<"changedvalue">>}]
+	 {<<"somefield">>,<<"changedvalue">>}]}
 	
 ## Todo
 
 - add attachments support
 - add authentification management
-- add unitests
 - documentation
 - some helpers to create a doc, extend a doc, 
 - retrieve a view via a folding function...
