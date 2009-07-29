@@ -21,10 +21,10 @@
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
          join/2, revjoin/3, url_encode/1]).
+ 
 
 generate_uuids(Count) ->
     [ new_uuid() || _ <- lists:seq(1,Count)].
-
 
 %% Code from Mochiweb http://code.google.com/p/mochiweb/
 %% @spec join([string()], Separator) -> string()
@@ -43,6 +43,7 @@ revjoin([S | Rest], Separator, []) ->
     revjoin(Rest, Separator, [S]);
 revjoin([S | Rest], Separator, Acc) ->
     revjoin(Rest, Separator, [S, Separator | Acc]).
+    
     
 
 %% @doc URL-encodes a string based on RFC 1738. Returns a flat list.

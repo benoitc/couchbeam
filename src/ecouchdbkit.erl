@@ -24,7 +24,7 @@
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
-         uuids/0, uuids/1, next_uuid/0, get_doc/3, get_doc/4, 
+         uuids/0, uuids/1, next_uuid/0, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/4, 
          query_view/4, query_view/5, is_db/2, all_docs/3]).
          
@@ -95,9 +95,9 @@ is_db(NodeName, DbName) ->
 
 %% document operations
 
-get_doc(NodeName, DbName, DocId) ->
-    get_doc(NodeName, DbName, DocId, nil).
-get_doc(NodeName, DbName, DocId, Rev) ->
+open_doc(NodeName, DbName, DocId) ->
+    open_doc(NodeName, DbName, DocId, nil).
+open_doc(NodeName, DbName, DocId, Rev) ->
     Path = "/" ++ DbName ++ "/" ++ DocId,
     Resp = case Rev of
         nil -> 
@@ -113,10 +113,10 @@ save_doc(NodeName, DbName, Doc) ->
     undefined -> next_uuid();
     Id1 -> Id1
     end,
-    save_doc(NodeName, DbName, ?b2l(DocId), Doc).
+    save_doc(NodeName, DbName, DocId, Doc).
     
 save_doc(NodeName, DbName, DocId, Doc) ->
-    Path = "/" ++ DbName ++ "/" ++ DocId,
+    Path = "/" ++ DbName ++ "/" ++ encode_docid(DocId),
     Body = ecouchdbkit:json_encode(Doc),
     Resp = make_request(NodeName, 'PUT', Path, Body, [], []),
     do_reply(Resp).
@@ -289,6 +289,11 @@ new_uuid(Tid) ->
     [Id|Uuids] = ecouchdbkit_util:generate_uuids(1000),
     ets:insert(Tid, {uuids, Uuids}),
     Id.
+    
+encode_docid(DocId) when is_binary(DocId) ->
+    ?b2l(DocId);
+encode_docid(DocId) when is_list(DocId) ->
+    DocId.
     
 maybe_docid({DocProps}) ->
     case proplists:get_value(<<"_id">>, DocProps) of

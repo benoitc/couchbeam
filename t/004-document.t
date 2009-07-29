@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(4),
+    etap:plan(5),
     start_app(),
     case (catch test()) of
         ok ->
@@ -28,13 +28,15 @@ test() ->
         _E -> false
         end, "save doc ok"),
     etap:ok(case ecouchdbkit:save_doc(default, "ecouchdbkit_testdb", 
-            {[{<<"_id">>,<<"test">>}, {<<"test">>,"blah"}]}) of
+            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}) of
         {ok, [{<<"id">>,<<"test">>}|_]} -> true;
         _ -> false
         end, "save do with id ok"),
     F = fun() -> 
         ecouchdbkit:save_doc(default, "ecouchdbkit_testdb", 
-            {[{<<"_id">>,<<"test">>}, {<<"test">>,"blah"}]})
+            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})
     end,
     etap_exception:throws_ok(F, conflict, "conflict raised"),
+    Doc = ecouchdbkit:open_doc(default, "ecouchdbkit_testdb", "test"),
+    etap:is(proplists:get_value(<<"test">>, Doc), <<"blah">>, "fetch doc ok"),
     ok.

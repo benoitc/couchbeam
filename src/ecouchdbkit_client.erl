@@ -359,24 +359,28 @@ convert_method(Method) when is_atom(Method) ->
 convert_method(Method) when is_list(Method) ->
     Method.
 
-
-  
 encode_query(Props) ->
     RevPairs = lists:foldl(fun ({K, V}, Acc) ->
                                    [[ecouchdbkit_util:url_encode(K), $=, 
-                                   ecouchdbkit_util:url_encode(V)] | Acc]
+                                   encode_query_value(K, V)] | Acc]
                            end, [], Props),
     lists:flatten(ecouchdbkit_util:revjoin(RevPairs, $&, [])).
         
-encode_query_value({K,V}) ->
+encode_query_value(K,V) ->
     V1 = case K of
-    "key"-> ecouchdbkit:json_encode(V);
-    "startkey" -> ecouchdbkit:json_encode(V);
-    "endkey" -> ecouchdbkit:json_encode(V);
+    "key"-> encode_value(V);
+    "startkey" -> encode_value(V);
+    "endkey" -> encode_value(V);
     _V -> V
     end,
     io:format("{k, v} = ~p ~n", [{K, V1}]),
-    {K, V1}.
+    V1.
+
+encode_value(V) when is_list(V) ->
+    encode_value(?l2b(V));
+encode_value(V) ->
+    V1 = ecouchdbkit:json_encode(V),
+    binary_to_list(iolist_to_binary(V1)).
 
 make_io(Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
