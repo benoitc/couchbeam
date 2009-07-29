@@ -147,6 +147,12 @@ do_req(Method, State, Path, Body, Headers, Fun) ->
     
 
 recv_body(Sock, Headers, Fun) ->
+    {WrappedFun, InitialState} = case Fun of
+    {Fun1, State1} ->
+        {Fun1, State1};
+    _Fun ->
+        {Fun, []}
+    end,
     
     FunWrapper = fun(Data, Acc) ->
         Fun(Data, Acc)
@@ -156,8 +162,8 @@ recv_body(Sock, Headers, Fun) ->
     {unknown_transfer_encoding, _} -> FunWrapper({<<>>, done});
     undefined -> FunWrapper({<<>>, done});
     0 -> FunWrapper({<<>>, done});
-    chunked -> recv_chunked_body(Sock, ?MAX_CHUNK_SIZE, FunWrapper, []);
-    Length -> recv_unchunked_body(Sock, ?MAX_CHUNK_SIZE, Length, FunWrapper, [])
+    chunked -> recv_chunked_body(Sock, ?MAX_CHUNK_SIZE, FunWrapper, InitialState);
+    Length -> recv_unchunked_body(Sock, ?MAX_CHUNK_SIZE, Length, FunWrapper, InitialState)
     end.
         
 body_length(H) ->
@@ -177,7 +183,6 @@ recv_unchunked_body(Sock, MaxHunk, DataLeft, Fun, Acc) ->
     true ->
         {ok, Data1} = gen_tcp:recv(Sock, DataLeft, ?IDLE_TIMEOUT),
         Acc1 = Fun({Data1, done}, Acc),
-        %%iolist_to_binary(lists:reverse(Acc1));
         Acc1;
     false ->
         {ok, Data2} = gen_tcp:recv(Sock, MaxHunk, ?IDLE_TIMEOUT),
@@ -192,9 +197,7 @@ recv_chunked_body(Sock, MaxChunkSize, Fun, Acc) ->
     0 ->  
         Bin = read_chunk(Sock, 0),
         Acc1 = Fun({Bin, done}, Acc),
-        Acc1;
-        %%iolist_to_binary(lists:reverse([Bin|Acc]));
-        
+        Acc1;     
     Length ->
         recv_chunked_body(Sock, MaxChunkSize, Length, Fun, Acc)
     end.
