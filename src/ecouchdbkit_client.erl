@@ -159,9 +159,9 @@ recv_body(Sock, Headers, Fun) ->
     end,
         
     case body_length(Headers) of
-    {unknown_transfer_encoding, _} -> FunWrapper({<<>>, done});
-    undefined -> FunWrapper({<<>>, done});
-    0 -> FunWrapper({<<>>, done});
+    {unknown_transfer_encoding, _} -> FunWrapper({<<>>, done}, InitialState);
+    undefined -> FunWrapper({<<>>, done}, InitialState);
+    0 -> FunWrapper({<<>>, done}, InitialState);
     chunked -> recv_chunked_body(Sock, ?MAX_CHUNK_SIZE, FunWrapper, InitialState);
     Length -> recv_unchunked_body(Sock, ?MAX_CHUNK_SIZE, Length, FunWrapper, InitialState)
     end.
@@ -257,7 +257,6 @@ read_chunk(Sock, Length) ->
     
 body_fun(Data, Acc) ->
     case Data of 
-    {<<>>, done} -> <<>>;
     {Data1, done} ->
         iolist_to_binary(lists:reverse([Data1|Acc]));
     {Data2, end_chunk} ->
