@@ -5,7 +5,8 @@ ecouchdbkit is a simple erlang CouchDB framework. ecouchdbkit provides you a ful
 ## Features
 
 * a full client in sync with latest CouchDB version
-* it follows OTP principles
+* possible to use it as a simple standalone client (without starting application and such).
+* it follows OTP principles if you want
 * no dependancies. Http client use gen_recv and will allow full streaming of attachments
 
 

@@ -21,9 +21,9 @@
 -behaviour(gen_server).
 
 -export([start/1, start_link/1]).
-
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
+-export([send_request/6]).
 
 -include("ecouchdbkit.hrl").
 
@@ -46,9 +46,11 @@ handle_call({request, Method, Path, Body, Headers, Params}, _From, State) ->
     R = send_request(State, Method, Path, Body, Headers, Params),
     {reply, R, State}.
     
+send_request({Host, Port}, Method, Path, Body, Headers, Params) ->
+    send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, Headers, Params);
+
 send_request(State, Method, Path, Body, Headers, Params) ->
     Method1 = convert_method(Method),
-    
     Path1 = lists:append([Path, 
             case Params of
             [] -> [];
@@ -367,7 +369,6 @@ encode_query_value(K,V) ->
     "endkey" -> encode_value(V);
     _V -> V
     end,
-    io:format("{k, v} = ~p ~n", [{K, V1}]),
     V1.
 
 encode_value(V) when is_list(V) ->

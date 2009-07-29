@@ -24,7 +24,7 @@
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
-         uuids/0, uuids/1, next_uuid/0, open_doc/3, open_doc/4, 
+         uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
          query_view/4, query_view/5, is_db/2, all_docs/3]).
          
@@ -62,15 +62,35 @@ server_info(NodeName) ->
     Resp = make_request(NodeName, 'GET', "/", []),
     {Resp1} = do_reply(Resp),
     Resp1.
-    
+
 uuids() ->
     gen_server:call(ecouchdbkit, uuids).
-    
-uuids(Count) ->
+       
+uuids(Count) -> 
     gen_server:call(ecouchdbkit, {uuids, Count}).
-    
+
+uuids(NodeName, Count) ->
+    Resp = make_request(NodeName, 'GET', "/_uuids", [], [{"count", Count}]),
+    {[{<<"uuids">>, Uuids}]} = do_reply(Resp),
+    Uuids. 
+          
 next_uuid() ->
     gen_server:call(ecouchdbkit, next_uuid).
+    
+next_uuid(NodeName) ->
+    case lists:member(ecouchdbkit_uuids, ets:all()) of
+    true ->
+        case ets:lookup(ecouchdbkit_uuids, uuids) of
+        [] -> new_uuids1(NodeName);
+        [{uuids, []}] -> new_uuids1(NodeName);
+        [{uuids, [Id2|Uuids2]}] ->
+        ets:insert(ecouchdbkit_uuids, {uuids, Uuids2}),
+        Id2
+        end;
+    false ->
+        ets:new(ecouchdbkit_uuids, [named_table, public, ordered_set]),
+        next_uuid(NodeName)
+    end.
     
 all_dbs(NodeName) ->
     Resp = make_request(NodeName, 'GET', "/_all_dbs", []),
@@ -111,7 +131,11 @@ open_doc(NodeName, DbName, DocId, Rev) ->
 save_doc(NodeName, DbName, Doc) ->
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
-    undefined -> next_uuid();
+    undefined -> 
+        case NodeName of
+        {_, _} -> next_uuid(NodeName);
+        _ -> next_uuid()
+        end;
     Id1 -> Id1
     end,
     save_doc(NodeName, DbName, DocId, Doc).
@@ -126,7 +150,7 @@ save_docs(NodeName, DbName, Docs) ->
     save_docs(NodeName, DbName, Docs, []).
         
 save_docs(NodeName, DbName, Docs, Opts) ->
-    Docs1 = [maybe_docid(Doc) || Doc <- Docs],
+    Docs1 = [maybe_docid(NodeName, Doc) || Doc <- Docs],
     JsonObj = case proplists:get_value(all_or_nothing, Opts, false) of
     true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
     false -> {[{<<"docs">>, Docs1}]}
@@ -168,7 +192,6 @@ do_reply(Resp) ->
     {error, Reason} -> throw(Reason);
     {json, {[{<<"ok">>, true}]}} -> ok;
     {json, {[{<<"ok">>, true}|Res]}} -> {ok, {Res}};
-    %%{json, {Obj}} -> Obj;
     {json, Obj} -> Obj;
     Other -> Other
     end.
@@ -178,6 +201,9 @@ make_request(NodeName, Method, Path, Headers) ->
     
 make_request(NodeName, Method, Path, Headers, Params) ->
     make_request(NodeName, Method, Path, nil, Headers, Params).
+    
+make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params) ->
+    ecouchdbkit_client:send_request(Node, Method, Path, Body, Headers, Params);
     
 make_request(NodeName, Method, Path, Body, Headers, Params) ->
     case gen_server:call(ecouchdbkit, {get, NodeName}) of
@@ -291,15 +317,23 @@ new_uuid(Tid) ->
     ets:insert(Tid, {uuids, Uuids}),
     Id.
     
+new_uuids1(NodeName) ->
+    [Id|Uuids] = uuids(NodeName, "1000"),
+    ets:insert(ecouchdbkit_uuids, {uuids, Uuids}),
+    Id.
+    
 encode_docid(DocId) when is_binary(DocId) ->
     ?b2l(DocId);
 encode_docid(DocId) when is_list(DocId) ->
     DocId.
     
-maybe_docid({DocProps}) ->
+maybe_docid(NodeName, {DocProps}) ->
     case proplists:get_value(<<"_id">>, DocProps) of
         undefined ->
-            DocId = couchdbkit_util:new_uuid(),
+            DocId = case NodeName of
+            {_H, _P} -> next_uuid(NodeName);
+            _ -> couchdbkit_util:new_uuid()
+            end,
             {[{<<"_id">>, DocId}|DocProps]};
         _DocId ->
             {DocProps}
