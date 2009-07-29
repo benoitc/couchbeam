@@ -23,7 +23,7 @@
 -export([start/1, start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
--export([send_request/6]).
+-export([send_request/6, send_request/7]).
 
 -include("ecouchdbkit.hrl").
 
@@ -42,14 +42,27 @@ init({Host, Port}) ->
     State = #couchdb_node{host=Host, port=Port},
     {ok, State}.
     
+    
 handle_call({request, Method, Path, Body, Headers, Params}, _From, State) ->
     R = send_request(State, Method, Path, Body, Headers, Params),
+    {reply, R, State};
+    
+handle_call({request, Method, Path, Body, Headers, Params, Fun}, _From, State) ->
+    R = send_request(State, Method, Path, Body, Headers, Params, Fun),
     {reply, R, State}.
     
 send_request({Host, Port}, Method, Path, Body, Headers, Params) ->
-    send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, Headers, Params);
+    send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, 
+        Headers, Params, fun body_fun/2);
 
 send_request(State, Method, Path, Body, Headers, Params) ->
+    send_request(State, Method, Path, Body, Headers, 
+        Params, fun body_fun/2).
+
+send_request({Host, Port}, Method, Path, Body, Headers, Params, Fun) ->
+    send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, Headers, Params, Fun);
+    
+send_request(State, Method, Path, Body, Headers, Params, Fun) ->
     Method1 = convert_method(Method),
     Path1 = lists:append([Path, 
             case Params of
@@ -59,15 +72,15 @@ send_request(State, Method, Path, Body, Headers, Params) ->
     
     case Body of
     nil when Method =:= 'POST' orelse Method =:= 'PUT' -> 
-        send_request(State, Method, Path, <<>>, Headers, Params);
+        send_request(State, Method, Path, <<>>, Headers, Params, Fun);
     nil ->
-        do_req(Method1, State, Path1, Body, Headers);
+        do_req(Method1, State, Path1, Body, Headers, Fun);
     _ ->
         Headers1 = default_header("Content-Type", "application/json", Headers),
         
         case make_body(Body, Headers1) of
         {ok, B, H} ->
-            do_req(Method1, State, Path1, B, H);
+            do_req(Method1, State, Path1, B, H, Fun);
         {error, Reason} ->
             {error, {bad_request, Reason}}
         end
@@ -87,7 +100,7 @@ terminate(_Reason, _State) ->
     
 
 %% Internal API
-do_req(Method, State, Path, Body, Headers) ->           
+do_req(Method, State, Path, Body, Headers, Fun) ->           
     case connect_url(State) of
     {ok, Sock} ->
         case start_client_request(Sock, State, Method, Path, Headers) of
@@ -112,8 +125,7 @@ do_req(Method, State, Path, Body, Headers) ->
                          Method == "HEAD" ->
                              {ok, {Status, Phrase}};
                          true ->
-                             Resp = recv_body(Sock, RespHeaders),
-                             ecouchdbkit:json_decode(Resp),
+                             Resp = recv_body(Sock, RespHeaders, Fun),
                              try ecouchdbkit:json_decode(?b2l(Resp)) of
                                 Resp1 -> {json, Resp1}
                              catch
@@ -134,13 +146,18 @@ do_req(Method, State, Path, Body, Headers) ->
     
     
 
-recv_body(Sock, Headers) ->
+recv_body(Sock, Headers, Fun) ->
+    
+    FunWrapper = fun(Data, Acc) ->
+        Fun(Data, Acc)
+    end,
+        
     case body_length(Headers) of
-    {unknown_transfer_encoding, _} -> <<>>;
-    undefined -> <<>>;
-    0 -> <<>>;
-    chunked -> recv_chunked_body(Sock, ?MAX_CHUNK_SIZE, []);
-    Length -> recv_unchunked_body(Sock, ?MAX_CHUNK_SIZE, Length, [])
+    {unknown_transfer_encoding, _} -> FunWrapper({<<>>, done});
+    undefined -> FunWrapper({<<>>, done});
+    0 -> FunWrapper({<<>>, done});
+    chunked -> recv_chunked_body(Sock, ?MAX_CHUNK_SIZE, FunWrapper, []);
+    Length -> recv_unchunked_body(Sock, ?MAX_CHUNK_SIZE, Length, FunWrapper, [])
     end.
         
 body_length(H) ->
@@ -154,38 +171,45 @@ body_length(H) ->
     Unknown -> {unknown_transfer_encoding, Unknown}
     end.
 
-recv_unchunked_body(Sock, MaxHunk, DataLeft, Acc) ->
+recv_unchunked_body(Sock, MaxHunk, DataLeft, Fun, Acc) ->
     inet:setopts(Sock, [{packet, raw}]),
     case MaxHunk >= DataLeft of
     true ->
         {ok, Data1} = gen_tcp:recv(Sock, DataLeft, ?IDLE_TIMEOUT),
-        iolist_to_binary(lists:reverse([Data1|Acc]));
+        Acc1 = Fun({Data1, done}, Acc),
+        %%iolist_to_binary(lists:reverse(Acc1));
+        Acc1;
     false ->
         {ok, Data2} = gen_tcp:recv(Sock, MaxHunk, ?IDLE_TIMEOUT),
-        recv_unchunked_body(Sock, MaxHunk, DataLeft-MaxHunk, [Data2|Acc])
+        Acc2 = Fun(Data2, Acc),
+        recv_unchunked_body(Sock, MaxHunk, DataLeft-MaxHunk, Fun, Acc2)
     end.
     
-recv_chunked_body(Sock, MaxChunkSize, Acc) ->
+recv_chunked_body(Sock, MaxChunkSize, Fun, Acc) ->
     case read_chunk_length(Sock) of
     error -> 
         {error, "Bad chunked transfer-encoding header"};
     0 ->  
         Bin = read_chunk(Sock, 0),
-        iolist_to_binary(lists:reverse([Bin|Acc]));
+        Acc1 = Fun({Bin, done}, Acc),
+        Acc1;
+        %%iolist_to_binary(lists:reverse([Bin|Acc]));
         
     Length ->
-        recv_chunked_body(Sock, MaxChunkSize, Length, Acc)
+        recv_chunked_body(Sock, MaxChunkSize, Length, Fun, Acc)
     end.
 
-recv_chunked_body(Sock, MaxChunkSize, LeftInChunk, Acc) ->
+recv_chunked_body(Sock, MaxChunkSize, LeftInChunk, Fun, Acc) ->
     case MaxChunkSize >= LeftInChunk of
     true ->
         Data1 = read_chunk(Sock, LeftInChunk),
-        recv_chunked_body(Sock, MaxChunkSize, [Data1|Acc]);
+        Acc1 = Fun(Data1, Acc),
+        recv_chunked_body(Sock, MaxChunkSize, Fun, Acc1);
     false ->
         {ok, Data2} = gen_tcp:recv(Sock, MaxChunkSize,
             ?IDLE_TIMEOUT),
-         recv_chunked_body(Sock, MaxChunkSize, LeftInChunk-MaxChunkSize, [Data2|Acc])
+        Acc2 = Fun(Data2, Acc),
+        recv_chunked_body(Sock, MaxChunkSize, LeftInChunk-MaxChunkSize, Fun, Acc2)
     end.
     
 read_chunk_length(Sock) ->
@@ -229,6 +253,17 @@ read_chunk(Sock, Length) ->
         _ ->
             exit(normal)
     end.
+    
+body_fun(Data, Acc) ->
+    case Data of 
+    {<<>>, done} -> <<>>;
+    {Data1, done} ->
+        iolist_to_binary(lists:reverse([Data1|Acc]));
+    Data2 ->
+        [Data2|Acc]
+    end.
+    
+    
 collect_headers (Sock, Resp, Headers, Count) when Count < 1000 ->
     case gen_tcp:recv(Sock, 0, ?IDLE_TIMEOUT) of
         {ok, {http_header, _Num, Name, _, Value}} ->
@@ -243,18 +278,6 @@ collect_headers (Sock, Resp, Headers, Count) when Count < 1000 ->
             exit(normal) 
     end.
 
-get_response_headers(Sock) ->
-    inet:setopts(Sock, [{packet, http}]),
-    case http_recv_request(Sock) of
-        bad_request ->
-            {error, {bad_request, <<"Bad request">>}};
-        closed ->
-            {error, {closed, <<"Remote connection closed">>}};
-        R -> 
-            H = collect_headers(Sock, R, [], 0),
-            {R, H}
-    end.
-    
 http_recv_request(Sock) ->
     case gen_tcp:recv(Sock, 0, ?IDLE_TIMEOUT) of
         {ok, R} when is_record(R, http_response) ->
@@ -272,6 +295,20 @@ http_recv_request(Sock) ->
             io:format("Got ~p~n", [_Other]),
             exit(normal)
     end.
+
+get_response_headers(Sock) ->
+    inet:setopts(Sock, [{packet, http}]),
+    case http_recv_request(Sock) of
+        bad_request ->
+            {error, {bad_request, <<"Bad request">>}};
+        closed ->
+            {error, {closed, <<"Remote connection closed">>}};
+        R -> 
+            H = collect_headers(Sock, R, [], 0),
+            {R, H}
+    end.
+    
+
     
 send_body(Fun, Sock) when is_function(Fun) ->
     send_body({Fun}, Sock);

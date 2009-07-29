@@ -23,10 +23,14 @@
 -export([init/1, handle_call/3,sup_start_link/0]).
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
+-export([make_request/4, make_request/5, make_request/6, 
+         make_request/7, do_reply/1]).
+
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
          query_view/4, query_view/5, is_db/2, all_docs/3]).
+
          
 -include("ecouchdbkit.hrl").
 -define(SERVER, ?MODULE).
@@ -212,7 +216,17 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
     Pid -> 
         gen_server:call(Pid, {request, Method, Path, Body, Headers, Params})
     end.
+
+make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params, Fun) ->
+    ecouchdbkit_client:send_request(Node, Method, Path, Body, Headers, Params, Fun);
     
+make_request(NodeName, Method, Path, Body, Headers, Params, Fun) ->
+    case gen_server:call(ecouchdbkit, {get, NodeName}) of
+    {error, Reason} -> 
+        {error, Reason};
+    Pid -> 
+        gen_server:call(Pid, {request, Method, Path, Body, Headers, Params, Fun})
+    end.    
     
 init([]) ->
     Tid = ets:new(ecouchdbkit_uuids, [public, ordered_set]),
