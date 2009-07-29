@@ -23,7 +23,7 @@
 -export([start/1, start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
--export([send_request/6, send_request/7]).
+-export([send_request/6, send_request/7, body_fun/2]).
 
 -include("ecouchdbkit.hrl").
 
@@ -155,7 +155,7 @@ recv_body(Sock, Headers, Fun) ->
     end,
     
     FunWrapper = fun(Data, Acc) ->
-        Fun(Data, Acc)
+        WrappedFun(Data, Acc)
     end,
         
     case body_length(Headers) of
@@ -397,7 +397,7 @@ convert_method(Method) when is_list(Method) ->
 
 encode_query(Props) ->
     RevPairs = lists:foldl(fun ({K, V}, Acc) ->
-                                   [[ecouchdbkit_util:url_encode(K), $=, 
+                                   [[ecouchdbkit_util:quote_plus(K), $=, 
                                    encode_query_value(K, V)] | Acc]
                            end, [], Props),
     lists:flatten(ecouchdbkit_util:revjoin(RevPairs, $&, [])).
@@ -410,12 +410,10 @@ encode_query_value(K,V) ->
     _V -> V
     end,
     V1.
-
-encode_value(V) when is_list(V) ->
-    encode_value(?l2b(V));
+    
 encode_value(V) ->
     V1 = ecouchdbkit:json_encode(V),
-    binary_to_list(iolist_to_binary(V1)).
+    ecouchdbkit_util:quote_plus(binary_to_list(iolist_to_binary(V1))).
 
 make_io(Atom) when is_atom(Atom) ->
     atom_to_list(Atom);

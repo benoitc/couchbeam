@@ -29,7 +29,7 @@
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
-         query_view/4, query_view/5, is_db/2, all_docs/3]).
+         query_view/4, query_view/5, query_view/6, is_db/2, all_docs/3]).
 
          
 -include("ecouchdbkit.hrl").
@@ -180,16 +180,24 @@ query_view(NodeName, DbName, DName, ViewName, Params) ->
     Path = io_lib:format("/~s/_design/~s/_view/~s", [DbName, DName, ViewName]),
     fetch_view(NodeName, Path, Params).
     
+query_view(NodeName, DbName, DName, ViewName, Params, Fun) ->
+    Path = io_lib:format("/~s/_design/~s/_view/~s", [DbName, DName, ViewName]),
+    fetch_view(NodeName, Path, Params, Fun).
+    
 fetch_view(NodeName, Path, Params) ->
+    fetch_view(NodeName, Path, Params, fun ecouchdbkit_client:body_fun/2).
+    
+fetch_view(NodeName, Path, Params, Fun) ->
     Resp = case proplists:get_value("keys", Params) of
         undefined -> 
-            make_request(NodeName, 'GET', Path, [], Params);
+            make_request(NodeName, 'GET', Path, nil, [], Params, Fun);
         Keys ->
             Params1 = proplists:delete("keys", Params),
             Body = ecouchdbkit:json_encode({struct, {<<"keys">>, Keys}}),
-            make_request(NodeName, 'POST', Path, Body, [], Params1)
+            make_request(NodeName, 'POST', Path, Body, [], Params1, Fun)
         end,
     do_reply(Resp).
+    
     
 do_reply(Resp) ->
     case Resp of

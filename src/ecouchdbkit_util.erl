@@ -20,8 +20,45 @@
 -module(ecouchdbkit_util).
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
-         join/2, revjoin/3, url_encode/1]).
- 
+         join/2, revjoin/3, quote_plus/1]).
+
+
+-define(PERCENT, 37).  % $\%
+-define(FULLSTOP, 46). % $\.
+-define(IS_HEX(C), ((C >= $0 andalso C =< $9) orelse
+                    (C >= $a andalso C =< $f) orelse
+                    (C >= $A andalso C =< $F))).
+-define(QS_SAFE(C), ((C >= $a andalso C =< $z) orelse
+                     (C >= $A andalso C =< $Z) orelse
+                     (C >= $0 andalso C =< $9) orelse
+                     (C =:= ?FULLSTOP orelse C =:= $- orelse C =:= $~ orelse
+                      C =:= $_))).
+                      
+hexdigit(C) when C < 10 -> $0 + C;
+hexdigit(C) when C < 16 -> $A + (C - 10).
+
+%% @spec quote_plus(atom() | integer() | float() | string() | binary()) -> string()
+%% @doc URL safe encoding of the given term.
+quote_plus(Atom) when is_atom(Atom) ->
+    quote_plus(atom_to_list(Atom));
+quote_plus(Int) when is_integer(Int) ->
+    quote_plus(integer_to_list(Int));
+quote_plus(Binary) when is_binary(Binary) ->
+    quote_plus(binary_to_list(Binary));
+quote_plus(Float) when is_float(Float) ->
+    quote_plus(mochinum:digits(Float));
+quote_plus(String) ->
+    quote_plus(String, []).
+
+quote_plus([], Acc) ->
+    lists:reverse(Acc);
+quote_plus([C | Rest], Acc) when ?QS_SAFE(C) ->
+    quote_plus(Rest, [C | Acc]);
+quote_plus([$\s | Rest], Acc) ->
+    quote_plus(Rest, [$+ | Acc]);
+quote_plus([C | Rest], Acc) ->
+    <<Hi:4, Lo:4>> = <<C>>,
+    quote_plus(Rest, [hexdigit(Lo), hexdigit(Hi), ?PERCENT | Acc]). 
 
 generate_uuids(Count) ->
     [ new_uuid() || _ <- lists:seq(1,Count)].
@@ -44,35 +81,7 @@ revjoin([S | Rest], Separator, []) ->
 revjoin([S | Rest], Separator, Acc) ->
     revjoin(Rest, Separator, [S, Separator | Acc]).
     
-    
 
-%% @doc URL-encodes a string based on RFC 1738. Returns a flat list.
-%% http://erlyaws.svn.sourceforge.net/viewvc/erlyaws/trunk/yaws/src/yaws_api.erl
-%% @spec url_encode(Str) -> UrlEncodedStr
-%% Str = string()
-%% UrlEncodedStr = string()  
-
-url_encode([H|T]) ->
-    if
-        H >= $a, $z >= H ->
-            [H|url_encode(T)];
-        H >= $A, $Z >= H ->
-            [H|url_encode(T)];
-        H >= $0, $9 >= H ->
-            [H|url_encode(T)];
-        H == $_; H == $.; H == $-; H == $/; H == $: -> % FIXME: more..
-            [H|url_encode(T)];
-        true ->
-            case erlang:list_to_integer([H], 16) of
-                [X, Y] ->
-                    [$%, X, Y | url_encode(T)];
-                [X] ->
-                    [$%, $0, X | url_encode(T)]
-            end
-     end;
-
-url_encode([]) ->
-    [].
     
 %% code from CouchDB
 new_uuid() ->
