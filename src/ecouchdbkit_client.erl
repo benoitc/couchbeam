@@ -333,14 +333,9 @@ start_client_request(Sock, #couchdb_node{host=Host, port=Port}, Method, Path, Hd
     Hdrs1 = [{"Host",  lists:append([Host, ":", make_int(Port)])}| Hdrs],
     Hdrs2 = insert_default_headers([{"Accept", "appplication/json"}, 
                                     {"User-Agent", ?USER_AGENT}], Hdrs1),
-    start_raw_client_request(Sock, Method, Path, Hdrs2).
-
-%% @doc send headers
-start_raw_client_request(Sock, Method, Path, Headers) ->
-    HStr = headers_to_str(Headers),
+    HStr = headers_to_str(Hdrs2),
     gen_tcp:send(Sock, [?l2b(Method), <<" ">>, ?l2b(Path), <<" HTTP/1.1 ">>, <<"\r\n">> | HStr]).
-      
-      
+
 insert_default_headers([], H) ->
     H;
 insert_default_headers([{K, V}|Rest], H) ->
