@@ -72,7 +72,9 @@ sup_start_link() ->
 %% for now to set once the CouchDB node and reuse settings. In a future version it will
 %% be possible to setup loadbalancing and such things.
 open_connection({NodeName, {Host, Port}}) ->
-    gen_server:call(couchbeam, {open_connection, {NodeName, {Host, Port}}}).
+    gen_server:call(couchbeam, {open_connection, {NodeName, {Host, Port}}});
+open_connection({NodeName, {Host, Port, UserName, Password}}) ->
+    gen_server:call(couchbeam, {open_connection, {NodeName, {Host, Port, UserName, Password}}}).
     
 %% @spec json_encode(V::json_term()) -> iolist()
 %% @doc Encode to json
@@ -401,6 +403,10 @@ make_request(NodeName, Method, Path, Headers, Params) ->
 make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params) ->
     couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params);
     
+make_request({_Host,_Port, _UserName, _Passsword}=Node, Method, Path, Body, Headers, Params) ->
+    couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params);
+
+    
 make_request(NodeName, Method, Path, Body, Headers, Params) ->
     case gen_server:call(couchbeam, {get, NodeName}) of
     {error, Reason} -> 
@@ -411,6 +417,10 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
 
 make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params, Fun) ->
     couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params, Fun);
+
+make_request({_Host,_Port,_UserName,_Passsword}=Node, Method, Path, Body, Headers, Params, Fun) ->
+    couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params, Fun); 
+ 
     
 make_request(NodeName, Method, Path, Body, Headers, Params, Fun) ->
     case gen_server:call(couchbeam, {get, NodeName}) of
@@ -441,9 +451,11 @@ handle_call({get, NodeName}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
         Node ->
             #couchdb_node{
                 host=Host,
-                port=Port
+                port=Port,
+                username=UserName,
+                password=Password
             } = Node,
-            {Pid, _} = open_connection1({NodeName, {Host, Port}}, Nodes),
+            {Pid, _} = open_connection1({NodeName, {Host, Port, UserName, Password}}, Nodes),
             Pid
         end;
     Pid -> Pid
@@ -451,7 +463,11 @@ handle_call({get, NodeName}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
     {reply, R, State};
     
 handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
-    {_, Nodes1} = open_connection1({NodeName, {Host, Port}}, Nodes),
+    {_, Nodes1} = open_connection1({NodeName, {Host, Port, nil, nil}}, Nodes),
+    {reply, ok, State#couchbeam_srv{nodes=Nodes1}};
+
+handle_call({open_connection, {NodeName, {Host, Port, UserName, Password}}}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
+    {_, Nodes1} = open_connection1({NodeName, {Host, Port, UserName, Password}}, Nodes),
     {reply, ok, State#couchbeam_srv{nodes=Nodes1}};
     
 handle_call(next_uuid, _From, #couchbeam_srv{ets_tid=Tid}=State) ->
@@ -505,10 +521,13 @@ fetch_view(NodeName, Path, Params, Fun) ->
 
 %% @private
 %% Create a couchbeam_client sertver for a nodename if it don't exist
+
 open_connection1({NodeName, {Host, Port}}, Nodes) ->
+    open_connection1({NodeName, {Host, Port, nil, nil}}, Nodes);
+open_connection1({NodeName, {Host, Port, UserName, Password}}, Nodes) ->
     NodeName1 = nodename(NodeName),
     Client = {NodeName1,
-        {couchbeam_client, start_link, [{Host, Port}]},
+        {couchbeam_client, start_link, [{Host, Port, UserName, Password}]},
         permanent,
         brutal_kill,
         worker,
@@ -534,7 +553,7 @@ open_connection1({NodeName, {Host, Port}}, Nodes) ->
             end
         end
     end,
-    Node = {NodeName1, #couchdb_node{host=Host, port=Port}},
+    Node = {NodeName1, #couchdb_node{host=Host, port=Port, username=UserName, password=Password}},
     Nodes2 = [Node|proplists:delete(NodeName1, Nodes)],
     {Pid, Nodes2}.
     

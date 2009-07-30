@@ -39,7 +39,13 @@ start_link(Args) ->
 
         
 init({Host, Port}) ->
-    State = #couchdb_node{host=Host, port=Port},
+    init({Host, Port, nil, nil});
+init({Host, Port, UserName, Password}) ->
+    State = #couchdb_node{
+                host=Host,
+                port=Port,
+                username=UserName,
+                password=Password},
     {ok, State}.
     
     
@@ -55,12 +61,21 @@ send_request({Host, Port}, Method, Path, Body, Headers, Params) ->
     send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, 
         Headers, Params, fun body_fun/2);
 
+send_request({Host, Port, UserName, Password}, Method, Path, Body, Headers, Params) ->
+    send_request(#couchdb_node{host=Host, port=Port, username=UserName, password=Password}, 
+        Method, Path, Body, Headers, Params, fun body_fun/2);
+
+
 send_request(State, Method, Path, Body, Headers, Params) ->
     send_request(State, Method, Path, Body, Headers, 
         Params, fun body_fun/2).
 
 send_request({Host, Port}, Method, Path, Body, Headers, Params, Fun) ->
     send_request(#couchdb_node{host=Host, port=Port}, Method, Path, Body, Headers, Params, Fun);
+
+send_request({Host, Port, UserName, Password}, Method, Path, Body, Headers, Params, Fun) ->
+    send_request(#couchdb_node{host=Host, port=Port, username=UserName, password=Password},
+        Method, Path, Body, Headers, Params, Fun);
     
 send_request(State, Method, Path, Body, Headers, Params, Fun) ->
     Method1 = convert_method(Method),
@@ -69,16 +84,16 @@ send_request(State, Method, Path, Body, Headers, Params, Fun) ->
             [] -> [];
             Props -> "?" ++ encode_query(Props)
             end]),
-    
+    Headers1 = make_auth(State, Headers), 
     case Body of
     nil when Method =:= 'POST' orelse Method =:= 'PUT' -> 
         send_request(State, Method, Path, <<>>, Headers, Params, Fun);
     nil ->
-        do_req(Method1, State, Path1, Body, Headers, Fun);
+        do_req(Method1, State, Path1, Body, Headers1, Fun);
     _ ->
-        Headers1 = default_header("Content-Type", "application/json", Headers),
+        Headers2 = default_header("Content-Type", "application/json", Headers1),
         
-        case make_body(Body, Headers1) of
+        case make_body(Body, Headers2) of
         {ok, B, H} ->
             do_req(Method1, State, Path1, B, H, Fun);
         {error, Reason} ->
@@ -382,6 +397,15 @@ insert_default_headers([], H) ->
 insert_default_headers([{K, V}|Rest], H) ->
     H1 = default_header(K, V, H),
     insert_default_headers(Rest, H1).
+
+
+make_auth(#couchdb_node{username=nil, password=nil}, Headers) ->
+    Headers;
+make_auth(#couchdb_node{username=_UserName, password=nil}=State, Headers) ->
+    make_auth(State#couchdb_node{password=""}, Headers);
+make_auth(#couchdb_node{username=UserName, password=Password}, Headers) ->
+    default_header("Authorization", "Basic " ++
+          base64:encode_to_string(UserName ++ ":" ++ Password), Headers).
                     
 headers_to_str(Headers) ->
     F = fun ({K, V}, Acc) ->

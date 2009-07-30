@@ -21,8 +21,8 @@
 -record(couchdb_node, {
     host,
     port,
-    username,
-    password,
+    username=nil,
+    password=nil,
     ets_tid}).
     
 -record(http_response, {version,

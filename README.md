@@ -1,15 +1,16 @@
 ## README
 
-couchbeam is a simple erlang CouchDB framework. couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
+**couchbeam** is a simple erlang CouchDB framework. couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
 
 ## Features
 
-* a full client in sync with latest CouchDB version
-* possible to use it as a simple standalone client (without starting application and such).
-* it follows OTP principles if you want
-* no dependancies. Http client use gen_recv and allow full streaming of attachments.
+* A full client in sync with latest CouchDB version
+* Possible to use it as a simple standalone client (without starting application and such).
+* It follows OTP principles if you want
+* No dependancies. Http client use gen_recv and allow full streaming of attachments.
 * Views can be retrieved while they coming (See example parse_incoming_view escript).
 * Attachements are streamed and can be save on disk (or whatever you want) while they coming.
+* Authentification support.
 
 
 ## Basic Standalone Usage 
@@ -60,6 +61,11 @@ couchbeam is a simple erlang CouchDB framework. couchbeam provides you a full fe
              {<<"field">>,<<"value">>},
              {<<"type">>,<<"test">>}]}}]}]}]}
              
+3) Connect to a password protected CouchDB Node :
+
+   1> couchbeam:create_db({"127.0.0.1", 5984, "admin", "testpassword"}, "mydb").
+   
+   
 ## Using as an OTP application :        
 
 	1> application:start(crypto),
