@@ -66,7 +66,10 @@
    1> couchbeam:create_db({"127.0.0.1", 5984, "admin", "testpassword"}, "mydb").
    
    
-## Using as an OTP application :        
+## Using as an OTP application :
+
+You can use couchdbkit as an OTP application, allowing you to manage multiple database connexions. In the future it will allow load balancing and such things. 
+  
 
 	1> application:start(crypto),
 	1> couchbeam:start().
