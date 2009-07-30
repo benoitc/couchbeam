@@ -14,7 +14,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
--record(ecouchdbkit_srv,{
+-record(couchbeam_srv,{
     ets_tid,
     nodes=[]}).
 
@@ -29,7 +29,7 @@
                         status,
                         phrase}).
     
--define(USER_AGENT, "ecouchdbkit/0.1").
+-define(USER_AGENT, "couchbeam/0.1").
 
 -define(b2l(V), binary_to_list(V)).
 -define(l2b(V), list_to_binary(V)).

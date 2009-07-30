@@ -14,7 +14,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
--module(ecouchdbkit).
+-module(couchbeam).
 -behaviour(application).
 -behaviour(gen_server).
 -author('Benoît Chesneau <benoitc@e-engura.org').
@@ -24,16 +24,18 @@
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
 -export([make_request/4, make_request/5, make_request/6, 
-         make_request/7, do_reply/1]).
+         make_request/7, do_reply/1, get_value/2, extend/3, extend/2]).
 
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
          query_view/4, query_view/5, query_view/6, parse_view/1,
-         is_db/2, all_docs/3, all_docs_by_seq/3]).
+         is_db/2, all_docs/3, all_docs_by_seq/3,
+         fetch_attachment/4, fetch_attachment/5, delete_attachment/4,
+         put_attachment/6, put_attachment/7]).
 
          
--include("ecouchdbkit.hrl").
+-include("couchbeam.hrl").
 -define(SERVER, ?MODULE).
 
 %% @type node_info() = {Host::string(), Port::int()}
@@ -48,10 +50,10 @@
 
 
 start() ->
-    ecouchdbkit_sup:start_link().
+    couchbeam_sup:start_link().
     
 stop() ->
-    ecouchdbkit_sup:stop().
+    couchbeam_sup:stop().
 
 start(_Type, _StartArgs) ->
     start().
@@ -60,27 +62,27 @@ stop(_Reason) ->
     stop().
     
 sup_start_link() ->
-    gen_server:start_link({local, ecouchdbkit}, ecouchdbkit, [], []).
+    gen_server:start_link({local, couchbeam}, couchbeam, [], []).
     
     
 %% @spec open_connection(node()) -> ok
 %% @type node() = {NodeName::atom()|string(), Hostname::string(), Port::integer()}
-%% @doc When you use ecouchdbkit as an application (OTP mode) you could setup the 
+%% @doc When you use couchbeam as an application (OTP mode) you could setup the 
 %% connection and open a gen_server that will be supervised. It allow you
 %% for now to set once the CouchDB node and reuse settings. In a future version it will
 %% be possible to setup loadbalancing and such things.
 open_connection({NodeName, {Host, Port}}) ->
-    gen_server:call(ecouchdbkit, {open_connection, {NodeName, {Host, Port}}}).
+    gen_server:call(couchbeam, {open_connection, {NodeName, {Host, Port}}}).
     
 %% @spec json_encode(V::json_term()) -> iolist()
 %% @doc Encode to json
 json_encode(V) ->
-    ecouchdbkit_mochijson2:encode(V).
+    couchbeam_mochijson2:encode(V).
     
 %% @spec json_decode(V::iolist()) -> json_term()
 %% @doc decode from json string
 json_decode(V) ->
-    ecouchdbkit_mochijson2:decode(V).
+    couchbeam_mochijson2:decode(V).
     
     
 %% server operations 
@@ -90,31 +92,31 @@ server_info(NodeName) ->
     Resp1.
 
 uuids() ->
-    gen_server:call(ecouchdbkit, uuids).
+    gen_server:call(couchbeam, uuids).
        
 uuids(Count) -> 
-    gen_server:call(ecouchdbkit, {uuids, Count}).
+    gen_server:call(couchbeam, {uuids, couchbeam_util:val(Count)}).
 
 uuids(NodeName, Count) ->
-    Resp = make_request(NodeName, 'GET', "/_uuids", [], [{"count", Count}]),
+    Resp = make_request(NodeName, 'GET', "/_uuids", [], [{"count", couchbeam_util:val(Count)}]),
     {[{<<"uuids">>, Uuids}]} = do_reply(Resp),
     Uuids. 
           
 next_uuid() ->
-    gen_server:call(ecouchdbkit, next_uuid).
+    gen_server:call(couchbeam, next_uuid).
     
 next_uuid(NodeName) ->
-    case lists:member(ecouchdbkit_uuids, ets:all()) of
+    case lists:member(couchbeam_uuids, ets:all()) of
     true ->
-        case ets:lookup(ecouchdbkit_uuids, uuids) of
+        case ets:lookup(couchbeam_uuids, uuids) of
         [] -> new_uuids1(NodeName);
         [{uuids, []}] -> new_uuids1(NodeName);
         [{uuids, [Id2|Uuids2]}] ->
-        ets:insert(ecouchdbkit_uuids, {uuids, Uuids2}),
+        ets:insert(couchbeam_uuids, {uuids, Uuids2}),
         Id2
         end;
     false ->
-        ets:new(ecouchdbkit_uuids, [named_table, public, ordered_set]),
+        ets:new(couchbeam_uuids, [named_table, public, ordered_set]),
         next_uuid(NodeName)
     end.
     
@@ -191,7 +193,7 @@ save_doc(NodeName, DbName, Doc) ->
 %% @doc save a do with DocId. 
 save_doc(NodeName, DbName, DocId, Doc) ->
     Path = "/" ++ DbName ++ "/" ++ encode_docid(DocId),
-    Body = ecouchdbkit:json_encode(Doc),
+    Body = couchbeam:json_encode(Doc),
     Resp = make_request(NodeName, 'PUT', Path, Body, [], []),
     do_reply(Resp).
     
@@ -208,7 +210,7 @@ save_docs(NodeName, DbName, Docs, Opts) ->
     true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
     false -> {[{<<"docs">>, Docs1}]}
     end,    
-    Body = ecouchdbkit:json_encode(JsonObj),
+    Body = couchbeam:json_encode(JsonObj),
     Path = "/" ++ DbName ++ "/_bulk_docs",
     Resp = make_request(NodeName, 'POST', Path, Body, [], []),
     do_reply(Resp).
@@ -281,7 +283,99 @@ parse_view({ViewProps}) ->
         _ -> Id
         end
     end || Row <- Rows],
-    {TotalRows, Offset, Rows1}.
+    {TotalRows, Offset, Rows1};
+parse_view(Other) ->
+    Other.
+    
+%% @spec fetch_attachment(NodeName::atom()|node_info(), DbName::string(), DocId::string(), 
+%%                  AName::string()) -> iolist()
+%% @doc fetch attachment
+fetch_attachment(NodeName, DbName, DocId, AName) ->
+    fetch_attachment(NodeName, DbName, DocId, AName, fun couchbeam_client:body_fun/2).
+   
+%% @spec fetch_attachment(NodeName::atom()|node_info(), DbName::string(), DocId::string(),
+%%      AName::string(), Fun::attachment_fun()) -> iolist()
+%% @type attachment_fun() = fun_arity_0() | {fun_arity_1(), initial_state()}
+%% @doc fetch attachment    
+fetch_attachment(NodeName, DbName, DocId, AName, Fun) ->
+    Path = io_lib:format("/~s/~s/~s", [DbName, DocId, AName]),
+    Resp = make_request(NodeName, 'GET', Path, [], [], [], Fun),
+    do_reply(Resp).
+    
+
+%% @spec delete_attachment(NodeName::atom()|node_info(), DbName::string(), Doc::json_obj(),
+%%      AName::string()) -> json_obj()
+%% @doc delete attachment    
+delete_attachment(NodeName, DbName, Doc, AName) ->
+    Rev = get_value(<<"_rev">>, Doc),
+    DocId = get_value(<<"_id">>, Doc),
+    Path = io_lib:format("/~s/~s/~s", [DbName, DocId, AName]),
+    Resp = make_request(NodeName, 'DELETE', Path, [], [{"rev", Rev}]),
+    do_reply(Resp).
+ 
+%% @spec put_attachment(NodeName::atom()|node_info(), DbName::string(), Doc::json_obj(),
+%%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
+%% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_1(), initial_state()}
+%% @doc put attachment attachment, It will try to guess mimetype
+put_attachment(NodeName, DbName, Doc, Content, AName, Length) ->
+    ContentType = couchbeam_util:guess_mime(AName),
+    put_attachment(NodeName, DbName, Doc, Content, AName, 
+            Length, ContentType).
+
+%% @spec put_attachment(NodeName::atom()|node_info(), DbName::string(), Doc::json_obj(),
+%%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
+%% @doc put attachment attachment with ContentType fixed.
+put_attachment(NodeName, DbName, Doc, Content, AName, Length, ContentType) ->
+    DocId = get_value(<<"_id">>, Doc),
+    Rev = get_value(<<"_rev">>, Doc),
+    Headers = [{"Content-Length", couchbeam_util:val(Length)}, {"Content-Type", ContentType}],
+    Path = io_lib:format("/~s/~s/~s", [DbName, DocId, AName]),
+    Resp = make_request(NodeName, 'PUT', Path, Content, Headers, [{"rev", Rev}]),
+    do_reply(Resp).
+ 
+%% @spec extend(Key::binary(), Value::json_term(), JsonObj::json_obj()) -> json_obj()
+%% @doc extend a jsonobject by key, value 
+extend(Key, Value, JsonObj) ->
+    extend({Key, Value}, JsonObj).
+
+%% @spec extend(Prop::property(), JsonObj::json_obj()) -> json_obj()
+%% @type property() = json_obj() | tuple()  
+%% @doc extend a jsonobject by a property or list of property
+extend({Prop}, JsonObj) ->
+    extend(Prop, JsonObj);
+extend(Prop, JsonObj) when is_list(Prop)->
+    extend1(Prop, JsonObj);
+extend(Prop, JsonObj) when is_tuple(Prop)->
+    {Props} = JsonObj,
+    {[Prop|Props]}.
+
+%% @private   
+extend1([], JsonObj) ->
+    {Props} = JsonObj,
+    {lists:reverse(Props)};
+extend1([Prop|T], JsonObj) ->
+    {Props} = JsonObj,
+    extend(T, {[Prop|Props]}).
+ 
+%% @spec get_value(Key::key_val(), JsonObj::json_obj()) -> term()
+%% @type key_val() = lis() | binary()
+%% @doc get value from a json obje
+%% function from erlang_couchdb
+get_value(Key, JsonObj) when is_list(Key) ->
+    get_value1(Key, JsonObj);
+get_value(Key, JsonObj) when is_binary(Key) ->
+    {Props} = JsonObj,
+    proplists:get_value(Key, Props).
+    
+%% @private
+get_value1([Key], JsonObj) ->
+    get_value(Key, JsonObj);
+get_value1([Key|T], JsonObj) ->
+    case get_value(Key, JsonObj) of
+    List when is_list(List) -> [get_value1(T, X) || X <- List];
+    NewObj when is_tuple(NewObj) -> get_value(T, NewObj)
+    end.
+       
     
 %% @spec do_reply(Resp::term()) -> term()
 %% @doc make transformation on final http response
@@ -305,10 +399,10 @@ make_request(NodeName, Method, Path, Headers, Params) ->
     make_request(NodeName, Method, Path, nil, Headers, Params).
     
 make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params) ->
-    ecouchdbkit_client:send_request(Node, Method, Path, Body, Headers, Params);
+    couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params);
     
 make_request(NodeName, Method, Path, Body, Headers, Params) ->
-    case gen_server:call(ecouchdbkit, {get, NodeName}) of
+    case gen_server:call(couchbeam, {get, NodeName}) of
     {error, Reason} -> 
         {error, Reason};
     Pid -> 
@@ -316,10 +410,10 @@ make_request(NodeName, Method, Path, Body, Headers, Params) ->
     end.
 
 make_request({_Host,_Port}=Node, Method, Path, Body, Headers, Params, Fun) ->
-    ecouchdbkit_client:send_request(Node, Method, Path, Body, Headers, Params, Fun);
+    couchbeam_client:send_request(Node, Method, Path, Body, Headers, Params, Fun);
     
 make_request(NodeName, Method, Path, Body, Headers, Params, Fun) ->
-    case gen_server:call(ecouchdbkit, {get, NodeName}) of
+    case gen_server:call(couchbeam, {get, NodeName}) of
     {error, Reason} -> 
         {error, Reason};
     Pid -> 
@@ -328,15 +422,15 @@ make_request(NodeName, Method, Path, Body, Headers, Params, Fun) ->
     
 %% gen servers calls  
 init([]) ->
-    Tid = ets:new(ecouchdbkit_uuids, [public, ordered_set]),
-    State = #ecouchdbkit_srv{
+    Tid = ets:new(couchbeam_uuids, [public, ordered_set]),
+    State = #couchbeam_srv{
         ets_tid=Tid
     },
     {ok, State}.
     
 
-handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
-    AllNodes = supervisor:which_children(ecouchdbkit_nodes),
+handle_call({get, NodeName}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
+    AllNodes = supervisor:which_children(couchbeam_nodes),
     ErrorMsg = lists:flatten(
         io_lib:format("No couchdb node configured for ~p.", [NodeName])),
     R = case find_node(AllNodes, NodeName) of
@@ -356,11 +450,11 @@ handle_call({get, NodeName}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
     end,
     {reply, R, State};
     
-handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #ecouchdbkit_srv{nodes=Nodes}=State) ->
+handle_call({open_connection, {NodeName, {Host, Port}}}, _From, #couchbeam_srv{nodes=Nodes}=State) ->
     {_, Nodes1} = open_connection1({NodeName, {Host, Port}}, Nodes),
-    {reply, ok, State#ecouchdbkit_srv{nodes=Nodes1}};
+    {reply, ok, State#couchbeam_srv{nodes=Nodes1}};
     
-handle_call(next_uuid, _From, #ecouchdbkit_srv{ets_tid=Tid}=State) ->
+handle_call(next_uuid, _From, #couchbeam_srv{ets_tid=Tid}=State) ->
     R = case ets:lookup(Tid, uuids) of
     [] -> new_uuid(Tid);
     [{uuids, []}] -> new_uuid(Tid);
@@ -396,7 +490,7 @@ handle_info(Info, _Server) ->
 %% @private
 %% @doc function used to fetch view
 fetch_view(NodeName, Path, Params) ->
-    fetch_view(NodeName, Path, Params, fun ecouchdbkit_client:body_fun/2).
+    fetch_view(NodeName, Path, Params, fun couchbeam_client:body_fun/2).
 %% @private    
 fetch_view(NodeName, Path, Params, Fun) ->
     Resp = case proplists:get_value("keys", Params) of
@@ -404,38 +498,38 @@ fetch_view(NodeName, Path, Params, Fun) ->
             make_request(NodeName, 'GET', Path, nil, [], Params, Fun);
         Keys ->
             Params1 = proplists:delete("keys", Params),
-            Body = ecouchdbkit:json_encode({[{<<"keys">>, Keys}]}),
+            Body = couchbeam:json_encode({[{<<"keys">>, Keys}]}),
             make_request(NodeName, 'POST', Path, Body, [], Params1, Fun)
         end,
     do_reply(Resp).
 
 %% @private
-%% Create a ecouchdbkit_client sertver for a nodename if it don't exist
+%% Create a couchbeam_client sertver for a nodename if it don't exist
 open_connection1({NodeName, {Host, Port}}, Nodes) ->
     NodeName1 = nodename(NodeName),
     Client = {NodeName1,
-        {ecouchdbkit_client, start_link, [{Host, Port}]},
+        {couchbeam_client, start_link, [{Host, Port}]},
         permanent,
         brutal_kill,
         worker,
-        [ecouchdbkit_client]},
-    Pid = case supervisor:start_child(ecouchdbkit_nodes, Client) of
+        [couchbeam_client]},
+    Pid = case supervisor:start_child(couchbeam_nodes, Client) of
     {ok, Pid1} -> Pid1;
     {error, {already_started, _}} ->
         %% terminate child and create a new one with settings
-        supervisor:terminate_child(ecouchdbkit_nodes, NodeName1),
-        supervisor:delete_child(ecouchdbkit_nodes, NodeName1),
+        supervisor:terminate_child(couchbeam_nodes, NodeName1),
+        supervisor:delete_child(couchbeam_nodes, NodeName1),
         Nodes1 = proplists:delete(NodeName1, Nodes),
         open_connection1({NodeName, {Host, Port}}, Nodes1);
     {error, already_present} ->
-        case supervisor:start_child(ecouchdbkit_nodes, Client) of
+        case supervisor:start_child(couchbeam_nodes, Client) of
         {ok, Pid1} -> Pid1;
         {error, already_present} ->
-            case supervisor:restart_child(ecouchdbkit_nodes, NodeName1) of
+            case supervisor:restart_child(couchbeam_nodes, NodeName1) of
             {ok, Pid1} -> Pid1;
             {error, running} ->
                 {error, {already_started, Pid1}} =
-                    supervisor:start_child(ecouchdbkit_nodes, Client),
+                    supervisor:start_child(couchbeam_nodes, Client),
                 Pid1
             end
         end
@@ -445,13 +539,13 @@ open_connection1({NodeName, {Host, Port}}, Nodes) ->
     {Pid, Nodes2}.
     
 new_uuid(Tid) ->
-    [Id|Uuids] = ecouchdbkit_util:generate_uuids(1000),
+    [Id|Uuids] = couchbeam_util:generate_uuids(1000),
     ets:insert(Tid, {uuids, Uuids}),
     Id.
     
 new_uuids1(NodeName) ->
     [Id|Uuids] = uuids(NodeName, "1000"),
-    ets:insert(ecouchdbkit_uuids, {uuids, Uuids}),
+    ets:insert(couchbeam_uuids, {uuids, Uuids}),
     Id.
     
 encode_docid(DocId) when is_binary(DocId) ->

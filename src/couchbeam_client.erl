@@ -15,7 +15,7 @@
 %% limitations under the License.
 %%
 
--module(ecouchdbkit_client).
+-module(couchbeam_client).
 -author('Benoît Chesneau <benoitc@e-engura.org').
 
 -behaviour(gen_server).
@@ -25,7 +25,7 @@
          terminate/2, code_change/3]).
 -export([send_request/6, send_request/7, body_fun/2]).
 
--include("ecouchdbkit.hrl").
+-include("couchbeam.hrl").
 
 -define(MAX_CHUNK_SIZE, 1024*1024).
 -define(IDLE_TIMEOUT, infinity).
@@ -126,7 +126,7 @@ do_req(Method, State, Path, Body, Headers, Fun) ->
                              {ok, {Status, Phrase}};
                          true ->
                              Resp = recv_body(Sock, RespHeaders, Fun),
-                             try ecouchdbkit:json_decode(?b2l(Resp)) of
+                             try couchbeam:json_decode(?b2l(Resp)) of
                                 Resp1 -> {json, Resp1}
                              catch
                                 _:_ -> {raw, Resp}
@@ -396,23 +396,23 @@ convert_method(Method) when is_list(Method) ->
 
 encode_query(Props) ->
     RevPairs = lists:foldl(fun ({K, V}, Acc) ->
-                                   [[ecouchdbkit_util:quote_plus(K), $=, 
+                                   [[couchbeam_util:quote_plus(K), $=, 
                                    encode_query_value(K, V)] | Acc]
                            end, [], Props),
-    lists:flatten(ecouchdbkit_util:revjoin(RevPairs, $&, [])).
+    lists:flatten(couchbeam_util:revjoin(RevPairs, $&, [])).
         
 encode_query_value(K,V) ->
     V1 = case K of
     "key"-> encode_value(V);
     "startkey" -> encode_value(V);
     "endkey" -> encode_value(V);
-    _V -> V
+    _ -> couchbeam_util:val(V)
     end,
     V1.
 
 encode_value(V) ->
-    V1 = ecouchdbkit:json_encode(V),
-    ecouchdbkit_util:quote_plus(binary_to_list(iolist_to_binary(V1))).
+    V1 = couchbeam:json_encode(V),
+    couchbeam_util:quote_plus(binary_to_list(iolist_to_binary(V1))).
 
 make_io(Atom) when is_atom(Atom) ->
     atom_to_list(Atom);

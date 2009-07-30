@@ -29,7 +29,7 @@
 %% 
 
 
--module(ecouchdbkit_mochijson2).
+-module(couchbeam_mochijson2).
 -author('bob@mochimedia.com').
 -export([encoder/1, encode/1]).
 -export([decoder/1, decode/1]).
@@ -123,7 +123,7 @@ json_encode(null, _State) ->
 json_encode(I, _State) when is_integer(I) ->
     integer_to_list(I);
 json_encode(F, _State) when is_float(F) ->
-    ecouchdbkit_mochinum:digits(F);
+    couchbeam_mochinum:digits(F);
 json_encode(S, State) when is_binary(S); is_atom(S) ->
     json_encode_string(S, State);
 json_encode(Array, State) when is_list(Array) ->

@@ -37,10 +37,10 @@
 %% THE SOFTWARE.
 
 
--module(ecouchdbkit_util).
+-module(couchbeam_util).
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
-         join/2, revjoin/3, quote_plus/1, split/2]).
+         join/2, revjoin/3, quote_plus/1, split/2, guess_mime/1, val/1]).
 
 
 -define(PERCENT, 37).  % $\%
@@ -117,7 +117,8 @@ to_hex([H|T]) ->
 to_digit(N) when N < 10 -> $0 + N;
 to_digit(N)             -> $a + N-10.
 
-
+%% @spec split(Bin::binary(), Chars::string()) -> binary()
+%% @doc split a binary
 split(Bin, Chars) ->
     split(Chars, Bin, 0, []).
 
@@ -132,4 +133,78 @@ split(Chars, Bin, Idx, Acc) ->
                 end;
         <<This:Idx/binary>> ->
                 lists:reverse(Acc, [This])
+    end.
+
+
+val(V) when is_list(V) ->
+    V;    
+val(V) when is_integer(V) ->
+    integer_to_list(V);
+val(V) when is_binary(V) ->
+    binary_to_list(V).
+
+%% @spec guess_mime(string()) -> string()
+%% @doc  Guess the mime type of a file by the extension of its filename.
+guess_mime(File) ->
+    case filename:extension(File) of
+        ".html" ->
+            "text/html";
+        ".xhtml" ->
+            "application/xhtml+xml";
+        ".xml" ->
+            "application/xml";
+        ".css" ->
+            "text/css";
+        ".js" ->
+            "application/x-javascript";
+        ".jpg" ->
+            "image/jpeg";
+        ".gif" ->
+            "image/gif";
+        ".png" ->
+            "image/png";
+        ".swf" ->
+            "application/x-shockwave-flash";
+        ".zip" ->
+            "application/zip";
+        ".bz2" ->
+            "application/x-bzip2";
+        ".gz" ->
+            "application/x-gzip";
+        ".tar" ->
+            "application/x-tar";
+        ".tgz" ->
+            "application/x-gzip";
+        ".txt" ->
+            "text/plain";
+        ".doc" ->
+            "application/msword";
+        ".pdf" ->
+            "application/pdf";
+        ".xls" ->
+            "application/vnd.ms-excel";
+        ".rtf" ->
+            "application/rtf";
+        ".mov" ->
+            "video/quicktime";
+        ".mp3" ->
+            "audio/mpeg";
+        ".z" ->
+            "application/x-compress";
+        ".wav" ->
+            "audio/x-wav";
+        ".ico" ->
+            "image/x-icon";
+        ".bmp" ->
+            "image/bmp";
+        ".m4a" ->
+            "audio/mpeg";
+        ".m3u" ->
+            "audio/x-mpegurl";
+        ".exe" ->
+            "application/octet-stream";
+        ".csv" ->
+            "text/csv";
+        _ ->
+            "text/plain"
     end.

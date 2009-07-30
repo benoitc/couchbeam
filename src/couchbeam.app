@@ -1,0 +1,15 @@
+{application,couchbeam,
+             [{description,"Erlang CouchDb kit"},
+              {vsn,"0.1"},
+              {modules,[couchbeam,
+                        couchbeam_client,
+                        couchbeam_mochijson2,
+                        couchbeam_mochinum,
+                        couchbeam_util,
+                        ecouchdbki_sup]},
+              {registered,[
+                        couchbeam_sup,
+                        couchbeam]},
+              {applications,[kernel,stdlib,crypto]},
+			  {env, []},
+			  {mod, {couchbeam, []}}]}.

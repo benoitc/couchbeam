@@ -13,49 +13,49 @@
 %%  See the License for the specific language governing permissions and
 %%  limitations under the License.
 
--module(ecouchdbkit_sup).
+-module(couchbeam_sup).
 -author('Benoît Chesneau <benoitc@e-engura.org').
 -behaviour(supervisor).
 
 -export([start_link/0, stop/0, init/1, start_nodes/0]).
 
--include("ecouchdbkit.hrl").
+-include("couchbeam.hrl").
 
 start_link() ->
-    case whereis(ecouchdbkit_sup) of
+    case whereis(couchbeam_sup) of
     undefined -> 
-        start_ecouchdbkit();
+        start_couchbeam();
     _Else -> 
         {error, already_started}
     end.
 
-start_ecouchdbkit() ->
+start_couchbeam() ->
     ChildSpecs = 
     {{one_for_all, 10, 3600},
-    [{ecouchdbkit,
-        {ecouchdbkit, sup_start_link, []},
+    [{couchbeam,
+        {couchbeam, sup_start_link, []},
         permanent,
         brutal_kill,
         supervisor,
-        [ecouchdbkit]},
-    {ecouchdbkit_nodes,
-        {ecouchdbkit_sup, start_nodes, []},
+        [couchbeam]},
+    {couchbeam_nodes,
+        {couchbeam_sup, start_nodes, []},
         permanent,
         infinity,
         supervisor,
-        [ecouchdbkit_sup]}]},
+        [couchbeam_sup]}]},
     application:start(crypto),
-    supervisor:start_link({local, ecouchdbkit_sup}, ecouchdbkit_sup, ChildSpecs).
+    supervisor:start_link({local, couchbeam_sup}, couchbeam_sup, ChildSpecs).
     
 start_nodes() ->
-    Pid = supervisor:start_link({local, ecouchdbkit_nodes}, ecouchdbkit_sup,
+    Pid = supervisor:start_link({local, couchbeam_nodes}, couchbeam_sup,
         {{one_for_one, 10, 3600}, []}),
     %% add default node
-    ecouchdbkit:open_connection({default, {"127.0.0.1", 5984}}),
+    couchbeam:open_connection({default, {"127.0.0.1", 5984}}),
     Pid.
     
 stop() ->
-    catch exit(whereis(ecouchdbkit_sup), normal).
+    catch exit(whereis(couchbeam_sup), normal).
 
 init(ChildSpecs) ->
     {ok, ChildSpecs}.

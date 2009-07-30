@@ -5,25 +5,25 @@
 
 parse_view_head(Data) ->
     {Data1, end_chunk} = Data,
-    try ecouchdbkit_util:split(Data1, "\r\n") of
+    try couchbeam_util:split(Data1, "\r\n") of
     [_Head, _, FirstRow] ->
         FirstRow1 = decode_row(FirstRow),
         Head1 = lists:append([binary_to_list(Data1), "]}"]),
         io:format("we just get head and first row ~n", []),
         
-        case ecouchdbkit:json_decode(Head1) of
+        case couchbeam:json_decode(Head1) of
         {[{<<"rows">>, _}]} -> {nil, nil, [FirstRow1], []};
         {[{<<"total_rows">>, TotalRows}, {<<"offset">>, Offset}|_]} ->
             {TotalRows, Offset, [FirstRow1], []}
         end
     catch
-        _:_ -> [ecouchdbkit:json_decode(Data)]
+        _:_ -> [couchbeam:json_decode(Data)]
     end.
             
 decode_row(<<",\r\n",Rest/binary>>) ->
     decode_row(Rest);
 decode_row(Row) ->
-    ecouchdbkit:json_decode(Row).
+    couchbeam:json_decode(Row).
     
 view_row(Data, Acc) ->
     case Data of
@@ -52,7 +52,7 @@ end_view(Acc) ->
 
 
 main(_) ->
-    Res = ecouchdbkit:query_view({"benoitc.im", 80}, "b", 
+    Res = couchbeam:query_view({"benoitc.im", 80}, "b", 
         "blog", "recent-posts", [{"limit", "2"}]),
     io:format("res view ~p ~n", [Res]),
     F = fun(Data, Acc) ->
@@ -75,7 +75,7 @@ main(_) ->
             end
         end
     end,
-    {raw, Res1} = ecouchdbkit:query_view({"benoitc.im", 80}, "b", 
+    {raw, Res1} = couchbeam:query_view({"benoitc.im", 80}, "b", 
         "blog", "recent-posts", [{"limit", "2"}], {F, head}),
     io:format("res view ~p ~n", [Res1]),
     ok.
