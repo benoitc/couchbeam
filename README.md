@@ -6,6 +6,7 @@
 
 * A full client in sync with latest CouchDB version
 * Possible to use it as a simple standalone client (without starting application and such).
+* Multi node. You can use it easily with multiple databases
 * It follows OTP principles if you want
 * No dependancies. Http client use gen_recv and allow full streaming of attachments.
 * Views can be retrieved while they coming (See example parse_incoming_view escript).
