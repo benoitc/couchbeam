@@ -29,8 +29,8 @@
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
          save_doc/3, save_doc/4, save_docs/3, save_docs/4, delete_doc/3, 
-         query_view/4, query_view/5, query_view/6, is_db/2, 
-         all_docs/3, all_docs_by_seq/3]).
+         query_view/4, query_view/5, query_view/6, parse_view/1,
+         is_db/2, all_docs/3, all_docs_by_seq/3]).
 
          
 -include("ecouchdbkit.hrl").
@@ -262,6 +262,27 @@ query_view(NodeName, DbName, DName, ViewName, Params, Fun) ->
     Path = io_lib:format("/~s/_design/~s/_view/~s", [DbName, DName, ViewName]),
     fetch_view(NodeName, Path, Params, Fun).
     
+
+%% @spec parse_view(json_object()) -> view_result()
+%% @type view_result() = {TotalRows::integer(), Offset::interger(), Rows::rows()}
+%% @type rows() = {Id::binary(), Key::term(), Row::proplist()}
+%% @doc Return a list of document ids for a given view.    
+parse_view({ViewProps}) ->
+    TotalRows = proplists:get_value(<<"total_rows">>, ViewProps, 0),
+    Offset = proplists:get_value(<<"offset">>, ViewProps, 0),
+    Rows = proplists:get_value(<<"rows">>, ViewProps, []),
+    Rows1 = [begin
+        {Row1} = Row,
+        Id = proplists:get_value(<<"id">>, Row1),
+        Key = proplists:get_value(<<"key">>, Row1),
+        case proplists:get_value(<<"value">>, Row1) of
+        [] -> Id;
+        {Value} -> {Id, Key, Value};
+        _ -> Id
+        end
+    end || Row <- Rows],
+    {TotalRows, Offset, Rows1}.
+    
 %% @spec do_reply(Resp::term()) -> term()
 %% @doc make transformation on final http response
 do_reply(Resp) ->
@@ -383,7 +404,7 @@ fetch_view(NodeName, Path, Params, Fun) ->
             make_request(NodeName, 'GET', Path, nil, [], Params, Fun);
         Keys ->
             Params1 = proplists:delete("keys", Params),
-            Body = ecouchdbkit:json_encode({struct, {<<"keys">>, Keys}}),
+            Body = ecouchdbkit:json_encode({[{<<"keys">>, Keys}]}),
             make_request(NodeName, 'POST', Path, Body, [], Params1, Fun)
         end,
     do_reply(Resp).
