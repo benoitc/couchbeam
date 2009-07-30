@@ -63,7 +63,7 @@
              
 3) Connect to a password protected CouchDB Node :
 
-   1> couchbeam:create_db({"127.0.0.1", 5984, "admin", "testpassword"}, "mydb").
+    1> couchbeam:create_db({"127.0.0.1", 5984, "admin", "testpassword"}, "mydb").
    
    
 ## Using as an OTP application :
