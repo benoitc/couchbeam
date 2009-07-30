@@ -162,7 +162,7 @@ is_db(NodeName, DbName) ->
 %% @spec open_doc(NodeName::atom()|node_info(), DbName::string(), DocId::string()) -> json_object()
 %% @doc open a doc with DocID
 open_doc(NodeName, DbName, DocId) ->
-    open_doc(NodeName, DbName, DocId, nil).
+    open_doc(NodeName, DbName, encode_docid(DocId), nil).
     
 %% @spec open_doc(NodeName::atom()|node_info(), DbName::string(), DocId::string(), Rev::string()) -> json_object()
 %% @doc open a doc with DocId for specific revision
