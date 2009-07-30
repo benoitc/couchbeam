@@ -347,7 +347,7 @@ extend(Prop, JsonObj) when is_list(Prop)->
     extend1(Prop, JsonObj);
 extend(Prop, JsonObj) when is_tuple(Prop)->
     {Props} = JsonObj,
-    {[Prop|Props]}.
+    {lists:reverse([Prop|lists:reverse(Props)])}.
 
 %% @private   
 extend1([], JsonObj) ->

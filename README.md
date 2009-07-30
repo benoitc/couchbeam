@@ -7,7 +7,9 @@ couchbeam is a simple erlang CouchDB framework. couchbeam provides you a full fe
 * a full client in sync with latest CouchDB version
 * possible to use it as a simple standalone client (without starting application and such).
 * it follows OTP principles if you want
-* no dependancies. Http client use gen_recv and will allow full streaming of attachments
+* no dependancies. Http client use gen_recv and allow full streaming of attachments.
+* Views can be retrieved while they coming (See example parse_incoming_view escript).
+* Attachements are streamed and can be save on disk (or whatever you want) while they coming.
 
 
 ## Basic Standalone Usage 
@@ -16,25 +18,49 @@ couchbeam is a simple erlang CouchDB framework. couchbeam provides you a full fe
 
     1> couchbeam:create_db({"127.0.0.1", 5984}, "somedb")
 
-2) Save a doc and fetch it
+2) Save a doc, fetch it, edit it and view it
 
     2> Doc = {[{<<"field">>, <<"value">>}]},
     2> couchbeam:save_doc({"127.0.0.1", 5984}, "somedb", Doc).
     {ok,{[{<<"id">>,<<"eaff88948dfc860690d4460c51916dad">>},
           {<<"rev">>,<<"1-fe46b1a37e32aa544edb754885c0864b">>}]}}
+          
     3> Doc1 = couchbeam:open_doc({"127.0.0.1", 5984}, "somedb", "eaff88948dfc860690d4460c51916dad").
     {[{<<"_id">>,<<"eaff88948dfc860690d4460c51916dad">>},
       {<<"_rev">>,<<"1-fe46b1a37e32aa544edb754885c0864b">>},
       {<<"field">>,<<"value">>}]}
-    
-     
-    
-    
-    
-    
-
-
-1) Start application
+      
+    4> Doc2 = couchbeam:extend({<<"type">>, <<"test">>}, Doc1).
+    {[{<<"_id">>,<<"eaff88948dfc860690d4460c51916dad">>},
+      {<<"_rev">>,<<"1-fe46b1a37e32aa544edb754885c0864b">>},
+      {<<"field">>,<<"value">>},
+      {<<"type">>,<<"test">>}]}
+      
+    5> couchbeam:save_doc({"127.0.0.1", 5984}, "somedb", Doc2),
+    5> DesignDoc = {[
+    5>         {<<"_id">>, <<"_design/test">>},
+    5>         {<<"language">>,<<"javascript">>},
+    5>         {<<"views">>,
+    5>             {[{<<"test">>,
+    5>                 {[{<<"map">>,
+    5>                     <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
+    5>                 }]}
+    5>             }]}
+    5>         }]},
+    5> couchbeam:save_doc({"127.0.0.1", 5984}, "somedb", DesignDoc),
+    5> couchbeam:query_view({"127.0.0.1", 5984}, "somedb", "test", "test").
+    {[{<<"total_rows">>,1},
+      {<<"offset">>,0},
+      {<<"rows">>,
+       [{[{<<"id">>,<<"eaff88948dfc860690d4460c51916dad">>},
+          {<<"key">>,<<"eaff88948dfc860690d4460c51916dad">>},
+          {<<"value">>,
+           {[{<<"_id">>,<<"eaff88948dfc860690d4460c51916dad">>},
+             {<<"_rev">>,<<"2-bb0dcac6a6c8987dad5b2dc2536b6b2e">>},
+             {<<"field">>,<<"value">>},
+             {<<"type">>,<<"test">>}]}}]}]}]}
+             
+## Using as an OTP application :        
 
 	1> application:start(crypto),
 	1> couchbeam:start().
@@ -77,13 +103,5 @@ Get doc :
 	{[{<<"_id">>,<<"1dfa7d290f555857762a4491c27705b0">>},
 	 {<<"_rev">>,<<"2-89ede0192cf6beac8013fc229ff9eca7">>},
 	 {<<"somefield">>,<<"changedvalue">>}]}
-	
-## Todo
-
-- add attachments support
-- add authentification management
-- documentation
-- some helpers to create a doc, extend a doc, 
-- retrieve a view via a folding function...
 	
 
