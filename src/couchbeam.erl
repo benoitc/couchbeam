@@ -282,6 +282,9 @@ parse_view({ViewProps}) ->
         case proplists:get_value(<<"value">>, Row1) of
         [] -> Id;
         {Value} -> {Id, Key, Value};
+        Value when is_list(Value) -> {Id, Key, Value};
+        Value when is_integer(Value) -> {Id, Key, Value};
+        Value when is_binary(Value) -> {Id, Key, Value};
         _ -> Id
         end
     end || Row <- Rows],
