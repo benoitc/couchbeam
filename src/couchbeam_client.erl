@@ -138,9 +138,11 @@ do_req(Method, State, Path, Body, Headers, Fun) ->
                      true ->
                          if
                          Method == "HEAD" ->
+                             do_close(Sock),
                              {ok, {Status, Phrase}};
                          true ->
                              Resp = recv_body(Sock, RespHeaders, Fun),
+                             do_close(Sock),
                              try couchbeam:json_decode(?b2l(Resp)) of
                                 Resp1 -> {json, Resp1}
                              catch
@@ -150,16 +152,19 @@ do_req(Method, State, Path, Body, Headers, Fun) ->
                     end
                 end;
             Error ->
+                do_close(Sock),
                 {error, {bad_request, Error}}
             end;
         {error, Reason2} ->
+            do_close(Sock),
             {error, {bad_request, Reason2}}
         end;
     {error, Reason} ->
         {error, {bad_request, Reason}}
     end.
     
-    
+do_close(undefined) -> ok;
+do_close(Sock) -> gen_tcp:close(Sock).
 
 recv_body(Sock, Headers, Fun) ->
     {WrappedFun, InitialState} = case Fun of
