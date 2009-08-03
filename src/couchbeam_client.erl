@@ -162,8 +162,7 @@ do_req(Method, State, Path, Body, Headers, Fun) ->
     {error, Reason} ->
         {error, {bad_request, Reason}}
     end.
-    
-do_close(undefined) -> ok;
+
 do_close(Sock) -> gen_tcp:close(Sock).
 
 recv_body(Sock, Headers, Fun) ->

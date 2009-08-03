@@ -78,7 +78,7 @@ You can use couchdbkit as an OTP application, allowing you to manage multiple da
 	
 2) Add a connection to a node
  
-	2> couchbeam:open_connection({"mynode", {"127.0.0.1", 5984}}),
+	2> couchbeam:open_connection({mynode, {"127.0.0.1", 5984}}),
 
 `mynode` will be the name of connection you will use. Then you set the hostname and port of the CouchDB node you want to use. You can setup all the connections you need. It allow you to setup one connection. Later will be added possibility of load balancing. There is a `default` node to 127.0.0.1:5984 created when application starting. 
 
