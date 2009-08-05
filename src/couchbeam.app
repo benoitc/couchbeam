@@ -6,7 +6,7 @@
                         couchbeam_mochijson2,
                         couchbeam_mochinum,
                         couchbeam_util,
-                        ecouchdbki_sup]},
+                        couchbeam_sup]},
               {registered,[
                         couchbeam_sup,
                         couchbeam]},
