@@ -24,7 +24,7 @@
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
 -export([make_request/4, make_request/5, make_request/6, 
-         make_request/7, do_reply/1, get_value/2, extend/3, extend/2]).
+         make_request/7, do_reply/1, set_value/3, get_value/2, extend/3, extend/2]).
 
 -export([server_info/1, all_dbs/1, db_info/2, create_db/2, delete_db/2,
          uuids/0, uuids/1, uuids/2, next_uuid/0, next_uuid/1, open_doc/3, open_doc/4, 
@@ -337,6 +337,31 @@ put_attachment(NodeName, DbName, Doc, Content, AName, Length, ContentType) ->
     Path = io_lib:format("/~s/~s/~s", [DbName, DocId, AName]),
     Resp = make_request(NodeName, 'PUT', Path, Content, Headers, [{"rev", Rev}]),
     do_reply(Resp).
+    
+
+%% @spec set_value(Key::key_val(), Value::term(), JsonObj::json_obj()) -> term()
+%% @doc set a value for a key in jsonobj. If key exists it will be updated.
+set_value(Key, Value, JsonObj) when is_list(Key)->
+    set_value(list_to_binary(Key), Value, JsonObj);
+set_value(Key, Value, JsonObj) when is_binary(Key) ->
+    {Props} = JsonObj,
+    case proplists:is_defined(Key, Props) of
+    true -> set_value1(Props, Key, Value, []);
+    false-> {lists:reverse([{Key, Value}|lists:reverse(Props)])}
+    end.
+
+%% @private
+set_value1([], _Key, _Value, Acc) ->
+    {lists:reverse(Acc)};
+set_value1([{K, V}|T], Key, Value, Acc) ->
+    Acc1 = if
+        K =:= Key ->
+            [{Key, Value}|Acc];
+        true ->
+            [{K, V}|Acc]
+        end,
+    set_value1(T, Key, Value, Acc1).
+ 
  
 %% @spec extend(Key::binary(), Value::json_term(), JsonObj::json_obj()) -> json_obj()
 %% @doc extend a jsonobject by key, value 
