@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(4),
+    etap:plan(7),
     start_app(),
     case (catch test()) of
         ok ->
@@ -44,5 +44,21 @@ test() ->
     Doc2 = couchbeam:open_doc(default, "couchbeam_testdb", "test"),
     {Ok1, _} = couchbeam:delete_attachment(default, "couchbeam_testdb", Doc2, "test"),
     etap:is(Ok1, ok, "delete attachment ok"),
-    
+    Doc3 = {[
+        {<<"_id">>, <<"test2">>}
+    ]},
+    Doc4 = couchbeam:add_attachment(Doc3, "test", "test.txt"),
+    Doc5 = couchbeam:add_attachment(Doc4, "test2", "test2.txt"),
+    couchbeam:save_doc(default, "couchbeam_testdb", Doc5),
+    {raw, Attachment1} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test.txt"),
+    {raw, Attachment2} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt"),
+    etap:is(Attachment1, <<"test">>, "fetch attachment ok"),
+    etap:is(Attachment2, <<"test2">>, "fetch attachment ok"),
+    Doc6 = couchbeam:open_doc(default, "couchbeam_testdb", "test2"),
+    Doc7 = couchbeam:delete_inline_attachment(Doc6, "test2.txt"),
+    couchbeam:save_doc(default, "couchbeam_testdb", Doc7),
+    F = fun() ->
+        {raw, Attachment2} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt")
+    end,
+    etap_exception:throws_ok(F, not_found, "inline attachment deleted"),
     ok.

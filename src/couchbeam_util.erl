@@ -40,7 +40,8 @@
 -module(couchbeam_util).
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
-         join/2, revjoin/3, quote_plus/1, split/2, guess_mime/1, val/1]).
+         join/2, revjoin/3, quote_plus/1, split/2, 
+         guess_mime/1, val/1, encodeBase64/1]).
 
 
 -define(PERCENT, 37).  % $\%
@@ -208,3 +209,42 @@ guess_mime(File) ->
         _ ->
             "text/plain"
     end.
+    
+
+
+%%% Purpose : Base 64 encoding
+%%% Copied from ssl_base_64 to avoid using the
+%%% erlang ssl library
+
+-define(st(X,A), ((X-A+256) div 256)).
+
+%%
+%% encode64(Bytes|Binary) -> binary
+%%
+%% Take 3 bytes a time (3 x 8 = 24 bits), and make 4 characters out of
+%% them (4 x 6 = 24 bits).
+%%
+encodeBase64(Bs) when is_list(Bs) ->
+    encodeBase64(iolist_to_binary(Bs), <<>>);
+encodeBase64(Bs) ->
+    encodeBase64(Bs, <<>>).
+
+encodeBase64(<<B:3/binary, Bs/binary>>, Acc) ->
+    <<C1:6, C2:6, C3:6, C4:6>> = B,
+    encodeBase64(Bs, <<Acc/binary, (enc(C1)), (enc(C2)), (enc(C3)), (enc(C4))>>);
+encodeBase64(<<B:2/binary>>, Acc) ->
+    <<C1:6, C2:6, C3:6, _:6>> = <<B/binary, 0>>,
+    <<Acc/binary, (enc(C1)), (enc(C2)), (enc(C3)), $=>>;
+encodeBase64(<<B:1/binary>>, Acc) ->
+    <<C1:6, C2:6, _:12>> = <<B/binary, 0, 0>>,
+    <<Acc/binary, (enc(C1)), (enc(C2)), $=, $=>>;
+encodeBase64(<<>>, Acc) ->
+    Acc.
+
+
+%% enc/1
+%%
+%% Mapping: 0-25 -> A-Z, 26-51 -> a-z, 52-61 -> 0-9, 62 -> +, 63 -> /
+%%
+enc(C) ->
+    65 + C + 6*?st(C,26) - 75*?st(C,52) -15*?st(C,62) + 3*?st(C,63).

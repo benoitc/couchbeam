@@ -32,7 +32,8 @@
          query_view/4, query_view/5, query_view/6, parse_view/1,
          is_db/2, all_docs/3, all_docs_by_seq/3,
          fetch_attachment/4, fetch_attachment/5, delete_attachment/4,
-         put_attachment/6, put_attachment/7]).
+         put_attachment/6, put_attachment/7,
+         add_attachment/3, add_attachment/4, delete_inline_attachment/2]).
 
          
 -include("couchbeam.hrl").
@@ -337,7 +338,6 @@ put_attachment(NodeName, DbName, Doc, Content, AName, Length, ContentType) ->
     Path = io_lib:format("/~s/~s/~s", [DbName, DocId, AName]),
     Resp = make_request(NodeName, 'PUT', Path, Content, Headers, [{"rev", Rev}]),
     do_reply(Resp).
-    
 
 %% @spec set_value(Key::key_val(), Value::term(), JsonObj::json_obj()) -> term()
 %% @doc set a value for a key in jsonobj. If key exists it will be updated.
@@ -361,7 +361,78 @@ set_value1([{K, V}|T], Key, Value, Acc) ->
             [{K, V}|Acc]
         end,
     set_value1(T, Key, Value, Acc1).
- 
+    
+   
+%% @spec add_attachment(Doc::json_obj(),Content::attachment_content(), 
+%%      AName::string()) -> json_obj()
+%% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
+add_attachment(Doc, Content, AName) ->
+    ContentType = couchbeam_util:guess_mime(AName),
+    add_attachment(Doc, Content, AName, ContentType).
+
+%% @spec add_attachment(Doc::json_obj(), Content::attachment_content(),
+%%      AName::string(), ContentType::string()) -> json_obj()
+%% @doc add attachment  to a doc and encode it with ContentType fixed.    
+add_attachment(Doc, Content, AName, ContentType) ->
+    {Props} = Doc,
+    Data = couchbeam_util:encodeBase64(Content),
+    Attachment = {list_to_binary(AName), {[{<<"content-type">>, 
+        list_to_binary(ContentType)}, {<<"data">>, Data}]}},
+    
+    Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
+        undefined -> 
+            [Attachment];
+        {Attachments} ->
+            case set_attachment(Attachments, [], Attachment) of
+                notfound ->
+                    [Attachment|Attachments];
+                A ->
+                    A
+                end
+        end,
+    set_value(<<"_attachments">>, {Attachments1}, Doc).
+    
+
+%% @private
+set_attachment(Attachments, NewAttachments, Attachment) ->
+    set_attachment(Attachments, NewAttachments, Attachment, false).
+set_attachment([], Attachments, _Attachment, Found) ->
+    case Found of
+        true ->
+            Attachments;
+        false ->
+            notfound
+        end;
+set_attachment([{Name, V}|T], Attachments, Attachment, Found) ->
+    {AName, _} = Attachment,
+    {Attachment1, Found1} = if
+        Name =:= AName, Found =:= false ->
+            {Attachment, true};
+        true ->
+            {{Name, V}, Found}
+        end,
+    set_attachment(T, [Attachment1|Attachments], Attachment, Found1).
+
+
+%% @spec delete_inline_attachment(Doc::json_obj(), AName::string()) -> json_obj()
+%% @doc delete an attachment record in doc. This is different from delete_attachment
+%%      change is only applied in Doc object. Save_doc should be save to save changes.
+delete_inline_attachment(Doc, AName) when is_list(AName) ->
+    delete_inline_attachment(Doc, list_to_binary(AName));
+delete_inline_attachment(Doc, AName) when is_binary(AName) ->
+    {Props} = Doc,
+    case proplists:get_value(<<"_attachments">>, Props) of
+        undefined ->
+            Doc;
+        {Attachments} ->
+            case proplists:get_value(AName, Attachments) of
+                undefined ->
+                    Doc;
+                _ ->
+                    Attachments1 = proplists:delete(AName, Attachments),
+                    set_value(<<"_attachments">>, {Attachments1}, Doc)
+                end
+        end.
  
 %% @spec extend(Key::binary(), Value::json_term(), JsonObj::json_obj()) -> json_obj()
 %% @doc extend a jsonobject by key, value 
