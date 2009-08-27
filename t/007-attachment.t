@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(7),
+    etap:plan(8),
     start_app(),
     case (catch test()) of
         ok ->
@@ -58,7 +58,9 @@ test() ->
     Doc7 = couchbeam:delete_inline_attachment(Doc6, "test2.txt"),
     couchbeam:save_doc(default, "couchbeam_testdb", Doc7),
     F = fun() ->
-        {raw, Attachment2} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt")
+        {raw, Attachment3} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt")
     end,
     etap_exception:throws_ok(F, not_found, "inline attachment deleted"),
+    {raw, Attachment4} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test.txt"),
+    etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
     ok.
