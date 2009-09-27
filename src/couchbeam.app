@@ -7,9 +7,7 @@
                         couchbeam_mochinum,
                         couchbeam_util,
                         couchbeam_sup]},
-              {registered,[
-                        couchbeam_sup,
-                        couchbeam]},
+              {registered,[couchbeam_sup]},
               {applications,[kernel,stdlib,crypto]},
 			  {env, []},
-			  {mod, {couchbeam, []}}]}.
+			  {mod, {couchbeam_app, []}}]}.

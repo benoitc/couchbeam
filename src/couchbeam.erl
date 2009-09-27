@@ -15,11 +15,10 @@
 %% limitations under the License.
 
 -module(couchbeam).
--behaviour(application).
 -behaviour(gen_server).
 -author('Benoît Chesneau <benoitc@e-engura.org').
 
--export([start/0, start/2, stop/0, stop/1, open_connection/1]).
+-export([open_connection/1]).
 -export([init/1, handle_call/3,sup_start_link/0]).
 -export([handle_cast/2,code_change/3,handle_info/2,terminate/2]).
 -export([json_encode/1, json_decode/1]).
@@ -49,18 +48,6 @@
 %% @type json_term() = json_string() | json_number() | json_array() |
 %%                     json_object()
 
-
-start() ->
-    couchbeam_sup:start_link().
-    
-stop() ->
-    couchbeam_sup:stop().
-
-start(_Type, _StartArgs) ->
-    start().
-     
-stop(_Reason) ->
-    stop().
     
 sup_start_link() ->
     gen_server:start_link({local, couchbeam}, couchbeam, [], []).
