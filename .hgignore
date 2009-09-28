@@ -1,0 +1,15 @@
+ebin/
+\.swp$
+\.dump$
+\.beam$
+edoc-info
+.DS_Store 
+priv/log/
+doc/
+
+\.beam$
+^tmp/
+^erl_crash.dump$
+\.DS_Store
+deps/lhttpc/ebin
+deps/lhttpc/include
