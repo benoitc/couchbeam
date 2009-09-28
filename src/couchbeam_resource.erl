@@ -61,7 +61,7 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
                                     case Resp1 of
                                         {[{<<"ok">>, true}]} -> ok;
                                         {[{<<"ok">>, true}|Res]} -> {ok, {Res}};
-                                        Obj -> Obj
+                                        Obj -> {ok, Obj}
                                     end
                             catch
                                 _:_ -> {ok, ResponseBody}
@@ -73,7 +73,7 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
     
 do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State, 
         Method, Path, Headers, Params, Body, Opts) ->
-    lhttpc:verify_options(Opts, []),
+    verify_options(Opts, []),
     Path1 = lists:append([Path, 
             case Params of
             [] -> [];
@@ -142,3 +142,22 @@ default_header(K, V, H) ->
     true -> H;
     false -> [{K, V}|H]
     end.
+    
+    
+verify_options([{send_retry, N} | Options], Errors)
+        when is_integer(N), N >= 0 ->
+    verify_options(Options, Errors);
+verify_options([{connect_timeout, infinity} | Options], Errors) ->
+    verify_options(Options, Errors);
+verify_options([{connect_timeout, MS} | Options], Errors)
+        when is_integer(MS), MS >= 0 ->
+    verify_options(Options, Errors);
+verify_options([Option | Options], Errors) ->
+    verify_options(Options, [Option | Errors]);
+verify_options([], []) ->
+    ok;
+verify_options([], Errors) ->
+    bad_options(Errors).
+
+bad_options(Errors) ->
+    erlang:error({bad_options, Errors}).

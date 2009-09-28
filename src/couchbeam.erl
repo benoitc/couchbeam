@@ -41,6 +41,10 @@ json_decode(V) ->
 %% @spec () -> ok
 %% @doc Start applications which exmpp depends on then start exmpp.
 start() ->
+    couchbeam_deps:ensure(),
+    application:start(ssl),
+    application:start(crypto),
+    application:start(lhttpc),
     application:start(couchbeam).  
  
 %% @spec () -> Version
@@ -57,6 +61,7 @@ version() ->
 %% @hidden
 
 start(_Start_Type, _Start_Args) ->
+    
     couchbeam_sup:start_link().
 
 %% @hidden

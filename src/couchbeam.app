@@ -15,5 +15,5 @@
                         couchbeam_sup]},
               {registered,[couchbeam_sup]},
               {applications,[kernel, stdlib, ssl, crypto]},
-			  {env, [{connection_timeout, 300000}]},
+			  {env, []},
 			  {mod, {couchbeam, []}}]}.

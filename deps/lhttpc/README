@@ -1,0 +1,18 @@
+Dependencies:
+ * Erlang/OTP R12-B or newer (compiler to build, kernel and stdlib to run)
+ * GNU Make (might actually build with some other make as well)
+ * Eunit (for testing)
+
+To bulid the application simply run 'make'. This should build .beam, .app
+files and documentation.
+
+Configuration: (environment variables)
+ * connection_timeout: The time (in milliseconds) the client will try to
+                       kepp a HTTP/1.1 connection open. Changing this value
+                       in runtime has no effect, this can however be done
+                       through lhttpc_manager:update_connection_timeout/1.
+
+Development:
+There are some interesting make targets:
+ * test - Will compile and run all tests (using eunit)
+ * dialyzer - Will run dialyzer on the application
