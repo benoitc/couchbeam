@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(10),
+    etap:plan(11),
     start_app(),
     case (catch test()) of
         ok ->
@@ -17,21 +17,22 @@ main(_) ->
     ok.
 
 start_app() ->
-    application:start(crypto),
-    application:start(couchbeam),
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam:delete_db(default, "couchbeam_testdb2"),
+    couchbeam:start(),
+    couchbeam_server:start_connection_link(),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam:delete_db(default, "couchbeam_testdb2"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
     ok.
     
 test() ->
-    etap:is(couchbeam:create_db(default, "couchbeam_testdb"), ok, "db created ok"),
+    Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
+    etap:is(is_pid(Db), true, "db created ok"),
     DesignDoc = {[
-        {<<"_id">>, <<"_design/test">>},
+        {<<"_id">>, <<"_design/couchbeam">>},
         {<<"language">>,<<"javascript">>},
         {<<"views">>,
             {[{<<"test">>,
@@ -43,15 +44,15 @@ test() ->
     Doc = {[
         {<<"type">>, <<"test">>}
     ]},
-    couchbeam:save_doc(default, "couchbeam_testdb", DesignDoc),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc),
-    AllDocs = couchbeam:all_docs(default, "couchbeam_testdb", []),
-    {T, O, R} = couchbeam:parse_view(AllDocs),
+    couchbeam_db:save_doc(Db, DesignDoc),
+    couchbeam_db:save_doc(Db, Doc),
+    couchbeam_db:save_doc(Db, Doc),
+    AllDocs = couchbeam_db:all_docs(Db, []),
+    {T, _, _, R} = couchbeam_view:parse_view(AllDocs),
     etap:is(length(R), 3, "all_docs: nb doc is ok"),
     etap:is(T, 3, "all_docs: TotalsRow ok"),
-    AllDocs1 = couchbeam:all_docs(default, "couchbeam_testdb", [{"limit", "1"}]),
-    {_, _, R1} = couchbeam:parse_view(AllDocs1),
+    AllDocs1 = couchbeam_db:all_docs(Db, [{"limit", "1"}]),
+    {_, _, _, R1} = couchbeam_view:parse_view(AllDocs1),
     etap:is(length(R1), 1, "nb doc is ok"),
     Doc1 = {[
         {<<"_id">>, <<"test">>},
@@ -65,27 +66,20 @@ test() ->
         {<<"_id">>, <<"test3">>},
         {<<"type">>, <<"test">>}
     ]},
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc1),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc2),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc3),
-    VResults = couchbeam:query_view(default, "couchbeam_testdb", "test", "test"),
-    {T2, _, R2} = couchbeam:parse_view(VResults),
+    couchbeam_db:save_doc(Db, Doc1),
+    couchbeam_db:save_doc(Db, Doc2),
+    couchbeam_db:save_doc(Db, Doc3),
+    VResults = couchbeam_db:query_view(Db, {"couchbeam", "test"}, []),
+    {T2, _, _, R2} = couchbeam_view:parse_view(VResults),
     etap:is(T2, 5, "view: total_rows in view ok"),
     etap:is(length(R2), 5, "view: nb rows ok"),
-    VResults2 = couchbeam:query_view(default, "couchbeam_testdb", "test", 
-                                "test", [{"key", <<"test">>}]),
-    {_,_, R3} = couchbeam:parse_view(VResults2),
-    etap:is(length(R3), 1, "view, key : nb rows ok"),
-    VResults3 = couchbeam:query_view(default, "couchbeam_testdb", "test", 
-                                "test", [{"startkey", <<"test">>}]),
-    {_,_, R4} = couchbeam:parse_view(VResults3),
-    etap:is(length(R4), 3, "view, startkey, nb rows ok"),
-    VRresults4 = couchbeam:query_view(default, "couchbeam_testdb", "test", 
-                    "test", [{"startkey", <<"test">>}, {"endkey", <<"test2">>}]),
-    {_,_, R5} = couchbeam:parse_view(VRresults4),
-    etap:is(length(R5), 2, "view, startkey, endkey : nb rows ok"),
-    VResults5 = couchbeam:query_view(default, "couchbeam_testdb", "test", 
-                    "test", [{"keys", [<<"test">>, <<"test3">>]}]),
-    {_,_, R6} = couchbeam:parse_view(VResults5),
-    etap:is(length(R6), 2, "view, keys : nb rows ok"),
+    etap:is(couchbeam_view:count(VResults), 5, "view count: nb rows ok"),
+    VResults2 = couchbeam_db:query_view(Db, {"couchbeam", "test"}, [{"key", <<"test">>}]),
+    etap:is(couchbeam_view:count(VResults2), 1, "view, key : nb rows ok"),
+    VResults3 = couchbeam_db:query_view(Db, {"couchbeam", "test"}, [{"startkey", <<"test">>}]),
+    etap:is(couchbeam_view:count(VResults3), 3, "view, startkey, nb rows ok"),
+    VRresults4 = couchbeam_db:query_view(Db, {"couchbeam", "test"}, [{"startkey", <<"test">>}, {"endkey", <<"test2">>}]),
+    etap:is(couchbeam_view:count(VRresults4), 2, "view, startkey, endkey : nb rows ok"),
+    VResults5 = couchbeam_db:query_view(Db, {"couchbeam",  "test"}, [{"keys", [<<"test">>, <<"test3">>]}]),
+    etap:is(couchbeam_view:count(VResults5), 2, "view, keys : nb rows ok"),
     ok.
