@@ -24,12 +24,12 @@
 
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
--export([db_info/1, open_doc/2, open_doc/3, save_doc/2, save_doc/3, save_docs/2,
+-export([info/1, open_doc/2, open_doc/3, save_doc/2, save_doc/3, save_docs/2,
          save_docs/3, delete_doc/2, delete_docs/2, delete_docs/3]).
 -export([query_view/3, all_docs/2, all_docs_by_seq/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
--export([open/2, close/2]).
+-export([open/2, close/2, create/2, delete/2, open_or_create/2]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -42,9 +42,9 @@
 %%                     json_object()
 
 
-%% @spec db_info(Db::pid()) -> list()
+%% @spec info(Db::pid()) -> list()
 %% @doc fetch information of Database
-db_info(Db) ->
+info(Db) ->
     gen_server:call(Db, info, infinity).
     
 open(ConnectionPid, DbName) ->
@@ -52,6 +52,15 @@ open(ConnectionPid, DbName) ->
     
 close(ConnectionPid, Db) ->
     couchbeam_server:close_db(ConnectionPid, Db).
+    
+create(ConnectionPid, DbName) ->
+    couchbeam_server:create_db(ConnectionPid, DbName).
+    
+delete(ConnectionPid, DbName) ->
+    couchbeam_server:delete_db(ConnectionPid, DbName).
+    
+open_or_create(ConnectionPid, DbName) ->
+    couchbeam_server:open_or_create_db(ConnectionPid, DbName).
     
 %%---------------------------------------------------------------------------
 %% Manage docs
