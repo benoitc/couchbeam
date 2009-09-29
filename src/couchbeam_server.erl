@@ -19,6 +19,7 @@
 -author('Benoît Chesneau <benoitc@e-engura.org').
 
 -behaviour(gen_server).
+
 -include("couchbeam.hrl").
 
 
@@ -28,7 +29,7 @@
 -export([start_connection/0, start_connection/1, start_connection_link/0,
          start_connection_link/1]).
 -export([info/1, create_db/2, open_db/2, open_or_create_db/2, delete_db/2,
-         is_db/2]).
+         all_dbs/1, is_db/2]).
          
  
 start_connection() -> start_connection(#couchdb_params{}).
@@ -54,9 +55,9 @@ start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbPara
     Pid.
     
 start_internal(InitialState, _Link = true) ->
-    gen_server:start_link(?MODULE, InitialState, []);
+    gen_server:start_link(couchbeam_server, InitialState, []);
 start_internal(InitialState, _Link = false) ->
-    gen_server:start(?MODULE, InitialState, []).
+    gen_server:start(couchbeam_server, InitialState, []).
     
 info(ConnectionId) ->
     gen_server:call(ConnectionId, info).
@@ -152,8 +153,8 @@ handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
                                                 dbs_by_pid=DbsPidTid}=State) ->
     Pid = case ets:lookup(DbsNameTid, DbName) of
         [] ->
-            case couchbeam_resource:post(C, Base ++ DbName, [], [], [], []) of
-                {json, {[{<<"ok">>, true}]}} ->
+            case couchbeam_resource:put(C, Base ++ DbName, [], [], [], []) of
+                ok ->
                     {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName, State}, []),
                     true = ets:insert(DbsNameTid, {DbName, DbPid}),
                     true = ets:insert(DbsPidTid, {DbPid, DbName}),

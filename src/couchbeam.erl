@@ -19,8 +19,6 @@
 
 -behaviour(application).
 
--include("couchbeam.hrl").
-
 -export([start/0, version/0]).
 -export([json_encode/1,json_decode/1]).
 -export([start/2, stop/1]).

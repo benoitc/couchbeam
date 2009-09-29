@@ -58,38 +58,42 @@ start_link() ->
     
 init(_) ->
     process_flag(priority, high),
-    {ok, #couchbeam_manager{}}.
+    Connections = ets:new(couchdbeam_conns_by_name, [set, private, named_table]),
+    
+    {ok, #couchbeam_manager{connections=Connections}}.
     
 
 %% @hidden
-handle_call({register, Name, ConnectionPid}, _, #couchbeam_manager{connections=Connections} = State) ->
-    {R, NewState} = case dict:is_key(Name, Connections) of
-        true -> {already_registered, State};
-        false -> 
-            Connections1 = dict:append(Name, ConnectionPid, Connections),
-            {ok, #couchbeam_manager{connections=Connections1}}
+handle_call({register, Name, ConnectionPid}, _, State) ->
+    R = case ets:lookup(couchdbeam_conns_by_name, Name) of
+        [] -> 
+            true = ets:insert(couchdbeam_conns_by_name, {Name, ConnectionPid}),
+            {ok, ConnectionPid};
+        [{_, MainPid}] -> 
+            {already_registered, MainPid}
     end,
-    {reply, R, NewState};
+    {reply, R, State};
 
-handle_call({unregister, Name}, _, #couchbeam_manager{connections=Connections} = State) ->
-    {R, NewState} = case dict:is_key(Name, Connections) of
-        false -> {notfound, State};
-        true -> 
-            Connections1 = dict:erase(Name, Connections),
-            {ok, #couchbeam_manager{connections=Connections1}}
+handle_call({unregister, Name}, _, State) ->
+   R = case ets:lookup(couchdbeam_conns_by_name, Name) of
+        [] -> {notfound, State};
+        [{_,_}] -> 
+            ets:delete(couchdbeam_conns_by_name, Name),
+            ok
     end,
-    {reply, R, NewState};
+    {reply, R, State};
     
-handle_call({connection, Name}, _, #couchbeam_manager{connections=Connections} = State) ->
-    [ConnPid] = case dict:is_key(Name, Connections) of
-        false -> [not_found];
-        true ->
-            dict:fetch(Name, Connections)
+handle_call({connection, Name}, _, State) ->
+    R = case ets:lookup(couchdbeam_conns_by_name, Name) of
+        [] -> not_found;
+        [{_, Pid}] -> Pid   
     end,
-    {reply, ConnPid, State};
+    {reply, R, State};
     
 handle_call(connection_count, _, State) ->
-     {reply, dict:size(State#couchbeam_manager.connections), State}.
+    Infos = ets:info(couchdbeam_conns_by_name),
+    Size = proplists:get_value(size, Infos),
+     {reply, Size, State}.
             
 handle_cast(_Msg, State) ->
     {no_reply, State}.

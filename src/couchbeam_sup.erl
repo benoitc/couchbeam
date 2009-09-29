@@ -19,13 +19,11 @@
 
 -export([start_link/0, init/1]).
 
--include("couchbeam.hrl").
-
 start_link() ->
     supervisor:start_link(?MODULE, nil).
     
 init(_) ->
     Manager = {couchbeam_manager, {couchbeam_manager, start_link, []},
-        permanent, 10000, worker, [couchbeam_manager]
+        permanent, brutal_kill, worker, [couchbeam_manager]
     },
-    {ok, {{one_for_one, 10, 1}, [Manager]}}.
+    {ok, {{one_for_one, 10, 3600}, [Manager]}}.

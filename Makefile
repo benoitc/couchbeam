@@ -1,5 +1,7 @@
 ERL          ?= erl
+
 EBIN_DIRS    := $(wildcard deps/*/ebin)
+ERLC_FLAGS := -W $(INCLUDE_DIRS:%=-I %) $(EBIN_DIRS:%=-pa %)
 APP          := couchbeam
 
 all: erl ebin/$(APP).app

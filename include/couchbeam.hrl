@@ -13,7 +13,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-    
+
 -record(couchdb_params, {
     host        = "127.0.0.1",
     port        = 5984,
@@ -61,7 +61,7 @@
 }).
 
 -record(couchbeam_manager, {
-    connections=dict:new()
+    connections=undefined
 }).
     
 -define(USER_AGENT, "couchbeam/0.1").

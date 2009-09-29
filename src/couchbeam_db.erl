@@ -19,6 +19,7 @@
 -author('Benoît Chesneau <benoitc@e-engura.org').
 
 -behaviour(gen_server).
+
 -include("couchbeam.hrl").
 
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
