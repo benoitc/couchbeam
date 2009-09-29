@@ -46,6 +46,7 @@
     db,
     couchdb = #couchdb_params{},
     base,
+    name,
     params=[],
     fetched=false,
     total_rows=0,

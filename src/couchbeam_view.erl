@@ -51,7 +51,8 @@ count(ViewPid, Refresh) ->
     gen_server:call(ViewPid, {count, Refresh}, infinity).
                      
 close_view(ViewPid) ->
-    handle:cast(ViewPid, close_view).
+    catch exit(ViewPid, kill),
+    ok.
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
@@ -68,7 +69,8 @@ init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}
     end,
     ViewState = #view{server    = ServerState, 
                       couchdb   = CouchdbParams, 
-                      db        = DbState, 
+                      db        = DbState,
+                      name      = Vname,
                       base      = Base, 
                       params    = Params},
     {ok, ViewState}.
@@ -93,14 +95,18 @@ handle_call({count, Refresh}, _From, State) ->
         true -> length(Rows);
         false -> 0
     end,
-     {reply, Count, NewState}.
+     {reply, Count, NewState};
     
-handle_cast(close_view, State) ->
-    {stop, State};
+handle_call(stop_view, _From, State) ->
+    {stop, ok, State}.
     
 handle_cast(_Msg, State) ->
     {no_reply, State}.
     
+
+handle_info({'EXIT', _Pid, _Reason}, State) ->
+    io:format("Stopping view ~p ~n", [State#view.name]),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
