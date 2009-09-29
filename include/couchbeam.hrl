@@ -15,14 +15,14 @@
 %% limitations under the License.
 
 -record(couchdb_params, {
-    host        = "127.0.0.1",
-    port        = 5984,
-    ssl         = false,
-    prefix      = "/",
-    username    = nil,
-    password    = nil,
-    name        = default,
-    timeout     = infinity
+    host        = "127.0.0.1" :: string(),
+    port        = 5984 :: integer(),
+    ssl         = false :: bool(),
+    prefix      = "/" :: string(),
+    username    = nil :: string(),
+    password    = nil :: string(),
+    name        = default :: term(),
+    timeout     = infinity :: integer() | infinity
 }).
 
 -record(server_state, {
