@@ -80,8 +80,8 @@ handle_call({unregister, Name}, _, #couchbeam_manager{connections=Connections} =
     end,
     {reply, R, NewState};
 handle_call({connection, Name}, _, #couchbeam_manager{connections=Connections} = State) ->
-    ConnPid = case dict:is_key(Name, Connections) of
-        false -> not_found;
+    [ConnPid] = case dict:is_key(Name, Connections) of
+        false -> [not_found];
         true ->
             dict:fetch(Name, Connections)
     end,

@@ -39,7 +39,7 @@ start_connection_link() -> start_connection_link(#couchdb_params{}).
 
 start_connection_link(Params) -> start_connection_internal(Params, true).        
 
-start_connection_internal(#couchdb_params{prefix=Prefix} = CouchdbParams,
+start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbParams,
                     ProcLink) ->
 
     Prefix1 = case Prefix of
@@ -50,6 +50,7 @@ start_connection_internal(#couchdb_params{prefix=Prefix} = CouchdbParams,
     InitialState = #server_state{couchdb = CouchdbParams1,
                                  prefix  = Prefix1},
     {ok, Pid} = start_internal(InitialState, ProcLink),
+    couchbeam_manager:register_connection(Name, Pid),
     Pid.
     
 start_internal(InitialState, _Link = true) ->
@@ -67,7 +68,8 @@ info(ConnectionId) ->
 %% @spec all_dbs(ConnectionId::pid()) -> list()
 %% @doc fetch list of all dbs
 all_dbs(ConnectionId) ->
-    gen_server:call(ConnectionId, all_dbs, infinity).
+    Pid = maybe_managed(ConnectionId),
+    gen_server:call(Pid, all_dbs, infinity).
 
 %% @spec is_db(ConnectionId::pid(), DbName::string()) -> true|false
 %% @doc If database exist in the node returns true    
@@ -78,15 +80,18 @@ is_db(ConnectionId, DbName) ->
 %% @spec create_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc create a database with DbName
 create_db(ConnectionId, DbName) ->
-    gen_server:call(ConnectionId, {create_db, DbName}, infinity).
+    Pid = maybe_managed(ConnectionId),
+    gen_server:call(Pid, {create_db, DbName}, infinity).
     
 open_db(ConnectionId, DbName) ->
-    gen_server:call(ConnectionId, {open_db, DbName}, infinity).
+    Pid = maybe_managed(ConnectionId),
+    gen_server:call(Pid, {open_db, DbName}, infinity).
 
 %% @spec delete_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc delete a database with dbname    
 delete_db(ConnectionId, DbName) ->
-    gen_server:call(ConnectionId, {delete_db, DbName}, infinity).
+    Pid = maybe_managed(ConnectionId),
+    gen_server:call(Pid, {delete_db, DbName}, infinity).
         
 open_or_create_db(ConnectionId, DbName) ->
     Pid = case open_db(ConnectionId, DbName) of
@@ -189,3 +194,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}. 
     
       
+%% @private
+maybe_managed(ConnectionId) when is_pid(ConnectionId) ->
+    ConnectionId;
+maybe_managed(ConnectionId) ->
+    couchbeam_manager:get_connection(ConnectionId).    
+

@@ -17,14 +17,11 @@ main(_) ->
     ok.
 
 start_app() ->
-    application:start(crypto),
-    application:start(couchbeam),
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam:delete_db(default, "couchbeam_testdb2"),
+    couchbeam:start(),
     ok.
     
 stop_test() ->
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
+    catch couchapp_server:delete_db("couchbeam_testdb"),
     catch couchbeam:delete_db(default, "couchbeam_testdb2"),
     ok.
     

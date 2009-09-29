@@ -18,6 +18,7 @@
 
 -module(couchbeam_doc).
 -author('Benoît Chesneau <benoitc@e-engura.org').
+-include("couchbeam.hrl").
 
 -export([set_value/3, get_value/2,  extend/2, extend/3,
         add_attachment/3, add_attachment/4, delete_inline_attachment/2]).
