@@ -162,7 +162,8 @@ delete_attachment(Db, Doc, AName) ->
 %% @private
 
 init({DbName, #server_state{couchdb=C, prefix=Prefix} = ServerState}) ->
-    State = #db{server  = ServerState,
+    State = #db{name    = DbName,
+                server  = ServerState,
                 couchdb = C,
                 base    = Prefix ++ DbName},
     {ok, State}.
@@ -279,8 +280,11 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
 handle_cast(_Msg, State) ->
     {no_reply, State}.
     
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info({'EXIT', _Pid, _Reason}, State) ->
+    {stop, State};
+handle_info(Msg, State) ->
+    io:format("Bad message received for db ~s: ~p", [State#db.name, Msg]),
+    exit({error, Msg}).
 
 terminate(_Reason, _State) ->
     ok.

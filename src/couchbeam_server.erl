@@ -118,6 +118,7 @@ init(#server_state{couchdb=C, prefix=P} = InitialState) ->
     State = InitialState#server_state{dbs_by_name   = DbsByNameTid,
                                       dbs_by_pid    = DbsByPidTid,
                                       uuids_pid     = UuidsPid},
+    process_flag(trap_exit, true),
     {ok, State}.
     
 handle_call(info, _From, #server_state{prefix=Base, couchdb=C}=State) ->
@@ -143,7 +144,10 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
                 {error, Reason} -> Reason
             end;
         [{_, DbPid1}] ->
-            DbPid1
+            case couchbeam_resource:get(C, Base ++ DbName, [], [], []) of
+                {ok, _} -> DbPid1;
+                {error, Reason} -> Reason
+            end
     end,
     {reply, Pid, State};
     
@@ -161,7 +165,11 @@ handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
                     DbPid;
                 {error, Reason} -> Reason
             end;
-        [{_, _}] -> already_exist
+        [{_, DbPid1}] -> 
+            case couchbeam_resource:put(C, Base ++ DbName, [], [], [], []) of
+                ok -> DbPid1;
+                {error, Reason} -> Reason
+            end 
     end,
     {reply, Pid, State};
     
@@ -185,6 +193,14 @@ handle_cast(_Msg, State) ->
     {no_reply, State}.
     
 
+handle_info({'EXIT', Pid, _Reason}, #server_state{dbs_by_name=DbsNameTid,
+                                                dbs_by_pid=DbsPidTid}=State) ->
+    [{Pid, DbName}] = ets:lookup(DbsPidTid, Pid),
+    [{DbName, Pid}] = ets:lookup(DbsNameTid, DbName),
+    true = ets:delete(DbsPidTid, Pid),
+    true = ets:delete(DbsNameTid, DbName),
+    {noreply, State};
+    
 handle_info(_Info, State) ->
     {noreply, State}.
 

@@ -35,6 +35,7 @@
 
 
 -record(db, {
+    name,
     server,
     couchdb = #couchdb_params{},
     base
