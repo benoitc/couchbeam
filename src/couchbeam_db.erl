@@ -29,7 +29,7 @@
 -export([query_view/3, all_docs/2, all_docs_by_seq/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
-
+-export([open/2, close/2]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -47,7 +47,11 @@
 db_info(Db) ->
     gen_server:call(Db, info, infinity).
     
+open(ConnectionPid, DbName) ->
+    couchbeam_server:open_db(ConnectionPid, DbName).
     
+close(ConnectionPid, Db) ->
+    couchbeam_server:close_db(ConnectionPid, Db).
     
 %%---------------------------------------------------------------------------
 %% Manage docs
@@ -181,7 +185,7 @@ handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, base=Base} = State)
         {ok, Doc1} -> Doc1;
         {error, Reason} -> Reason
     end,
-    {ok, Doc, State};
+    {reply, Doc, State};
     
 handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C, 
                                                 base=Base} = State) ->
@@ -190,16 +194,18 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
         undefined ->
             #server_state{uuids_pid=UuidsPid} = ServerState,
             couchbeam_uuids:next_uuid(UuidsPid);
-        Id1 -> Id1
+        Id1 when is_list(Id1) -> Id1;
+        Id1 -> ?b2l(Id1)
     end,
     Path = Base ++ "/" ++ DocId,
     Body = couchbeam:json_encode(Doc),
-    Resp = case couchbeam_resource:put(C, Path, Body, [], Params, []) of
+    Resp = case couchbeam_resource:put(C, Path, [], Params, Body, []) of
         {ok, {Props1}} ->
-            NewRev = proplists:get_value(Props1, <<"rev">>),
-            DocId1 = proplists:get_value(Props1, <<"id">>),
-            Doc1 = couchbeam_doc:extend([{<<"_id">>, DocId1}, {<<"_rev">>, NewRev}]),
-            Doc1;
+            NewRev = proplists:get_value(<<"rev">>, Props1),
+            DocId1 = proplists:get_value(<<"id">>, Props1),
+            Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId1, Doc),
+            Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
+            Doc2;
         {error, Reason} ->
             Reason
     end,
@@ -222,14 +228,14 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
     {reply, Res, State};
     
 handle_call({query_view, Vname, Params}, _From, State) ->
-    ViewPid = gen_server:start_link(couchbeam_view, {Vname, Params, State}),
+    {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
 handle_call({fetch_attachment, DocId, AName, Opts}, _From, #db{couchdb=C, base=Base}=State) ->
     Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
     Resp = case couchbeam_resource:get(C, Path, [], [], Opts) of
         {error, Reason} -> Reason;
-        R -> R
+        {ok, R} -> R
     end,
     {reply, Resp, State};
 
@@ -248,10 +254,11 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
              {Props} = R,
-             NewRev = proplists:get_value(Props, <<"rev">>),
-             DocId2 = proplists:get_value(Props, <<"id">>),
-             Doc1 = couchbeam_doc:extend([{<<"_id">>, DocId2}, {<<"_rev">>, NewRev}]),
-             Doc1;
+             NewRev = proplists:get_value(<<"rev">>, Props),
+             DocId2 = proplists:get_value(<<"id">>, Props),
+             Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId2, Doc),
+             Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
+             Doc2;
         {ok, R} ->  R
     end,
     {reply, Resp, State};
@@ -269,10 +276,11 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
              {Props} = R,
-             NewRev = proplists:get_value(Props, <<"rev">>),
-             DocId2 = proplists:get_value(Props, <<"id">>),
-             Doc1 = couchbeam_doc:extend([{<<"_id">>, DocId2}, {<<"_rev">>, NewRev}]),
-             Doc1;
+             NewRev = proplists:get_value(<<"rev">>, Props),
+             DocId2 = proplists:get_value(<<"id">>, Props),
+             Doc1 = couchbeam_doc:set_value(<<"_id">>, DocId2, Doc),
+             Doc2 = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
+             Doc2;
         {ok, R} ->  R
     end,
     {reply, Resp, State}.

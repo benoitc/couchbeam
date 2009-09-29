@@ -17,50 +17,50 @@ main(_) ->
     ok.
 
 start_app() ->
-    application:start(crypto),
-    application:start(couchbeam),
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam:delete_db(default, "couchbeam_testdb2"),
+    couchbeam:start(),
+    couchbeam_server:start_connection_link(),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    catch couchbeam:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam:delete_db(default, "couchbeam_testdb2"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
     ok.
     
 test() ->
-    etap:is(couchbeam:create_db(default, "couchbeam_testdb"), ok, "db created ok"),
+    Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
+    etap:is(is_pid(Db), true, "db created ok"),
     Doc = {[
         {<<"_id">>, <<"test">>}
     ]},
-    {ok, Res} = couchbeam:save_doc(default, "couchbeam_testdb", Doc),
-    Rev = couchbeam:get_value(<<"rev">>, Res),
-    Doc1 = couchbeam:extend({<<"_rev">>, Rev}, Doc),
-    { Ok, _} = couchbeam:put_attachment(default, "couchbeam_testdb", Doc1, 
-        "test", "test", length("test")),
-    etap:is(Ok, ok, "put attachment ok"),
-    {raw, Attachment} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test", "test"),
+    Doc1 = couchbeam_db:save_doc(Db, Doc),
+    RevDoc1 = couchbeam_doc:get_value(<<"_rev">>, Doc1),
+    Doc11 = couchbeam_db:put_attachment(Db, Doc1, "test", "test", length("test")),
+    RevDoc11 = couchbeam_doc:get_value(<<"_rev">>, Doc11),
+    etap:is(RevDoc1 =:= RevDoc11, false, "put attachment ok"),
+    Attachment = couchbeam_db:fetch_attachment(Db, "test", "test"),
     etap:is(Attachment, <<"test">>, "fetch attachment ok"),
-    Doc2 = couchbeam:open_doc(default, "couchbeam_testdb", "test"),
-    {Ok1, _} = couchbeam:delete_attachment(default, "couchbeam_testdb", Doc2, "test"),
-    etap:is(Ok1, ok, "delete attachment ok"),
+    Doc2 = couchbeam_db:open_doc(Db, "test"),
+    RevDoc2 = couchbeam_doc:get_value(<<"_rev">>, Doc2),
+    Doc21 = couchbeam_db:delete_attachment(Db, Doc2, "test"),
+    RevDoc21 = couchbeam_doc:get_value(<<"_rev">>, Doc21),
+    etap:is(RevDoc2 =:= RevDoc21, false, "delete attachment ok"),
     Doc3 = {[
         {<<"_id">>, <<"test2">>}
     ]},
-    Doc4 = couchbeam:add_attachment(Doc3, "test", "test.txt"),
-    Doc5 = couchbeam:add_attachment(Doc4, "test2", "test2.txt"),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc5),
-    {raw, Attachment1} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test.txt"),
-    {raw, Attachment2} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt"),
+    Doc4 = couchbeam_doc:add_attachment(Doc3, "test", "test.txt"),
+    Doc5 = couchbeam_doc:add_attachment(Doc4, "test2", "test2.txt"),
+    couchbeam_db:save_doc(Db, Doc5),
+    Attachment1 = couchbeam_db:fetch_attachment(Db, "test2", "test.txt"),
+    Attachment2 = couchbeam_db:fetch_attachment(Db, "test2", "test2.txt"),
     etap:is(Attachment1, <<"test">>, "fetch attachment ok"),
     etap:is(Attachment2, <<"test2">>, "fetch attachment ok"),
-    Doc6 = couchbeam:open_doc(default, "couchbeam_testdb", "test2"),
-    Doc7 = couchbeam:delete_inline_attachment(Doc6, "test2.txt"),
-    couchbeam:save_doc(default, "couchbeam_testdb", Doc7),
-    F = fun() ->
-        {raw, Attachment3} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test2.txt")
-    end,
-    etap_exception:throws_ok(F, not_found, "inline attachment deleted"),
-    {raw, Attachment4} = couchbeam:fetch_attachment(default, "couchbeam_testdb", "test2", "test.txt"),
+    Doc6 = couchbeam_db:open_doc(Db, "test2"),
+    Doc7 = couchbeam_doc:delete_inline_attachment(Doc6, "test2.txt"),
+    couchbeam_db:save_doc(Db, Doc7),
+    Attachment3 = couchbeam_db:fetch_attachment(Db, "test2", "test2.txt"),
+    etap:is(Attachment3, not_found, "inline attachment deleted"),
+    Attachment4 = couchbeam_db:fetch_attachment(Db, "test2", "test.txt"),
     etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
     ok.

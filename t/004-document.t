@@ -29,34 +29,39 @@ stop_test() ->
     ok.
     
 test() ->
-    etap:is(couchbeam_server:create_db(default, "couchbeam_testdb"), ok, "db created ok"),
-    etap:ok(case couchbeam_db:save_doc(default, "couchbeam_testdb", {[{"test", blah}]}) of
-        {ok, _} -> true;
-        _E -> false
-        end, "save doc ok"),
-    etap:ok(case couchbeam_db:save_doc(default, "couchbeam_testdb", 
-            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}) of
-        {ok, {[{<<"id">>,<<"test">>}|_]}} -> true;
+    Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
+    etap:is(is_pid(Db), true, "db created ok"),
+    Doc = couchbeam_db:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
+    etap:ok(case Doc of
+        {_} -> true;
         _ -> false
-        end, "save do with id ok"),
-    F = fun() -> 
-        couchbeam_db:save_doc(default, "couchbeam_testdb", 
-            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})
-    end,
-    etap_exception:throws_ok(F, conflict, "conflict raised"),
-    {Doc} = couchbeam_db:open_doc(default, "couchbeam_testdb", "test"),
-    etap:is(proplists:get_value(<<"test">>, Doc), <<"blah">>, "fetch doc ok"),
-    couchbeam_db:save_doc(default, "couchbeam_testdb", 
+    end, "save doc ok"),
+    etap:ok(case couchbeam_db:save_doc(Db, 
+            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}) of
+        {Props} -> 
+            case proplists:get_value(<<"_id">>, Props) of
+                <<"test">> -> true;
+                _ -> false 
+            end;
+        _ -> false
+    end, "save do with id ok"),
+    Doc0 = couchbeam_db:save_doc(Db, 
+            {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
+    etap:is(Doc0, conflict, "conflict raised"),
+    {Doc1} = couchbeam_db:open_doc(Db, "test"),
+    etap:is(proplists:get_value(<<"test">>, Doc1), <<"blah">>, "fetch doc ok"),
+    couchbeam_db:save_doc(Db, 
         {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
-    F1 = fun() ->
-        couchbeam_db:open_doc(default, "couchbeam_testdb", "test2")
-    end,
-    Doc1 = F1(),
-    etap_exception:lives_ok(F1,"test2 has been created"),
-    etap:ok(case couchbeam_db:delete_doc(default,"couchbeam_testdb", Doc1) of
-        {ok, _} -> true;
-        _E2 -> false
+    
+    Doc2 = couchbeam_db:open_doc(Db, "test2"),
+    etap:ok(case Doc2 of
+        {_} -> true;
+        _ -> false
+        end, "test2 has been created"),
+    etap:ok(case couchbeam_db:delete_doc(Db, Doc2) of
+        {_} -> true;
+        _ -> false
         end, "doc2 has been deleted"),
-    etap_exception:throws_ok(F1, not_found, "test2 not found"),
+    etap:is(couchbeam_db:open_doc(Db, "test2"), not_found, "test2 not found"),
     ok.
     

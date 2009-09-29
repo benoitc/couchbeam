@@ -27,7 +27,7 @@
          handle_info/2]).
 -export([fetch_view/1, fetch_view/2, parse_view/1, parse_view/2,
          count/1, count/2]).
--export([close/1]).
+-export([close_view/1]).
                   
                   
 fetch_view(ViewPid) ->
@@ -50,21 +50,21 @@ count(ViewPid) ->
 count(ViewPid, Refresh) ->
     gen_server:call(ViewPid, {count, Refresh}, infinity).
                      
-close(ViewPid) ->
-    handle:cast(ViewPid, close).
+close_view(ViewPid) ->
+    handle:cast(ViewPid, close_view).
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
 %% @private                 
-init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB} = DbState}) -> 
+init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}=DbState}) -> 
     Base = case Vname of
-        {DName, VName1} ->
-            io_list:format("~s/~s/_view/~s", [BaseDB, DName, VName1]);
         '_all_docs' ->
-            io_list:format("~s/_all_docs/", [BaseDB]);
+            io_lib:format("~s/_all_docs", [BaseDB]);
         '_all_docs_by_seq' ->
-            io_list:format("~s/_all_docs_by_seq", [BaseDB])
+            io_lib:format("~s/_all_docs_by_seq", [BaseDB]);
+        {DName, VName1} ->
+            io_lib:format("~s/_design/~s/_view/~s", [BaseDB, DName, VName1])
     end,
     ViewState = #view{server    = ServerState, 
                       couchdb   = CouchdbParams, 
@@ -95,7 +95,7 @@ handle_call({count, Refresh}, _From, State) ->
     end,
      {reply, Count, NewState}.
     
-handle_cast(close, State) ->
+handle_cast(close_view, State) ->
     {stop, State};
     
 handle_cast(_Msg, State) ->

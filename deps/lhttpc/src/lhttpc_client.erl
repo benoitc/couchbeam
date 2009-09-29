@@ -136,7 +136,7 @@ send_request(#client_state{socket = undefined} = State) ->
     Port = State#client_state.port,
     Ssl = State#client_state.ssl,
     Timeout = State#client_state.connect_timeout,
-    SocketOptions = [binary, {packet, http}, {active, false}],
+    SocketOptions = [binary, {packet, http}, {active, false}, {nodelay, true}],
     case lhttpc_sock:connect(Host, Port, SocketOptions, Timeout, Ssl) of
         {ok, Socket} ->
             send_request(State#client_state{socket = Socket});

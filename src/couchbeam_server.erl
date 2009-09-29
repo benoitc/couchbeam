@@ -29,7 +29,7 @@
 -export([start_connection/0, start_connection/1, start_connection_link/0,
          start_connection_link/1]).
 -export([info/1, create_db/2, open_db/2, open_or_create_db/2, delete_db/2,
-         all_dbs/1, is_db/2]).
+         all_dbs/1, is_db/2, close_db/2]).
          
  
 start_connection() -> start_connection(#couchdb_params{}).
@@ -51,7 +51,7 @@ start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbPara
     InitialState = #server_state{couchdb = CouchdbParams1,
                                  prefix  = Prefix1},
     {ok, Pid} = start_internal(InitialState, ProcLink),
-    couchbeam_manager:register_connection(Name, Pid),
+    {ok, _} = couchbeam_manager:register_connection(Name, Pid),
     Pid.
     
 start_internal(InitialState, _Link = true) ->
@@ -102,7 +102,9 @@ open_or_create_db(ConnectionId, DbName) ->
     end,
     Pid.
     
-
+close_db(ConnectionPid, DbPid) ->
+    Pid = maybe_managed(ConnectionPid),
+    gen_server:call(Pid, {close_db, DbPid}, infinity).
     
   
 %%---------------------------------------------------------------------------
@@ -113,7 +115,7 @@ open_or_create_db(ConnectionId, DbName) ->
 init(#server_state{couchdb=C, prefix=P} = InitialState) ->
     DbsByNameTid = ets:new(couch_dbs_by_name, [set, private]),
     DbsByPidTid = ets:new(couch_dbs_by_pid, [set, private]),
-    UuidsPid = gen_server:start_link(couchbeam_uuids, {C, P}, []),
+    {ok, UuidsPid} = gen_server:start_link(couchbeam_uuids, {C, P}, []),
     
     State = InitialState#server_state{dbs_by_name   = DbsByNameTid,
                                       dbs_by_pid    = DbsByPidTid,
@@ -187,12 +189,25 @@ handle_call({delete_db, DbName}, _From, #server_state{prefix=Base,
             true = ets:delete(DbsPidTid, Pid),
             couchbeam_resource:delete(C, Base ++ DbName, [], [], [])
     end,
+    {reply, Resp, State};
+    
+handle_call({close_db, DbPid}, _From, #server_state{dbs_by_name=DbsNameTid,
+                                                    dbs_by_pid=DbsPidTid}=State) ->
+    Resp = case ets:lookup(DbsPidTid, DbPid) of
+        [] -> ok;
+        [{_, DbName}] ->
+            exit(DbPid, kill),
+            receive {'EXIT', _Pid, _Reason} -> ok end,
+            true = ets:delete(DbsPidTid, DbPid),
+            true = ets:delete(DbsNameTid, DbName),
+            ok
+    end,
     {reply, Resp, State}.
+    
     
 handle_cast(_Msg, State) ->
     {no_reply, State}.
     
-
 handle_info({'EXIT', Pid, _Reason}, #server_state{dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->
     [{Pid, DbName}] = ets:lookup(DbsPidTid, Pid),
