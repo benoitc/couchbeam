@@ -31,10 +31,16 @@
 
 -type option() ::
         {connect_timeout, timeout()} |
-        {send_retry, non_neg_integer()}.
+        {send_retry, non_neg_integer()} |
+        {partial_upload, non_neg_integer() | infinity} |
+        {partial_download, pid(), non_neg_integer() | infinity}.
 
 -type options() :: [option()].
 
 -type host() :: string() | {integer(), integer(), integer(), integer()}.
 
 -type socket_options() :: [{atom(), term()} | atom()].
+
+%%-type timeout() :: non_neg_integer() | infinity.
+
+-type window_size() :: non_neg_integer() | infinity.
