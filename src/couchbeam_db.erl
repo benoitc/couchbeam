@@ -146,6 +146,44 @@ all_docs_by_seq(Db, Params) ->
 fetch_attachment(Db, Doc, AName) ->
     fetch_attachment(Db, Doc, AName, []).
 
+
+
+%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
+%%                  AName::string(), Opts::list()) -> iolist()
+%%   Opts = [Opts]
+%%   Opts = {connect_timeout, Milliseconds | infinity} |
+%%            {send_retry, integer()} |
+%%            {partial_download, PartialDowloadOptions}
+%%   Milliseconds = integer()
+%%   WindowSize = integer()
+%%   PartialDownloadOptions = [PartialDownloadOption]
+%%   PartialDowloadOption = {window_size, WindowSize} |
+%%                          {part_size, PartSize}
+%%
+%% @doc fetch attachment
+%%
+%% `{partial_download, PartialDownloadOptions}' means that the response body
+%% will be supplied in parts by the client to the calling process. The partial
+%% download option `{window_size, WindowSize}' specifies how many part will be
+%% sent to the calling process before waiting for an acknowledgement. This is
+%% to create a kind of internal flow control if the calling process is slow to
+%% process the body part and the network is considerably faster. Flow control
+%% is disabled if `WindowSize' is `infinity'. If `WindowSize' is an integer it
+%% must be >=0. The partial download option `{part_size, PartSize}' specifies
+%% the size the body parts should come in. Note however that if the body size
+%% is not determinable (e.g entity body is termintated by closing the socket)
+%% it will be delivered in pieces as it is read from the wire. There is no
+%% caching of the body parts until the amount reaches body size. If the body
+%% size is bounded (e.g `Content-Length' specified or
+%% `Transfer-Encoding: chunked' specified) it will be delivered in `PartSize'
+%% pieces. Note however that the last piece might be smaller than `PartSize'.
+%% Size bounded entity bodies are handled the same way as unbounded ones if
+%% `PartSize' is `infinity'. If `PartSize' is integer it must be >= 0.
+%% If `{partial_download, PartialDownloadOptions}' is specified the 
+%% `ResponseBody' is going to be a `pid()' unless the response has no body
+%% (for example in case of `HEAD' requests). In that case it is going to be
+%% `undefined'. 
+%% @end
 fetch_attachment(Db, Doc, AName, Opts) ->
     gen_server:call(Db, {fetch_attachment, Doc, AName, Opts}, infinity). 
 
@@ -155,17 +193,48 @@ fetch_attachment(Db, Doc, AName, Opts) ->
 %% @doc put attachment attachment, It will try to guess mimetype
 put_attachment(Db, Doc, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
-    put_attachment(Db, Doc, Content, AName, Length, ContentType).
+    put_attachment(Db, Doc, Content, AName, Length, ContentType, []).
     
 %% @spec put_attachment(Db::pid(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
-    gen_server:call(Db, {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
+    put_attachment(Db, Doc, Content, AName, Length, ContentType, []).
+    
+%% @spec put_attachment(Db::pid(), Doc::json_obj(),
+%%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string(), Opts::list()) -> pid() | json_obj()
+%% @doc put attachment attachment with ContentType fixed.
+put_attachment(Db, Doc, Content, AName, Length, ContentType, Opts) ->   
+    gen_server:call(Db, {put_attachment, Doc, Content, AName, Length, ContentType, Opts}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
+%%   Opts = [Opts]
+%%   Opts = {connect_timeout, Milliseconds | infinity} |
+%%            {send_retry, integer()} |
+%%            {partial_upload, WindowSize}
+%%   Milliseconds = integer()
+%%   WindowSize = integer()
+%%
+%%
 %% @doc delete attachment
+%% `{partial_upload, WindowSize}' means that the body will be supplied in
+%% parts to the client by the calling process. The `WindowSize' specifies how
+%% many parts can be sent to the process controlling the socket before waiting
+%% for an acknowledgement. This is to create a kind of internal flow control
+%% if the network is slow and the process is blocked by the TCP stack. Flow
+%% control is disabled if `WindowSize' is `infinity'. If `WindowSize' is an
+%% integer, it must be >= 0.  If partial upload is specified and no
+%% `Content-Length' is specified in `Hdrs' the client will use chunked
+%% transfer encoding to send the entity body. If a content length is
+%% specified, this must be the total size of the entity body.
+%% The call to {@link request/6} will return `{ok, UploadState}'. The
+%% `UploadState' is supposed to be used as the first argument to the {@link
+%% send_body_part/2} or {@link send_body_part/3} functions to send body parts.
+%% Partial upload is intended to avoid keeping large request bodies in
+%% memory but can also be used when the complete size of the body isn't known
+%% when the request is started.
+%% @end
 delete_attachment(Db, Doc, AName) ->
     gen_server:call(Db, {delete_attachment, Doc, AName}, infinity). 
 
