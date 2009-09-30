@@ -43,4 +43,5 @@ test() ->
     etap:is(couchbeam_server:delete_db(default, "couchbeam_testdb2"), ok, "delete couchbeam_testdb2 ok"),
     AllDbs1 = couchbeam_server:all_dbs(default),
     etap:not_ok(lists:member(<<"couchbeam_testdb2">>, AllDbs1), "couchbeam_testdb2 don't exists ok"),
+    couchbeam_db:close(default, Db),
     ok.

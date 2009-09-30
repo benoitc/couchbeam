@@ -15,7 +15,7 @@
 %% @copyright 2009 Benoît Chesneau.
 
 -module(couchbeam_uuids).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -behaviour(gen_server).
 

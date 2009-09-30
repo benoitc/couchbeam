@@ -17,7 +17,7 @@
 %% This gen_server is responsible of maintaining registration of server connections.
 
 -module(couchbeam_manager).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -behaviour(gen_server).
 

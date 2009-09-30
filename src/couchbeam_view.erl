@@ -17,7 +17,7 @@
 
 
 -module(couchbeam_view).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -behaviour(gen_server).
 

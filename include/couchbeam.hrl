@@ -28,6 +28,7 @@
 -record(server_state, {
     couchdb = #couchdb_params{},
     prefix,
+    name,
     dbs_by_name = undefined,
     dbs_by_pid = undefined,
     uuids_pid = undefined

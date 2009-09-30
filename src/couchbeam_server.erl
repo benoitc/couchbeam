@@ -15,7 +15,7 @@
 %% @copyright 2009 Benoît Chesneau.
 
 -module(couchbeam_server).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -behaviour(gen_server).
 
@@ -48,7 +48,8 @@ start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbPara
     end,
     CouchdbParams1 = CouchdbParams#couchdb_params{prefix=Prefix1},
     InitialState = #server_state{couchdb = CouchdbParams1,
-                                 prefix  = Prefix1},
+                                 prefix  = Prefix1,
+                                 name=Name},
     {ok, Pid} = start_internal(InitialState, ProcLink),
     {ok, _} = couchbeam_manager:register_connection(Name, Pid),
     Pid.
@@ -152,7 +153,7 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
     end,
     {reply, Pid, State};
     
-handle_call({create_db, DbName}, _From, #server_state{prefix=Base, 
+handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
                                                 couchdb=C,
                                                 dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->

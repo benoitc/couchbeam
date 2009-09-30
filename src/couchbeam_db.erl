@@ -15,7 +15,7 @@
 %% @copyright 2009 Benoît Chesneau.
 
 -module(couchbeam_db).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -behaviour(gen_server).
 
@@ -46,9 +46,11 @@
 info(Db) ->
     gen_server:call(Db, info, infinity).
     
+    
+    
 open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
-    
+
 close(ConnectionPid, Db) ->
     couchbeam_server:close_db(ConnectionPid, Db).
     

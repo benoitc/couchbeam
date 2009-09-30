@@ -15,7 +15,7 @@
 %% @copyright 2009 Benoît Chesneau.
 
 -module(couchbeam_resource).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 
 -include("couchbeam.hrl").
 
@@ -98,14 +98,6 @@ do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State
     after Timeout ->
             lhttpc:kill_client(Pid)
     end.
-  
-
-insert_default_headers([], H) ->
-    H;
-insert_default_headers([{K, V}|Rest], H) ->
-    H1 = default_header(K, V, H),
-    insert_default_headers(Rest, H1).
-
 
 make_auth(#couchdb_params{username=nil, password=nil}, Headers) ->
     Headers;

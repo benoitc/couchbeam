@@ -15,7 +15,7 @@
 %% @copyright 2009 Benoît Chesneau.
 
 -module(couchbeam_sup).
--author('Benoît Chesneau <benoitc@e-engura.org').
+-author('Benoît Chesneau <benoitc@e-engura.org>').
 -behaviour(supervisor).
 
 -export([start_link/0, init/1]).
