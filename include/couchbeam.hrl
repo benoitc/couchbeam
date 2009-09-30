@@ -63,7 +63,8 @@
 }).
 
 -record(couchbeam_manager, {
-    connections=undefined
+    connections=undefined,
+    conf=[]
 }).
     
 -define(USER_AGENT, "couchbeam/0.1").

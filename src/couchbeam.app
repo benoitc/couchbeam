@@ -14,6 +14,6 @@
                         couchbeam_manager,
                         couchbeam_sup]},
               {registered,[couchbeam_server, couchbeam_sup]},
-              {applications,[kernel, stdlib, ssl, crypto]},
+              {applications,[kernel, stdlib]},
 			  {env, []},
 			  {mod, {couchbeam, []}}]}.

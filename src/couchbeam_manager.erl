@@ -1,18 +1,18 @@
+%%% Copyright 2009 Benoît Chesneau.
+%%% Licensed under the Apache License, Version 2.0 (the "License");
+%%% you may not use this file except in compliance with the License.
+%%% You may obtain a copy of the License at
+%%%
+%%%     http://www.apache.org/licenses/LICENSE-2.0
+%%%
+%%% Unless required by applicable law or agreed to in writing, software
+%%% distributed under the License is distributed on an "AS IS" BASIS,
+%%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%% See the License for the specific language governing permissions and
+%%% limitations under the License.
+%%%
 %% @author Benoît Chesneau <benoitc@e-engura.org>
 %% @copyright 2009 Benoît Chesneau.
-%%
-%%  Licensed under the Apache License, Version 2.0 (the "License");
-%%  you may not use this file except in compliance with the License.
-%%  You may obtain a copy of the License at
-%%
-%%      http://www.apache.org/licenses/LICENSE-2.0
-%%
-%%  Unless required by applicable law or agreed to in writing, software
-%%  distributed under the License is distributed on an "AS IS" BASIS,
-%%  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%%  See the License for the specific language governing permissions and
-%%  limitations under the License.
-%%
 %% @doc Manager for couchbeam
 %% This gen_server is responsible of maintaining registration of server connections.
 
@@ -59,7 +59,6 @@ start_link() ->
 init(_) ->
     process_flag(priority, high),
     Connections = ets:new(couchdbeam_conns_by_name, [set, private, named_table]),
-    
     {ok, #couchbeam_manager{connections=Connections}}.
     
 
@@ -69,7 +68,7 @@ handle_call({register, Name, ConnectionPid}, _, State) ->
         [] -> 
             true = ets:insert(couchdbeam_conns_by_name, {Name, ConnectionPid}),
             {ok, ConnectionPid};
-        [{_, MainPid}] -> 
+        [{_, MainPid}] ->
             {already_registered, MainPid}
     end,
     {reply, R, State};
@@ -106,5 +105,3 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}. 
-
-
