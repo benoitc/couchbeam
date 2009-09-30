@@ -1,4 +1,7 @@
-ebin/
+ebin/*.beam$
+ebin/couchbeam.app
+
+
 \.swp$
 \.dump$
 \.beam$
