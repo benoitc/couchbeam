@@ -55,15 +55,19 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
                         Method == "HEAD" ->
                             {ok, {StatusCode, ReasonPhrase}};
                         true ->
-                            try couchbeam:json_decode(?b2l(ResponseBody)) of
-                                Resp1 -> 
-                                    case Resp1 of
-                                        {[{<<"ok">>, true}]} -> ok;
-                                        {[{<<"ok">>, true}|Res]} -> {ok, {Res}};
-                                        Obj -> {ok, Obj}
+                            if
+                                is_pid(ResponseBody) =:= true -> {ok, ResponseBody};
+                                true ->
+                                    try couchbeam:json_decode(?b2l(ResponseBody)) of
+                                        Resp1 -> 
+                                            case Resp1 of
+                                                {[{<<"ok">>, true}]} -> ok;
+                                                {[{<<"ok">>, true}|Res]} -> {ok, {Res}};
+                                                Obj -> {ok, Obj}
+                                            end
+                                    catch
+                                        _:_ -> {ok, ResponseBody}
                                     end
-                            catch
-                                _:_ -> {ok, ResponseBody}
                             end
                     end
             end;
