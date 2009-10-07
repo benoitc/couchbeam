@@ -28,7 +28,7 @@
 -export([query_view/3, all_docs/2, all_docs_by_seq/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
--export([open/2, close/2, create/2, delete/2, open_or_create/2]).
+-export([open/2, close/2, create/2, delete/2, open_or_create/2, register_db/2]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -63,6 +63,9 @@ delete(ConnectionPid, DbName) ->
 open_or_create(ConnectionPid, DbName) ->
     couchbeam_server:open_or_create_db(ConnectionPid, DbName).
     
+register_db(Name, {ConnectionPid, DbPid}) ->
+    couchbeam_manager:register_db(Name, {ConnectionPid, DbPid}).
+    
 %%---------------------------------------------------------------------------
 %% Manage docs
 %%---------------------------------------------------------------------------
@@ -73,7 +76,7 @@ open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
 
 open_doc(Db, DocId, Params) ->
-    gen_server:call(Db, {open_doc, DocId, Params}, infinity).
+    gen_server:call(maybe_managed_db(Db), {open_doc, DocId, Params}, infinity).
    
 %% @spec save_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc save a do with DocId. 
@@ -81,7 +84,7 @@ save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
 
 save_doc(Db, Doc, Params) ->
-    gen_server:call(Db, {save_doc, Doc, Params}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {save_doc, Doc, Params}, infinity). 
    
 %% @spec save_docs(Db::pid(), Docs::json_array()) -> json_object() 
 %% @doc bulk update
@@ -91,7 +94,7 @@ save_docs(Db, Docs) ->
 %% @spec save_docs(Db::pid(), Docs::json_array(), opts: lists()) -> json_object() 
 %% @doc bulk update with options, currently support only all_or_nothing.    
 save_docs(Db, Docs, Params) ->
-    gen_server:call(Db, {save_docs, Docs, Params}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {save_docs, Docs, Params}, infinity). 
     
 %% @spec delete_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc delete a document
@@ -120,7 +123,7 @@ delete_docs(Db, Docs, Opts) ->
 %% @doc query a view and return results depending on params
     
 query_view(Db, Vname, Params) ->
-    gen_server:call(Db, {query_view, Vname, Params}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {query_view, Vname, Params}, infinity). 
 
 %% @spec all_docs(Db::pid(), Params::list()) -> json_object()
 %% @doc This method has the same behavior as a view. Return all docs
@@ -147,7 +150,7 @@ fetch_attachment(Db, Doc, AName) ->
     fetch_attachment(Db, Doc, AName, []).
 
 fetch_attachment(Db, Doc, AName, Opts) ->
-    gen_server:call(Db, {fetch_attachment, Doc, AName, Opts}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {fetch_attachment, Doc, AName, Opts}, infinity). 
 
 %% @spec put_attachment(Db::pid(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
@@ -161,13 +164,13 @@ put_attachment(Db, Doc, Content, AName, Length) ->
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
-    gen_server:call(Db, {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
 %% @doc delete attachment
 delete_attachment(Db, Doc, AName) ->
-    gen_server:call(Db, {delete_attachment, Doc, AName}, infinity). 
+    gen_server:call(maybe_managed_db(Db), {delete_attachment, Doc, AName}, infinity). 
 
 
 %%---------------------------------------------------------------------------
@@ -322,4 +325,10 @@ maybe_docid(#db{server=ServerState}, {DocProps}) ->
         _DocId ->
             {DocProps}
     end.
+    
+
+maybe_managed_db(Db) when is_pid(Db) ->
+    Db;
+maybe_managed_db(Db) ->
+    couchbeam_manager:get_db(Db).
     

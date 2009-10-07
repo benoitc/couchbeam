@@ -29,7 +29,7 @@
          handle_info/2]).
   
 -export([register_connection/2, unregister_connection/1, get_connection/1, 
-         connection_count/0]).
+         connection_count/0, register_db/2, unregister_db/1, get_db/1]).
   
 %%---------------------------------------------------------------------------
 %% manager operations
@@ -47,6 +47,19 @@ get_connection(Name) ->
 connection_count() ->
     gen_server:call(?MODULE, connection_count).
     
+register_db(Name, {ConnectionPid, DbPid}) when is_atom(ConnectionPid) ->
+    ConnectionPid1 = get_connection(ConnectionPid),
+    register_db(Name, {ConnectionPid1, DbPid});
+    
+register_db(Name, {ConnectionPid, DbName}) when is_pid(ConnectionPid)->
+    gen_server:call(?MODULE, {register_db, Name, {ConnectionPid, DbName}}).
+ 
+unregister_db(Name) ->
+    gen_server:call(?MODULE, {unregister_db, Name}).
+    
+get_db(Name) ->
+    gen_server:call(?MODULE, {db, Name}).
+    
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
@@ -58,15 +71,17 @@ start_link() ->
     
 init(_) ->
     process_flag(priority, high),
-    Connections = ets:new(couchdbeam_conns_by_name, [set, private, named_table]),
-    {ok, #couchbeam_manager{connections=Connections}}.
+    Connections = ets:new(couchbeam_conns_by_name, [set, private, named_table]),
+    Dbs = ets:new(couchbeam_dbs_by_name, [set, private, named_table]),
+    
+    {ok, #couchbeam_manager{connections=Connections, dbs=Dbs}}.
     
 
 %% @hidden
 handle_call({register, Name, ConnectionPid}, _, State) ->
-    R = case ets:lookup(couchdbeam_conns_by_name, Name) of
+    R = case ets:lookup(couchbeam_conns_by_name, Name) of
         [] -> 
-            true = ets:insert(couchdbeam_conns_by_name, {Name, ConnectionPid}),
+            true = ets:insert(couchbeam_conns_by_name, {Name, ConnectionPid}),
             {ok, ConnectionPid};
         [{_, MainPid}] ->
             {already_registered, MainPid}
@@ -74,25 +89,52 @@ handle_call({register, Name, ConnectionPid}, _, State) ->
     {reply, R, State};
 
 handle_call({unregister, Name}, _, State) ->
-   R = case ets:lookup(couchdbeam_conns_by_name, Name) of
-        [] -> {notfound, State};
+   R = case ets:lookup(couchbeam_conns_by_name, Name) of
+        [] -> not_found;
         [{_,_}] -> 
-            ets:delete(couchdbeam_conns_by_name, Name),
+            ets:delete(couchbeam_conns_by_name, Name),
             ok
     end,
     {reply, R, State};
     
 handle_call({connection, Name}, _, State) ->
-    R = case ets:lookup(couchdbeam_conns_by_name, Name) of
+    R = case ets:lookup(couchbeam_conns_by_name, Name) of
         [] -> not_found;
         [{_, Pid}] -> Pid   
     end,
     {reply, R, State};
     
 handle_call(connection_count, _, State) ->
-    Infos = ets:info(couchdbeam_conns_by_name),
+    Infos = ets:info(couchbeam_conns_by_name),
     Size = proplists:get_value(size, Infos),
-     {reply, Size, State}.
+     {reply, Size, State};
+     
+     
+handle_call({register_db, Name, {ConnectionPid, DbName}}, _From, State) ->
+    R = case ets:lookup(couchbeam_dbs_by_name, Name) of
+        [] ->
+            true = ets:insert(couchbeam_dbs_by_name, {Name, {ConnectionPid, DbName}}),
+            ok;
+        [{_, _}] -> already_registered
+    end,
+    {reply, R, State};
+
+handle_call({unregister_db, Name}, _, State) ->
+   R = case ets:lookup(couchbeam_dbs_by_name, Name) of
+        [] -> not_found;
+        [{_,_}] -> 
+            ets:delete(couchbeam_dbs_by_name, Name),
+            ok
+    end,
+    {reply, R, State};    
+            
+handle_call({db, Name}, _, State) ->
+    R = case ets:lookup(couchbeam_dbs_by_name, Name) of
+        [] -> not_found;
+        [{_, {ConnectionPid, DbName}}] -> 
+            couchbeam_server:open_or_create_db(ConnectionPid, DbName)
+    end,
+    {reply, R, State}.
             
 handle_cast(_Msg, State) ->
     {no_reply, State}.
