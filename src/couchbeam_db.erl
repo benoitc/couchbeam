@@ -44,10 +44,8 @@
 %% @spec info(Db::pid()) -> list()
 %% @doc fetch information of Database
 info(Db) ->
-    gen_server:call(Db, info, infinity).
-    
-    
-    
+    gen_server:call(maybe_managed_db(Db), info, infinity).
+
 open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
 
