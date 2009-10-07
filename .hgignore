@@ -8,7 +8,8 @@ ebin/couchbeam.app
 edoc-info
 .DS_Store 
 priv/log/
-doc/
+
+doc/*.html
 
 \.beam$
 ^tmp/

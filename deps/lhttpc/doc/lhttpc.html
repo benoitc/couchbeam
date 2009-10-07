@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module lhttpc</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module lhttpc</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Main interface to the lightweight http client.
+
+<p><b>Behaviours:</b> <a href="application.html"><tt>application</tt></a>.</p>
+<p><b>Authors:</b> Oscar Hellström (<a href="mailto:oscar@erlang-consulting.com"><tt>oscar@erlang-consulting.com</tt></a>).</p>
+
+<h2><a name="description">Description</a></h2>Main interface to the lightweight http client.
+   See <a href="#request-4"><code>request/4</code></a>, <a href="#request-5"><code>request/5</code></a> and <a href="#request-6"><code>request/6</code></a> functions.
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#request-4">request/4</a></td><td>Sends a request without a body.</td></tr>
+<tr><td valign="top"><a href="#request-5">request/5</a></td><td>Sends a request with a body.</td></tr>
+<tr><td valign="top"><a href="#request-6">request/6</a></td><td>Sends a request with a body.</td></tr>
+<tr><td valign="top"><a href="#request-9">request/9</a></td><td>Sends a request with a body.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="request-4">request/4</a></h3>
+<div class="spec">
+<p><tt>request(URL, Method, Hdrs, Timeout) -&gt; Result</tt>
+<ul class="definitions"><li><tt>URL = string()</tt></li>
+<li><tt>Method = string() | atom()</tt></li>
+<li><tt>Hdrs = [{Header, Value}]</tt></li>
+<li><tt>Header = string() | binary() | atom()</tt></li>
+<li><tt>Value = string() | binary()</tt></li>
+<li><tt>Timeout = integer() | infinity</tt></li>
+<li><tt>Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}} | {error, Reason}</tt></li>
+<li><tt>StatusCode = integer()</tt></li>
+<li><tt>ReasonPhrase = string()</tt></li>
+<li><tt>ResponseBody = binary()</tt></li>
+<li><tt>Reason = connection_closed | connect_timeout | timeout</tt></li>
+</ul></p>
+</div><p>Sends a request without a body.
+  Would be the same as calling <code>request(URL, Method, Hdrs, [], Timeout)</code>,
+  that is <a href="#request-5"><code>request/5</code></a> with an empty body (<code>Body</code> could also be <code>&lt;&lt;&gt;&gt;</code>).</p>
+
+<h3 class="function"><a name="request-5">request/5</a></h3>
+<div class="spec">
+<p><tt>request(URL, Method, Hdrs, Body::RequestBody, Timeout) -&gt; Result</tt>
+<ul class="definitions"><li><tt>URL = string()</tt></li>
+<li><tt>Method = string() | atom()</tt></li>
+<li><tt>Hdrs = [{Header, Value}]</tt></li>
+<li><tt>Header = string() | binary() | atom()</tt></li>
+<li><tt>Value = string() | binary()</tt></li>
+<li><tt>RequestBody = <a href="#type-iolist">iolist()</a></tt></li>
+<li><tt>Timeout = integer() | infinity</tt></li>
+<li><tt>Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}} | {error, Reason}</tt></li>
+<li><tt>StatusCode = integer()</tt></li>
+<li><tt>ReasonPhrase = string()</tt></li>
+<li><tt>ResponseBody = binary()</tt></li>
+<li><tt>Reason = connection_closed | connect_timeout | timeout</tt></li>
+</ul></p>
+</div><p>Sends a request with a body.
+  Would be the same as calling
+  <code>request(URL, Method, Hdrs, Body, Timeout, [])</code>, that is <a href="#request-6"><code>request/6</code></a> with
+  no options.</p>
+
+<h3 class="function"><a name="request-6">request/6</a></h3>
+<div class="spec">
+<p><tt>request(URL, Method, Hdrs, Body::RequestBody, Timeout, Options) -&gt; Result</tt>
+<ul class="definitions"><li><tt>URL = string()</tt></li>
+<li><tt>Method = string() | atom()</tt></li>
+<li><tt>Hdrs = [{Header, Value}]</tt></li>
+<li><tt>Header = string() | binary() | atom()</tt></li>
+<li><tt>Value = string() | binary()</tt></li>
+<li><tt>RequestBody = <a href="#type-iolist">iolist()</a></tt></li>
+<li><tt>Timeout = integer() | infinity</tt></li>
+<li><tt>Options = [Option]</tt></li>
+<li><tt>Option = {connect_timeout, Milliseconds | infinity} | {send_retry, integer()}</tt></li>
+<li><tt>Milliseconds = integer()</tt></li>
+<li><tt>Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}} | {error, Reason}</tt></li>
+<li><tt>StatusCode = integer()</tt></li>
+<li><tt>ReasonPhrase = string()</tt></li>
+<li><tt>ResponseBody = binary()</tt></li>
+<li><tt>Reason = connection_closed | connect_timeout | timeout</tt></li>
+</ul></p>
+</div><p>Sends a request with a body.
+  Would be the same as calling <pre>
+  {Host, Port, Path, Ssl} = lhttpc_lib:parse_url(URL),
+  request(Host, Port, Path, Ssl, Method, Hdrs, Body, Timeout, Options).
+  </pre>
+ 
+  <code>URL</code> is expected to be a valid URL:
+  <code>scheme://host[:port][/path]</code>.</p>
+
+<h3 class="function"><a name="request-9">request/9</a></h3>
+<div class="spec">
+<p><tt>request(Host, Port, Ssl, Path, Method, Hdrs, Body::RequestBody, Timeout, Options) -&gt; Result</tt>
+<ul class="definitions"><li><tt>Host = string()</tt></li>
+<li><tt>Port = integer()</tt></li>
+<li><tt>Ssl = <a href="#type-boolean">boolean()</a></tt></li>
+<li><tt>Path = string()</tt></li>
+<li><tt>Method = string() | atom()</tt></li>
+<li><tt>Hdrs = [{Header, Value}]</tt></li>
+<li><tt>Header = string() | binary() | atom()</tt></li>
+<li><tt>Value = string() | binary()</tt></li>
+<li><tt>RequestBody = <a href="#type-iolist">iolist()</a></tt></li>
+<li><tt>Timeout = integer() | infinity</tt></li>
+<li><tt>Options = [Option]</tt></li>
+<li><tt>Option = {connect_timeout, Milliseconds | infinity} | {send_retry, integer()}</tt></li>
+<li><tt>Milliseconds = integer()</tt></li>
+<li><tt>Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}} | {error, Reason}</tt></li>
+<li><tt>StatusCode = integer()</tt></li>
+<li><tt>ReasonPhrase = string()</tt></li>
+<li><tt>ResponseBody = binary()</tt></li>
+<li><tt>Reason = connection_closed | connect_timeout | timeout</tt></li>
+</ul></p>
+</div><p><p>Sends a request with a body.</p>
+ 
+  <p>Instead of building and parsing URLs the target server is specified with
+  a host, port, weither SSL should be used or not and a path on the server.
+  For instance, if you want to request http://example.com/foobar you would
+  use the following:<br>
+  <code>Host</code> = <code>"example.com"</code><br>
+  <code>Port</code> = <code>80</code><br>
+  <code>Ssl</code> = <code>false</code><br>
+  <code>Path</code> = <code>"/foobar"</code><br>
+  <code>Path</code> must begin with a forward slash <code>/</code>.</p>
+ 
+  <p><code>Method</code> is either a string, stating the HTTP method exactly as in the
+  protocol, i.e: <code>"POST"</code> or <code>"GET"</code>. It could also be an atom, which is
+  then made in to uppercase, if it isn't already.
+  <code>Hdrs</code> is a list of headers to send. Mandatory headers such as
+  <code>Host</code> or <code>Content-Length</code> (for some requests) are added.
+  <code>Body</code> is the entity to send in the request. Please don't include entity
+  bodies where there shouldn't be any (such as for <code>GET</code>).
+  <code>Timeout</code> is the timeout for the request in milliseconds.
+  <code>Options</code> is a list of options.</p>
+ 
+  <p>Options:</p>
+ 
+  <p><code>{connect_timeout, Milliseconds}</code> specifies how many milliseconds the  
+client can spend trying to establish a connection to the server. This  
+doesn't affect the overall request timeout. However, if it's longer than  
+the overall timeout it will be ignored. Also note that the TCP layer my  
+choose to give up earlier than the connect timeout, in which case the  
+client will also give up. The default value is infinity, which means that  
+it will either give up when the TCP stack gives up, or when the overall  
+request timeout is reached.</p>
+ 
+  <code>{send_retry, N}</code> specifies how many times the client should retry
+  sending a request if the connection is closed after the data has been
+  sent. The default value is 1.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Oct 7 2009, 20:10:34.</i></p>
+</body>
+</html>
