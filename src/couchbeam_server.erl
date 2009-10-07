@@ -145,11 +145,7 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
                     DbPid;
                 {error, Reason} -> Reason
             end;
-        [{_, DbPid1}] ->
-            case couchbeam_resource:get(C, Base ++ DbName, [], [], []) of
-                {ok, _} -> DbPid1;
-                {error, Reason} -> Reason
-            end
+        [{_, DbPid1}] -> DbPid1
     end,
     {reply, Pid, State};
     
