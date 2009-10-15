@@ -333,7 +333,6 @@ handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State
         H when is_integer(H) ->
             [{heartbeat, integer_to_list(H)}];
         H ->
-            io:format("params ~p ~n", [H]),
             [{heartbeat, H}]
     end,
     ExtraParams1 = ExtraParams ++ Options2,
@@ -382,7 +381,6 @@ do_suscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
     #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
     Headers = [{"Accept", "application/json"}],
     Options = [{partial_download, [{window_size, infinity}]}],
-    io:format("Path ~p ~n", [Path]),
     case lhttpc:request(Host, Port, Ssl, Path, 'GET', Headers, <<>>, Timeout, Options) of
         {ok, {{_, _}, _, ResponseBody}} ->
             case ResponseBody of
