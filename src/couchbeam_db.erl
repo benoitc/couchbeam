@@ -318,27 +318,30 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
     {reply, Resp, State};
     
 handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
-    Timeout = proplists:get_value(timeout, Options),
-    HeartBeat = proplists:get_value(heartbeat, Options),
-
+    {Timeout, Options1} = get_option(timeout, Options),
+    {HeartBeat, Options2} = get_option(heartbeat, Options1),
+    
     ExtraParams = case HeartBeat of
         undefined ->
             case Timeout of
-                undefined -> undefined;
+                undefined -> [];
                 T when is_integer(T) -> 
-                    "timeout=" ++ integer_to_list(T);
+                    [{timeout,  integer_to_list(T)}];
                 T ->
-                    "timeout=" ++ T
+                    [{timeout, T}]
             end;
-        H when is_integer(H) -> 
-            "heartbeat=" ++ integer_to_list(H);
+        H when is_integer(H) ->
+            [{heartbeat, integer_to_list(H)}];
         H ->
-            "heartbeat=" ++ H
+            io:format("params ~p ~n", [H]),
+            [{heartbeat, H}]
     end,
+    ExtraParams1 = ExtraParams ++ Options2,
+
     Path0 = Base ++ "/_changes?feed=continuous",
-    Path = case ExtraParams of
-        undefined -> Path0;
-        Extra -> Path0 ++ "&" ++ Extra
+    Path = case ExtraParams1 of
+        [] -> Path0;
+        Extra -> Path0 ++ "&" ++ couchbeam_resource:encode_query(Extra)
     end,
     ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
     Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
@@ -428,3 +431,5 @@ maybe_managed_db(Db) when is_pid(Db) ->
 maybe_managed_db(Db) ->
     couchbeam_manager:get_db(Db).
     
+get_option(Option, Options) ->
+    {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.

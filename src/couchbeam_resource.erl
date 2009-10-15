@@ -20,6 +20,7 @@
 -include("couchbeam.hrl").
 
 -export([get/5, head/5, delete/5, post/6, put/6]).
+-export([encode_query/1]).
 
 get(State, Path, Headers, Params, Opts) ->
     request(State, "GET", Path, Headers, Params, [], Opts).
