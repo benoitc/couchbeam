@@ -29,6 +29,7 @@
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
 -export([open/2, close/2, create/2, delete/2, open_or_create/2, register_db/2]).
+-export([suscribe/2, suscribe/3]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -108,6 +109,23 @@ delete_docs(Db, Docs, Opts) ->
         {[{<<"_deleted">>, true}|DocProps]}
         end, Docs),
     save_docs(Db, Docs1, Opts).
+    
+%%---------------------------------------------------------------------------
+%% suscribe to update notifications
+%%---------------------------------------------------------------------------  
+    
+%% @spec suscribe(Db::pid(), Consumer::pid()) -> pid() 
+%% @doc suscribe to db changes
+suscribe(Db, Consumer) ->
+    suscribe(Db, Consumer, []).
+    
+%% @spec suscribe(Db::pid(), Consumer::pid(), Options::ChangeOptions()) -> pid()
+%% @type ChangeOptions [ChangeOption]
+%%       ChangeOption = {heartbeat, integer | string} |
+%%                      {timeout, integer()}}
+%% @doc suscribe to db changes, wait for changes heartbeat 
+suscribe(Db, Consumer, Options) ->
+    gen_server:call(maybe_managed_db(Db), {suscribe_changes, Consumer, Options}, infinity).
   
 
 %%---------------------------------------------------------------------------
@@ -238,6 +256,9 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
     end,
     {reply, Res, State};
     
+
+    
+    
 handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
@@ -294,10 +315,38 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
              Doc2;
         {ok, R} ->  R
     end,
-    {reply, Resp, State}.
+    {reply, Resp, State};
+    
+handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
+    Timeout = proplists:get_value(timeout, Options),
+    HeartBeat = proplists:get_value(heartbeat, Options),
+
+    ExtraParams = case HeartBeat of
+        undefined ->
+            case Timeout of
+                undefined -> undefined;
+                T when is_integer(T) -> 
+                    "timeout=" ++ integer_to_list(T);
+                T ->
+                    "timeout=" ++ T
+            end;
+        H when is_integer(H) -> 
+            "heartbeat=" ++ integer_to_list(H);
+        H ->
+            "heartbeat=" ++ H
+    end,
+    Path0 = Base ++ "/_changes?feed=continuous",
+    Path = case ExtraParams of
+        undefined -> Path0;
+        Extra -> Path0 ++ "&" ++ Extra
+    end,
+    ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
+    Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
+    {reply, Pid, State}.
+    
     
 handle_cast(_Msg, State) ->
-    {no_reply, State}.
+    {noreply, State}.
     
 handle_info({'EXIT', _Pid, _Reason}, State) ->
     {stop, State};
@@ -313,6 +362,55 @@ code_change(_OldVsn, State, _Extra) ->
     
     
 %% @private
+suscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
+    try
+        do_suscribe(ChangeState)
+    catch
+        Reason ->
+            ConsumerPid ! Reason;
+        exit:Reason ->
+            ConsumerPid ! {'EXIT', Reason};
+        error:Reason ->
+            ConsumerPid ! {'error', Reason}
+    end.
+
+do_suscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
+    #db{couchdb=CouchdbState} = DbState,
+    #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
+    Headers = [{"Accept", "application/json"}],
+    Options = [{partial_download, [{window_size, infinity}]}],
+    io:format("Path ~p ~n", [Path]),
+    case lhttpc:request(Host, Port, Ssl, Path, 'GET', Headers, <<>>, Timeout, Options) of
+        {ok, {{_, _}, _, ResponseBody}} ->
+            case ResponseBody of
+                Body when is_pid(Body) ->
+                    ConsumerPid ! {body_pid, ResponseBody},
+                    InitialState = lhttpc:get_body_part(ResponseBody),
+                    send_changes(InitialState, ConsumerPid, ResponseBody);
+                _Body ->
+                    ConsumerPid ! {body_done, ResponseBody}
+            end;
+        {error, Reason} ->
+            ConsumerPid ! {error, Reason}
+    end.
+    
+send_changes({ok, {http_eob, _Trailers}}, ConsumerPid, _Pid) ->
+    ConsumerPid ! body_done,
+    ok;
+send_changes({ok, [<<"\n">>]}, ConsumerPid, Pid) ->    
+    NextState = lhttpc:get_body_part(Pid),
+    send_changes(NextState, ConsumerPid, Pid);
+send_changes({ok, Bin}, ConsumerPid, Pid) ->
+    Lines = decode_lines(string:tokens(Bin, "\n"), []),
+    ConsumerPid ! {change, Lines},
+    NextState = lhttpc:get_body_part(Pid),
+    send_changes(NextState, ConsumerPid, Pid).
+    
+decode_lines([], Acc) ->
+    lists:flatten(lists:reverse(Acc));
+decode_lines([Line|Rest], Acc) ->
+    Line1 = couchbeam:json_decode(list_to_binary(Line)),
+    decode_lines(Rest, [Line1, Acc]).
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
     #server_state{uuids_pid=UuidsPid} = ServerState,

@@ -57,6 +57,12 @@
     view_cache
 }).
 
+-record(change, {
+    db,
+    path,
+    consumer_pid
+}).
+
 -record(uuids, {
     couchdb=#couchdb_params{},
     base,
