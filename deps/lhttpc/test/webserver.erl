@@ -30,7 +30,7 @@
 %%% @end
 -module(webserver).
 
--export([start/2]).
+-export([start/2, read_chunked/3]).
 -export([accept_connection/4]).
 
 start(Module, Responders) ->
@@ -43,17 +43,56 @@ accept_connection(Parent, Module, ListenSocket, Responders) ->
     server_loop(Module, Socket, nil, [], Responders),
     unlink(Parent).
 
+read_chunked(Module, Socket, Headers) ->
+    Body = read_chunks(Module, Socket, []),
+    ok = setopts(Module, Socket, [{packet, httph}]),
+    Trailers = read_trailers(Module, Socket, Headers),
+    % For next request
+    ok = setopts(Module, Socket, [{packet, http}]),
+    {Body, Trailers}.
+
+read_chunks(Module, Socket, Acc) ->
+    ok = setopts(Module, Socket, [{packet, line}]),
+    case Module:recv(Socket, 0) of
+        {ok, HexSizeExtension} ->
+            case chunk_size(HexSizeExtension, []) of
+                0 -> 
+                    list_to_binary(lists:reverse(Acc));
+                Size ->
+                    setopts(Module, Socket, [{packet, raw}]),
+                    {ok, <<Chunk:Size/binary, "\r\n">>} =
+                        Module:recv(Socket, Size + 2),
+                    read_chunks(Module, Socket, [Chunk | Acc])
+            end;
+        {error, Reason} ->
+            erlang:error(Reason)
+    end.
+
+read_trailers(Module, Socket, Hdrs) ->
+    case Module:recv(Socket, 0) of
+        {ok, {http_header, _, Name, _, Value}} when is_atom(Name) ->
+            Trailer = {atom_to_list(Name), Value},
+            read_trailers(Module, Socket, [Trailer | Hdrs]);
+        {ok, {http_header, _, Name, _, Value}} when is_list(Name) ->
+            Trailer = {Name, Value},
+            read_trailers(Module, Socket, [Trailer | Hdrs]);
+        {ok, http_eoh} -> Hdrs
+    end.
+
 server_loop(Module, Socket, _, _, []) ->
     Module:close(Socket);
 server_loop(Module, Socket, Request, Headers, Responders) ->
     case Module:recv(Socket, 0) of
         {ok, {http_request, _, _, _} = NewRequest} ->
             server_loop(Module, Socket, NewRequest, Headers, Responders);
-        {ok, {http_header, _, Field, _, Value}} ->
+        {ok, {http_header, _, Field, _, Value}} when is_atom(Field) ->
+            NewHeaders = [{atom_to_list(Field), Value} | Headers],
+            server_loop(Module, Socket, Request, NewHeaders, Responders);
+        {ok, {http_header, _, Field, _, Value}} when is_list(Field) ->
             NewHeaders = [{Field, Value} | Headers],
             server_loop(Module, Socket, Request, NewHeaders, Responders);
         {ok, http_eoh} ->
-            RequestBody = case proplists:get_value('Content-Length', Headers) of
+            RequestBody = case proplists:get_value("Content-Length", Headers) of
                 undefined ->
                     <<>>;
                 "0" ->
@@ -112,3 +151,10 @@ port(ssl, Socket) ->
 port(_, Socket) ->
     {ok, Port} = inet:port(Socket),
     Port.
+
+chunk_size(<<$;, _/binary>>, Acc) ->
+    erlang:list_to_integer(lists:reverse(Acc), 16);
+chunk_size(<<"\r\n">>, Acc) ->
+    erlang:list_to_integer(lists:reverse(Acc), 16);
+chunk_size(<<Char, Rest/binary>>, Acc) ->
+    chunk_size(Rest, [Char | Acc]).

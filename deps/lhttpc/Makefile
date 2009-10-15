@@ -25,6 +25,10 @@ test: $(APPLICATION) $(TEST_BEAMS) util/run_test.beam
 	@echo Running tests
 	@erl -pa util/ -pa ebin/ -pa test/ -noinput -s run_test run
 
+test_shell: $(APPLICATION) $(TEST_BEAMS)
+	@echo Starting a shell with test paths included
+	@erl -pa ebin/ -pa test/
+
 test/%.beam: test/%.erl
 	@echo Compiling $<
 	@erlc +debug_info -o test/ $<
