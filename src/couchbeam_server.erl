@@ -27,8 +27,8 @@
          handle_info/2]).
 -export([start_connection/0, start_connection/1, start_connection_link/0,
          start_connection_link/1]).
--export([info/1, create_db/2, open_db/2, open_or_create_db/2, delete_db/2,
-         all_dbs/1, is_db/2, close_db/2]).
+-export([info/1, close/1, create_db/2, open_db/2, open_or_create_db/2, 
+         delete_db/2, all_dbs/1, is_db/2, close_db/2]).
          
  
 start_connection() -> start_connection(#couchdb_params{}).
@@ -42,16 +42,21 @@ start_connection_link(Params) -> start_connection_internal(Params, true).
 start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbParams,
                     ProcLink) ->
 
-    Prefix1 = case Prefix of
-        "" -> "/";
-        _ -> Prefix
+    Pid = case server_pid(Name) of
+        not_found ->
+            Prefix1 = case Prefix of
+                "" -> "/";
+                _ -> Prefix
+            end,
+            CouchdbParams1 = CouchdbParams#couchdb_params{prefix=Prefix1},
+            InitialState = #server_state{couchdb = CouchdbParams1,
+                                         prefix  = Prefix1,
+                                         name=Name},
+            {ok, Pid1} = start_internal(InitialState, ProcLink),
+            couchbeam_manager:register_connection(Name, Pid1),
+            Pid1;
+        Pid1 -> Pid1
     end,
-    CouchdbParams1 = CouchdbParams#couchdb_params{prefix=Prefix1},
-    InitialState = #server_state{couchdb = CouchdbParams1,
-                                 prefix  = Prefix1,
-                                 name=Name},
-    {ok, Pid} = start_internal(InitialState, ProcLink),
-    {ok, _} = couchbeam_manager:register_connection(Name, Pid),
     Pid.
     
 start_internal(InitialState, _Link = true) ->
@@ -59,8 +64,16 @@ start_internal(InitialState, _Link = true) ->
 start_internal(InitialState, _Link = false) ->
     gen_server:start(couchbeam_server, InitialState, []).
     
+    
+close(ConnectionId) ->
+    try
+        gen_server:call(server_pid(ConnectionId), close)
+    catch
+        exit:_ -> ok
+    end.
+    
 info(ConnectionId) ->
-    gen_server:call(ConnectionId, info).
+    gen_server:call(server_pid(ConnectionId), info).
     
 %%---------------------------------------------------------------------------
 %% DB operations
@@ -126,6 +139,9 @@ init(#server_state{couchdb=C, prefix=P} = InitialState) ->
 handle_call(info, _From, #server_state{prefix=Base, couchdb=C}=State) ->
     {ok, {Infos}} = couchbeam_resource:get(C, Base, [], [], []),
     {reply, Infos, State};
+    
+handle_call(close, _, State) ->
+    {stop, normal, State};
     
 handle_call(all_dbs, _From, #server_state{prefix=Base, couchdb=C}=State) ->
     {ok, AllDbs} = couchbeam_resource:get(C, Base ++ "_all_dbs", [], [], []),
@@ -224,9 +240,11 @@ handle_info({'EXIT', Pid, _Reason}, #server_state{dbs_by_name=DbsNameTid,
     {noreply, State};
     
 handle_info(_Info, State) ->
+    io:format("info ~p ~n", [_Info]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    server_close(State),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -234,6 +252,14 @@ code_change(_OldVsn, State, _Extra) ->
     
       
 %% @private
+
+server_close(#server_state{dbs_by_pid=DbsPidTid,name=Name}) ->
+    lists:foreach(fun({_, DbName}) -> 
+        couchbeam_manager:unregister_db(DbName)
+    end, ets:match(DbsPidTid, '$1')),
+    couchbeam_manager:unregister_connection(Name),
+    ok.
+
 server_pid(ConnectionId) when is_pid(ConnectionId) ->
     ConnectionId;
 server_pid(ConnectionId) ->
