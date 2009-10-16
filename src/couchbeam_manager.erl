@@ -130,12 +130,28 @@ handle_call({unregister_db, Name}, _, #couchbeam_manager{dbs=Dbs,refs=Refs}=Stat
     end,
     {reply, R, State1};    
             
-handle_call({db, Name}, _, #couchbeam_manager{dbs=Dbs}=State) ->
-    R = case dict:find(Name, Dbs) of
-        {ok, {Pid, _, _, _}} -> Pid;
-        error -> not_found
+handle_call({db, Name}, _, #couchbeam_manager{dbs=Dbs, conns=Conns}=State) ->
+    {R, State1} = case dict:find(Name, Dbs) of
+        {ok, {Pid, {_, DbName}, ServerName, Ref}} -> 
+            case process_info(Pid) of
+                undefined ->
+                    io:format(":()"),
+                    Refs1 = dict:erase(Ref, Dbs),
+                    case dict:find(ServerName, Conns) of
+                        {ok, {ServerPid, _}} ->                 
+                            DbPid = couchbeam_server:open_db(ServerPid, {Name, DbName}, false),
+                            Ref1 = erlang:monitor(process, DbPid),
+                            Refs2 = dict:store(Ref1, {db, ServerName, DbName}, Refs1),
+                            Dbs1 = dict:store(Name, {DbPid, {Name, DbName}, ServerName, Ref1}, Dbs),
+                            NewState = State#couchbeam_manager{conns=Conns,dbs=Dbs1,refs=Refs2},
+                            {DbPid, NewState};
+                        error -> {not_found, State}
+                    end;
+                _ -> {Pid, State}
+            end;
+        error -> {not_found, State}
     end,
-    {reply, R, State}.
+    {reply, R, State1}.
             
 handle_cast(_Msg, State) ->
     {no_reply, State}.
@@ -147,6 +163,7 @@ handle_info({'DOWN', _, _, _, killed}, State) ->
 handle_info({'DOWN', Ref, _, _, _Reason}, #couchbeam_manager{conns=Conns,
                                                              dbs=Dbs,
                                                              refs=Refs}=State) ->
+                                                                 
     State1 = case dict:find(Ref, Refs) of
         {ok, {connection, Params}} ->
             Refs1 = dict:erase(Ref, Refs),
@@ -183,4 +200,4 @@ terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}. 
+    {ok, State}.
