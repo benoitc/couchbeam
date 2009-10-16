@@ -13,7 +13,7 @@
                         couchbeam_util,
                         couchbeam_manager,
                         couchbeam_sup]},
-              {registered,[couchbeam_server, couchbeam_sup]},
+              {registered,[couchbeam_server, couchbeam_manager, couchbeam_sup]},
               {applications,[kernel, stdlib]},
 			  {env, []},
 			  {mod, {couchbeam, []}}]}.

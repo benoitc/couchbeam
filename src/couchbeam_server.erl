@@ -27,7 +27,7 @@
          handle_info/2]).
 -export([start_connection/0, start_connection/1, start_connection_link/0,
          start_connection_link/1]).
--export([info/1, close/1, create_db/2, open_db/2, open_or_create_db/2, 
+-export([info/1, close/1, create_db/2, open_db/2, open_db/3, open_or_create_db/2, 
          delete_db/2, all_dbs/1, is_db/2, close_db/2]).
          
  
@@ -94,12 +94,18 @@ is_db(ConnectionId, DbName) ->
 %% @spec create_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc create a database with DbName
 create_db(ConnectionId, DbName) ->
+    create_db(ConnectionId, DbName, true).
+    
+create_db(ConnectionId, DbName, Register) ->
     Pid = server_pid(ConnectionId),
-    gen_server:call(Pid, {create_db, DbName}, infinity).
+    gen_server:call(Pid, {create_db, DbName, Register}, infinity).
     
 open_db(ConnectionId, DbName) ->
+    open_db(ConnectionId, DbName, true).
+    
+open_db(ConnectionId, DbName, Register) ->
     Pid = server_pid(ConnectionId),
-    gen_server:call(Pid, {open_db, DbName}, infinity).
+    gen_server:call(Pid, {open_db, DbName, Register}, infinity).
 
 %% @spec delete_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc delete a database with dbname    
@@ -108,9 +114,12 @@ delete_db(ConnectionId, DbName) ->
     gen_server:call(Pid, {delete_db, DbName}, infinity).
         
 open_or_create_db(ConnectionId, DbName) ->
-    Pid = case open_db(ConnectionId, DbName) of
+    open_or_create_db(ConnectionId, DbName, true).
+    
+open_or_create_db(ConnectionId, DbName, Register) ->
+    Pid = case open_db(ConnectionId, DbName, Register) of
         not_found ->
-            create_db(ConnectionId, DbName);
+            create_db(ConnectionId, DbName, Register);
         Pid1 -> Pid1
     end,
     Pid.
@@ -141,13 +150,14 @@ handle_call(info, _From, #server_state{prefix=Base, couchdb=C}=State) ->
     {reply, Infos, State};
     
 handle_call(close, _, State) ->
+    server_close(State),
     {stop, normal, State};
     
 handle_call(all_dbs, _From, #server_state{prefix=Base, couchdb=C}=State) ->
     {ok, AllDbs} = couchbeam_resource:get(C, Base ++ "_all_dbs", [], [], []),
     {reply, AllDbs, State};
 
-handle_call({open_db, DbName}, _From, #server_state{prefix=Base, 
+handle_call({open_db, DbName, Register}, _From, #server_state{prefix=Base, 
                                             couchdb=C,
                                             name=ServerName,
                                             dbs_by_name=DbsNameTid,
@@ -161,7 +171,11 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
                     {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
                     true = ets:insert(DbsNameTid, {DbName1, DbPid}),
                     true = ets:insert(DbsPidTid, {DbPid, DbName1}),
-                    couchbeam_manager:register_db(Alias, DbPid),
+                    case Register of
+                        true ->
+                            couchbeam_manager:register_db(ServerName, {Alias, DbName1}, DbPid);
+                        false -> ok
+                    end,
                     DbPid;
                 {error, Reason} -> Reason
             end;
@@ -169,7 +183,7 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
     end,
     {reply, Pid, State};
     
-handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
+handle_call({create_db, DbName, Register}, _From, #server_state{prefix=Base,
                                                 couchdb=C,
                                                 name=ServerName,
                                                 dbs_by_name=DbsNameTid,
@@ -182,7 +196,11 @@ handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
                     {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
                     true = ets:insert(DbsNameTid, {DbName1, DbPid}),
                     true = ets:insert(DbsPidTid, {DbPid, DbName1}),
-                    couchbeam_manager:register_db(Alias, DbPid),
+                    case Register of
+                        true ->
+                            couchbeam_manager:register_db(ServerName, {Alias, DbName1}, DbPid);
+                        false -> ok
+                    end,
                     DbPid;
                 {error, Reason} -> Reason
             end;
@@ -226,7 +244,6 @@ handle_call({close_db, DbPid}, _From, #server_state{dbs_by_name=DbsNameTid,
     end,
     {reply, Resp, State}.
     
-    
 handle_cast(_Msg, State) ->
     {no_reply, State}.
     
@@ -243,8 +260,7 @@ handle_info(_Info, State) ->
     io:format("info ~p ~n", [_Info]),
     {noreply, State}.
 
-terminate(_Reason, State) ->
-    server_close(State),
+terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

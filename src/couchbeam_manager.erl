@@ -29,7 +29,7 @@
          handle_info/2]).
   
 -export([register_connection/2, unregister_connection/1, get_connection/1, 
-         connection_count/0, register_db/2, unregister_db/1, get_db/1]).
+         connection_count/0, register_db/3, unregister_db/1, get_db/1]).
   
 %%---------------------------------------------------------------------------
 %% manager operations
@@ -47,8 +47,8 @@ get_connection(Name) ->
 connection_count() ->
     gen_server:call(?MODULE, connection_count).
     
-register_db(Name, DbPid) ->
-    gen_server:call(?MODULE, {register_db, Name, DbPid}).
+register_db(ServerName, Name, DbPid) ->
+    gen_server:call(?MODULE, {register_db, ServerName, Name, DbPid}).
  
 unregister_db(Name) ->
     gen_server:call(?MODULE, {unregister_db, Name}).
@@ -63,79 +63,77 @@ get_db(Name) ->
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, nil, []).
-    
-    
+
 init(_) ->
     process_flag(priority, high),
-    Connections = ets:new(couchbeam_conns_by_name, [set, private, named_table]),
-    Dbs = ets:new(couchbeam_dbs_by_name, [set, private, named_table]),
-    Refs = ets:new(couchbeam_refs, [set, private, named_table]),
-    {ok, #couchbeam_manager{connections=Connections, dbs=Dbs, refs=Refs}}.
+    {ok, #couchbeam_manager{}}.
     
 
 %% @hidden
-handle_call({register, ConnectionPid, #couchdb_params{name=Name}=CouchDBState}, _, State) ->
-    R = case ets:lookup(couchbeam_conns_by_name, Name) of
-        [] -> 
-            Ref = erlang:monitor(process, ConnectionPid),
-            true = ets:insert(couchbeam_refs, {Ref, {connection, CouchDBState}}),
-            true = ets:insert(couchbeam_conns_by_name, {Name, {ConnectionPid, Ref}}),
-            {ok, ConnectionPid};
-        [{_, MainPid}] ->
-            {already_registered, MainPid}
+handle_call({register, ConnectionPid, #couchdb_params{name=Name}=CouchDBState}, _, 
+                #couchbeam_manager{conns=Conns,refs=Refs}=State) ->
+    {R, State1}= case dict:find(Name, Conns) of
+        {ok, {_, MainPid}} ->
+            {{already_registered, MainPid}, State};
+        error ->
+                Ref = erlang:monitor(process, ConnectionPid),
+                Refs1 = dict:store(Ref, {connection, CouchDBState}, Refs),
+                Conns1 = dict:store(Name, {ConnectionPid, Ref}, Conns),
+                NewState = State#couchbeam_manager{conns=Conns1, refs=Refs1},
+                {{ok, ConnectionPid}, NewState}
     end,
-    {reply, R, State};
+    {reply, R, State1};
 
-handle_call({unregister, Name}, _, State) ->
-   R = case ets:lookup(couchbeam_conns_by_name, Name) of
-        [] -> not_found;
-        [{_, {_, Ref}}] -> 
-            ets:delete(couchbeam_conns_by_name, Name),
-            case ets:lookup(couchbeam_refs, Ref) of
-                [] -> ok;
-                [{_, {connection, _}}] ->
-                    ets:delete(couchbeam_refs, Ref);
-                _ -> ok
-            end,
-            ok
+handle_call({unregister, Name}, _, #couchbeam_manager{conns=Conns,refs=Refs}=State) ->
+   {R, State1} = case  dict:find(Name, Conns) of
+        {ok, {_, Ref}} ->
+            Conns1 = dict:erase(Name, Conns),
+            Refs1 = dict:erase(Ref, Refs),
+            erlang:demonitor(Ref),
+            {ok, State#couchbeam_manager{conns=Conns1, refs=Refs1}};
+        error -> {not_found, State}
+    end,
+    {reply, R, State1};
+    
+handle_call({connection, Name}, _, #couchbeam_manager{conns=Conns}=State) ->
+    R = case dict:find(Name, Conns) of
+        {ok, {Pid, _}} -> Pid;
+        error -> not_found
     end,
     {reply, R, State};
     
-handle_call({connection, Name}, _, State) ->
-    R = case ets:lookup(couchbeam_conns_by_name, Name) of
-        [] -> not_found;
-        [{_, {Pid, _}}] -> Pid   
-    end,
-    {reply, R, State};
-    
-handle_call(connection_count, _, State) ->
-    Infos = ets:info(couchbeam_conns_by_name),
-    Size = proplists:get_value(size, Infos),
-     {reply, Size, State};
+handle_call(connection_count, _, #couchbeam_manager{conns=Conns}=State) ->
+    Size = dict:size(Conns),
+    {reply, Size, State};
      
      
-handle_call({register_db, Name, DbPid}, _, State) ->
-    R = case ets:lookup(couchbeam_dbs_by_name, Name) of
-        [] ->
-            true = ets:insert(couchbeam_dbs_by_name, {Name, DbPid}),
-            ok;
-        [{_, _}] -> already_registered
+handle_call({register_db, ServerName, {Alias, _Name}=DbName, DbPid}, _, 
+                                #couchbeam_manager{dbs=Dbs,refs=Refs}=State) ->
+    {R, State1} = case dict:find(Alias, Dbs) of
+        {ok, _} -> {already_registered, State};
+        error ->
+            Ref = erlang:monitor(process, DbPid),
+            Refs1 = dict:store(Ref, {db, ServerName, DbName}, Refs),
+            Dbs1 = dict:store(Alias, {DbPid, DbName, ServerName, Ref}, Dbs),
+            {ok, State#couchbeam_manager{dbs=Dbs1,refs=Refs1}}
     end,
-    {reply, R, State};
+    {reply, R, State1};
 
-handle_call({unregister_db, Name}, _, State) ->
-   R = case ets:lookup(couchbeam_dbs_by_name, Name) of
-        [] -> not_found;
-        [{_,_}] -> 
-            ets:delete(couchbeam_dbs_by_name, Name),
-            ok
+handle_call({unregister_db, Name}, _, #couchbeam_manager{dbs=Dbs,refs=Refs}=State) ->
+   {R, State1} = case dict:find(Name, Dbs) of
+        {ok, {_,_,_,Ref}}-> 
+            Dbs1 = dict:erase(Name, Dbs),
+            Refs1 = dict:erase(Ref, Refs),
+            erlang:demonitor(Ref),
+            {ok, State#couchbeam_manager{dbs=Dbs1,refs=Refs1}};
+        error -> {not_found, State}
     end,
-    {reply, R, State};    
+    {reply, R, State1};    
             
-handle_call({db, Name}, _, State) ->
-    R = case ets:lookup(couchbeam_dbs_by_name, Name) of
-        [] -> not_found;
-        [{_, Pid}] -> Pid
+handle_call({db, Name}, _, #couchbeam_manager{dbs=Dbs}=State) ->
+    R = case dict:find(Name, Dbs) of
+        {ok, {Pid, _, _, _}} -> Pid;
+        error -> not_found
     end,
     {reply, R, State}.
             
@@ -144,26 +142,41 @@ handle_cast(_Msg, State) ->
     
 handle_info({'DOWN', _, _, _, normal}, State) ->
     {noreply, State};
-
-handle_info({'DOWN', Ref, _, _, _}, State) ->
-    case ets:lookup(couchbeam_refs, Ref) of
-        [] -> ok;
-        [{_, {connection, Params}}] ->
-              ets:delete(couchbeam_refs, Ref),
-              #couchdb_params{name=Name, prefix=Prefix} = Params,
-              InitialState = #server_state{couchdb = Params,
-                                           prefix  = Prefix,
-                                           name=Name},
-              {ok, Pid} = gen_server:start_link(couchbeam_server, InitialState, []),
-              Ref1 = erlang:monitor(process, Pid),
-              true = ets:insert(couchbeam_refs, {Ref1, {connection, Params}}),
-              true = ets:insert(couchbeam_conns_by_name, {Name, {Pid, Params}})
+handle_info({'DOWN', _, _, _, killed}, State) ->
+    {noreply, State};
+handle_info({'DOWN', Ref, _, _, _Reason}, #couchbeam_manager{conns=Conns,
+                                                             dbs=Dbs,
+                                                             refs=Refs}=State) ->
+    State1 = case dict:find(Ref, Refs) of
+        {ok, {connection, Params}} ->
+            Refs1 = dict:erase(Ref, Refs),
+            #couchdb_params{name=Name, prefix=Prefix} = Params,
+            InitialState = #server_state{couchdb = Params,
+                                         prefix  = Prefix,
+                                         name=Name},
+            {ok, Pid} = gen_server:start_link(couchbeam_server, InitialState, []),
+            Ref1 = erlang:monitor(process, Pid),
+            Refs2 = dict:store(Ref, {connection, Params}, Refs1),
+            Conns1 = dict:store(Name, {Pid, Ref1}, Conns),
+            State#couchbeam_manager{conns=Conns1,dbs=Dbs,refs=Refs2};
+        {ok, {db, {ServerName, DbName}}} ->
+            Refs1 = dict:erase(Ref, Refs),
+            {Alias, _} = DbName,
+            case dict:find(ServerName, Conns) of
+                {ok, {Pid, _}} ->
+                    DbPid = couchbeam_server:open_db(Pid, DbName, false),
+                    Ref1 = erlang:monitor(process, DbPid),
+                    Refs2 = dict:store(Ref1, {db, ServerName, DbName}, Refs1),
+                    Dbs1 = dict:store(Alias, {DbPid, DbName, ServerName, Ref}, Dbs),
+                    State#couchbeam_manager{conns=Conns,dbs=Dbs1,refs=Refs2};
+                error -> State
+            end;
+        error ->
+            State
     end,
-              
-    {noreply, State};    
+    {noreply, State1};    
     
 handle_info(_Info, State) ->
-    io:format("got ~p ~n", [_Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
