@@ -79,7 +79,7 @@ handle_call({register, ConnectionPid, #couchdb_params{name=Name}=CouchDBState}, 
         [] -> 
             Ref = erlang:monitor(process, ConnectionPid),
             true = ets:insert(couchbeam_refs, {Ref, {connection, CouchDBState}}),
-            true = ets:insert(couchbeam_conns_by_name, {Name, {ConnectionPid, CouchDBState}}),
+            true = ets:insert(couchbeam_conns_by_name, {Name, {ConnectionPid, Ref}}),
             {ok, ConnectionPid};
         [{_, MainPid}] ->
             {already_registered, MainPid}
@@ -89,8 +89,14 @@ handle_call({register, ConnectionPid, #couchdb_params{name=Name}=CouchDBState}, 
 handle_call({unregister, Name}, _, State) ->
    R = case ets:lookup(couchbeam_conns_by_name, Name) of
         [] -> not_found;
-        [{_,_}] -> 
+        [{_, {_, Ref}}] -> 
             ets:delete(couchbeam_conns_by_name, Name),
+            case ets:lookup(couchbeam_refs, Ref) of
+                [] -> ok;
+                [{_, {connection, _}}] ->
+                    ets:delete(couchbeam_refs, Ref);
+                _ -> ok
+            end,
             ok
     end,
     {reply, R, State};
