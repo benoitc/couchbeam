@@ -34,15 +34,17 @@
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
 %% @type iodata() = iolist() | binary()
-%% @type json_string() = atom | binary()
+%% @type json_string() = atom() | binary()
 %% @type json_number() = integer() | float()
 %% @type json_array() = [json_term()]
 %% @type json_object() = {struct, [{json_string(), json_term()}]}
+%% @type database() = atom() | pid()
 %% @type json_term() = json_string() | json_number() | json_array() |
 %%                     json_object()
 
 
-%% @spec info(Db::pid()) -> list()
+
+%% @spec info(Db::database()) -> list()
 %% @doc fetch information of Database
 info(Db) ->
     gen_server:call(db_pid(Db), info, infinity).
@@ -66,7 +68,7 @@ open_or_create(ConnectionPid, DbName) ->
 %% Manage docs
 %%---------------------------------------------------------------------------
 
-%% @spec open_doc(Db::pid(), DocId::string()) -> json_object()
+%% @spec open_doc(Db::database(), DocId::string()) -> json_object()
 %% @doc open a doc with DocId
 open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
@@ -74,7 +76,7 @@ open_doc(Db, DocId) ->
 open_doc(Db, DocId, Params) ->
     gen_server:call(db_pid(Db), {open_doc, DocId, Params}, infinity).
    
-%% @spec save_doc(Db::pid(), Doc::json_object()) -> json_object() 
+%% @spec save_doc(Db::database(), Doc::json_object()) -> json_object() 
 %% @doc save a do with DocId. 
 save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
@@ -82,17 +84,17 @@ save_doc(Db, Doc) ->
 save_doc(Db, Doc, Params) ->
     gen_server:call(db_pid(Db), {save_doc, Doc, Params}, infinity). 
    
-%% @spec save_docs(Db::pid(), Docs::json_array()) -> json_object() 
+%% @spec save_docs(Db::database(), Docs::json_array()) -> json_object() 
 %% @doc bulk update
 save_docs(Db, Docs) ->
     save_docs(Db, Docs, []).
 
-%% @spec save_docs(Db::pid(), Docs::json_array(), opts: lists()) -> json_object() 
-%% @doc bulk update with options, currently support only all_or_nothing.    
+%% @spec save_docs(Db::database(), Docs::json_array(), Opts::lists()) -> json_object() 
+%% @doc bulk update with options, currently support only all_or_nothing.
 save_docs(Db, Docs, Params) ->
     gen_server:call(db_pid(Db), {save_docs, Docs, Params}, infinity). 
     
-%% @spec delete_doc(Db::pid(), Doc::json_object()) -> json_object() 
+%% @spec delete_doc(Db::database(), Doc::json_object()) -> json_object() 
 %% @doc delete a document
 delete_doc(Db, {DocProps}) ->
     Doc1 = {[{<<"_deleted">>, true}|DocProps]},
@@ -111,15 +113,19 @@ delete_docs(Db, Docs, Opts) ->
 %% suscribe to update notifications
 %%---------------------------------------------------------------------------  
     
-%% @spec suscribe(Db::pid(), Consumer::pid()) -> pid() 
+%% @spec suscribe(Db::database(), Consumer::pid()) -> pid()
 %% @doc suscribe to db changes
 suscribe(Db, Consumer) ->
     suscribe(Db, Consumer, []).
-    
-%% @spec suscribe(Db::pid(), Consumer::pid(), Options::ChangeOptions()) -> pid()
-%% @type ChangeOptions [ChangeOption]
-%%       ChangeOption = {heartbeat, integer | string} |
-%%                      {timeout, integer()}}
+
+%% @spec suscribe(Db, Consumer, Options) -> Result
+%% Db = database()
+%% Consumer = pid()
+%% Options = ChangeOptions
+%% Result = pid()
+%% Options = [ChangeOption]
+%% ChangeOption = {heartbeat, integer | string} |
+%%                      {timeout, integer()}
 %% @doc suscribe to db changes, wait for changes heartbeat 
 suscribe(Db, Consumer, Options) ->
     gen_server:call(db_pid(Db), {suscribe_changes, Consumer, Options}, infinity).
@@ -129,7 +135,7 @@ suscribe(Db, Consumer, Options) ->
 %% View docs
 %%---------------------------------------------------------------------------  
     
-%% @spec query_view(Db::pid(), 
+%% @spec query_view(Db::database(), 
 %%                  ViewName::view_name(),
 %%                  Params::view_params()) -> json_object()
 %% @type view_params() = proplist()
@@ -138,12 +144,12 @@ suscribe(Db, Consumer, Options) ->
 query_view(Db, Vname, Params) ->
     gen_server:call(db_pid(Db), {query_view, Vname, Params}, infinity). 
 
-%% @spec all_docs(Db::pid(), Params::list()) -> json_object()
+%% @spec all_docs(Db::database(), Params::list()) -> json_object()
 %% @doc This method has the same behavior as a view. Return all docs
 all_docs(Db, Params) ->
     query_view(Db, '_all_docs', Params).
     
-%% @spec all_docs_by_seq(Db::pid(), Params::list()) -> json_object()
+%% @spec all_docs_by_seq(Db::database(), Params::list()) -> json_object()
 %% @deprecated  This feature don't exist anymore in couchdb 0.11, use suscribe() instead.
 %% @doc This method has the same behavior as a view. 
 %% Return an updated list of all documents.
@@ -156,7 +162,7 @@ all_docs_by_seq(Db, Params) ->
 %%---------------------------------------------------------------------------
 
  
-%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
+%% @spec fetch_attachment(Db::database(), Doc::json_obj(), 
 %%                  AName::string()) -> iolist()
 %% @doc fetch attachment
 fetch_attachment(Db, Doc, AName) ->
@@ -165,7 +171,7 @@ fetch_attachment(Db, Doc, AName) ->
 fetch_attachment(Db, Doc, AName, Opts) ->
     gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Opts}, infinity). 
 
-%% @spec put_attachment(Db::pid(), Doc::json_obj(),
+%% @spec put_attachment(Db::database(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
 %% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_1(), initial_state()}
 %% @doc put attachment attachment, It will try to guess mimetype
@@ -173,13 +179,13 @@ put_attachment(Db, Doc, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
     put_attachment(Db, Doc, Content, AName, Length, ContentType).
     
-%% @spec put_attachment(Db::pid(), Doc::json_obj(),
+%% @spec put_attachment(Db::database(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
     gen_server:call(db_pid(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
     
-%% @spec delete_attachment(Db::pid(), Doc::json_obj(),
+%% @spec delete_attachment(Db::database(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
 %% @doc delete attachment
 delete_attachment(Db, Doc, AName) ->

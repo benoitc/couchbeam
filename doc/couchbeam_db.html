@@ -21,6 +21,10 @@
 <p><tt>attachment_content() = string() | binary() | <a href="#type-fun_arity_0">fun_arity_0()</a> | {<a href="#type-fun_arity_1">fun_arity_1()</a>, <a href="#type-initial_state">initial_state()</a>}</tt></p>
 
 
+<h3 class="typedecl"><a name="type-database">database()</a></h3>
+<p><tt>database() = atom() | pid()</tt></p>
+
+
 <h3 class="typedecl"><a name="type-iodata">iodata()</a></h3>
 <p><tt>iodata() = <a href="#type-iolist">iolist()</a> | binary()</tt></p>
 
@@ -42,7 +46,7 @@
 
 
 <h3 class="typedecl"><a name="type-json_string">json_string()</a></h3>
-<p><tt>json_string() = atom | binary()</tt></p>
+<p><tt>json_string() = atom() | binary()</tt></p>
 
 
 <h3 class="typedecl"><a name="type-json_term">json_term()</a></h3>
@@ -81,11 +85,12 @@
 <tr><td valign="top"><a href="#put_attachment-5">put_attachment/5</a></td><td>put attachment attachment, It will try to guess mimetype.</td></tr>
 <tr><td valign="top"><a href="#put_attachment-6">put_attachment/6</a></td><td>put attachment attachment with ContentType fixed.</td></tr>
 <tr><td valign="top"><a href="#query_view-3">query_view/3</a></td><td>query a view and return results depending on params.</td></tr>
-<tr><td valign="top"><a href="#register_db-2">register_db/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a do with DocId.</td></tr>
 <tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#save_docs-2">save_docs/2</a></td><td>bulk update.</td></tr>
 <tr><td valign="top"><a href="#save_docs-3">save_docs/3</a></td><td>bulk update with options, currently support only all_or_nothing.</td></tr>
+<tr><td valign="top"><a href="#suscribe-2">suscribe/2</a></td><td>suscribe to db changes.</td></tr>
+<tr><td valign="top"><a href="#suscribe-3">suscribe/3</a></td><td>suscribe to db changes, wait for changes heartbeat.</td></tr>
 <tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
 </table>
 
@@ -93,12 +98,12 @@
 
 <h3 class="function"><a name="all_docs-2">all_docs/2</a></h3>
 <div class="spec">
-<p><tt>all_docs(Db::pid(), Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>all_docs(Db::<a href="#type-database">database()</a>, Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>This method has the same behavior as a view. Return all docs</p>
 
 <h3 class="function"><a name="all_docs_by_seq-2">all_docs_by_seq/2</a></h3>
 <div class="spec">
-<p><tt>all_docs_by_seq(Db::pid(), Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>all_docs_by_seq(Db::<a href="#type-database">database()</a>, Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p><b>This function is deprecated:</b>  This feature don't exist anymore in couchdb 0.11, use suscribe() instead.</p>
 <p>This method has the same behavior as a view.
   Return an updated list of all documents.</p>
@@ -125,12 +130,12 @@
 
 <h3 class="function"><a name="delete_attachment-3">delete_attachment/3</a></h3>
 <div class="spec">
-<p><tt>delete_attachment(Db::pid(), Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+<p><tt>delete_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
 </div><p>delete attachment</p>
 
 <h3 class="function"><a name="delete_doc-2">delete_doc/2</a></h3>
 <div class="spec">
-<p><tt>delete_doc(Db::pid(), Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>delete_doc(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>delete a document</p>
 
 <h3 class="function"><a name="delete_docs-2">delete_docs/2</a></h3>
@@ -145,7 +150,7 @@
 
 <h3 class="function"><a name="fetch_attachment-3">fetch_attachment/3</a></h3>
 <div class="spec">
-<p><tt>fetch_attachment(Db::pid(), Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-iolist">iolist()</a></tt></p>
+<p><tt>fetch_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-iolist">iolist()</a></tt></p>
 </div><p>fetch attachment</p>
 
 <h3 class="function"><a name="fetch_attachment-4">fetch_attachment/4</a></h3>
@@ -170,7 +175,7 @@
 
 <h3 class="function"><a name="info-1">info/1</a></h3>
 <div class="spec">
-<p><tt>info(Db::pid()) -&gt; list()</tt></p>
+<p><tt>info(Db::<a href="#type-database">database()</a>) -&gt; list()</tt></p>
 </div><p>fetch information of Database</p>
 
 <h3 class="function"><a name="open-2">open/2</a></h3>
@@ -180,7 +185,7 @@
 
 <h3 class="function"><a name="open_doc-2">open_doc/2</a></h3>
 <div class="spec">
-<p><tt>open_doc(Db::pid(), DocId::string()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>open_doc(Db::<a href="#type-database">database()</a>, DocId::string()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>open a doc with DocId</p>
 
 <h3 class="function"><a name="open_doc-3">open_doc/3</a></h3>
@@ -195,27 +200,22 @@
 
 <h3 class="function"><a name="put_attachment-5">put_attachment/5</a></h3>
 <div class="spec">
-<p><tt>put_attachment(Db::pid(), Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+<p><tt>put_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
 </div><p>put attachment attachment, It will try to guess mimetype</p>
 
 <h3 class="function"><a name="put_attachment-6">put_attachment/6</a></h3>
 <div class="spec">
-<p><tt>put_attachment(Db::pid(), Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string(), ContentType::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+<p><tt>put_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string(), ContentType::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
 </div><p>put attachment attachment with ContentType fixed.</p>
 
 <h3 class="function"><a name="query_view-3">query_view/3</a></h3>
 <div class="spec">
-<p><tt>query_view(Db::pid(), ViewName::<a href="#type-view_name">view_name()</a>, Params::<a href="#type-view_params">view_params()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>query_view(Db::<a href="#type-database">database()</a>, ViewName::<a href="#type-view_name">view_name()</a>, Params::<a href="#type-view_params">view_params()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>query a view and return results depending on params</p>
-
-<h3 class="function"><a name="register_db-2">register_db/2</a></h3>
-<div class="spec">
-<p><tt>register_db(Name, X2) -&gt; any()</tt></p>
-</div>
 
 <h3 class="function"><a name="save_doc-2">save_doc/2</a></h3>
 <div class="spec">
-<p><tt>save_doc(Db::pid(), Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>save_doc(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>save a do with DocId.</p>
 
 <h3 class="function"><a name="save_doc-3">save_doc/3</a></h3>
@@ -225,13 +225,30 @@
 
 <h3 class="function"><a name="save_docs-2">save_docs/2</a></h3>
 <div class="spec">
-<p><tt>save_docs(Db::pid(), Docs::<a href="#type-json_array">json_array()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>save_docs(Db::<a href="#type-database">database()</a>, Docs::<a href="#type-json_array">json_array()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>bulk update</p>
 
 <h3 class="function"><a name="save_docs-3">save_docs/3</a></h3>
 <div class="spec">
-<p><tt>save_docs(Db::pid(), Docs::<a href="#type-json_array">json_array()</a>, Params::<a href="opts.html#type-lists">opts:lists()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+<p><tt>save_docs(Db::<a href="#type-database">database()</a>, Docs::<a href="#type-json_array">json_array()</a>, Opts::<a href="#type-lists">lists()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
 </div><p>bulk update with options, currently support only all_or_nothing.</p>
+
+<h3 class="function"><a name="suscribe-2">suscribe/2</a></h3>
+<div class="spec">
+<p><tt>suscribe(Db::<a href="#type-database">database()</a>, Consumer::pid()) -&gt; pid()</tt></p>
+</div><p>suscribe to db changes</p>
+
+<h3 class="function"><a name="suscribe-3">suscribe/3</a></h3>
+<div class="spec">
+<p><tt>suscribe(Db, Consumer, Options) -&gt; Result</tt>
+<ul class="definitions"><li><tt>Db = <a href="#type-database">database()</a></tt></li>
+<li><tt>Consumer = pid()</tt></li>
+<li><tt>Options = ChangeOptions</tt></li>
+<li><tt>Result = pid()</tt></li>
+<li><tt>Options = [ChangeOption]</tt></li>
+<li><tt>ChangeOption = {heartbeat, integer | string} | {timeout, integer()}</tt></li>
+</ul></p>
+</div><p>suscribe to db changes, wait for changes heartbeat</p>
 
 <h3 class="function"><a name="terminate-2">terminate/2</a></h3>
 <div class="spec">
@@ -240,6 +257,6 @@
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Oct 7 2009, 22:34:59.</i></p>
+<p><i>Generated by EDoc, Oct 16 2009, 23:08:55.</i></p>
 </body>
 </html>
