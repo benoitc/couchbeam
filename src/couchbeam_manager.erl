@@ -47,9 +47,9 @@ get_connection(Name) ->
 connection_count() ->
     gen_server:call(?MODULE, connection_count).
     
-register_db(Name, {ConnectionPid, DbPid}) when is_atom(ConnectionPid) ->
+register_db(Name, {ConnectionPid, DbName}) when is_atom(ConnectionPid) ->
     ConnectionPid1 = get_connection(ConnectionPid),
-    register_db(Name, {ConnectionPid1, DbPid});
+    register_db(Name, {ConnectionPid1, DbName});
     
 register_db(Name, {ConnectionPid, DbName}) when is_pid(ConnectionPid)->
     gen_server:call(?MODULE, {register_db, Name, {ConnectionPid, DbName}}).
