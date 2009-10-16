@@ -159,7 +159,7 @@ handle_info({'DOWN', Ref, _, _, _Reason}, #couchbeam_manager{conns=Conns,
             Refs2 = dict:store(Ref, {connection, Params}, Refs1),
             Conns1 = dict:store(Name, {Pid, Ref1}, Conns),
             State#couchbeam_manager{conns=Conns1,dbs=Dbs,refs=Refs2};
-        {ok, {db, {ServerName, DbName}}} ->
+        {ok, {db, ServerName, DbName}} ->
             Refs1 = dict:erase(Ref, Refs),
             {Alias, _} = DbName,
             case dict:find(ServerName, Conns) of
