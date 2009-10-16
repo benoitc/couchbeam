@@ -35,8 +35,8 @@
 %% manager operations
 %%---------------------------------------------------------------------------
   
-register_connection(Name, ConnectionPid) ->
-     gen_server:call(?MODULE, {register, Name, ConnectionPid}).
+register_connection(ConnectionPid, State) ->
+     gen_server:call(?MODULE, {register, ConnectionPid, State}).
      
 unregister_connection(Name) ->
      gen_server:call(?MODULE, {unregister, Name}).
@@ -69,15 +69,17 @@ init(_) ->
     process_flag(priority, high),
     Connections = ets:new(couchbeam_conns_by_name, [set, private, named_table]),
     Dbs = ets:new(couchbeam_dbs_by_name, [set, private, named_table]),
-    
-    {ok, #couchbeam_manager{connections=Connections, dbs=Dbs}}.
+    Refs = ets:new(couchbeam_refs, [set, private, named_table]),
+    {ok, #couchbeam_manager{connections=Connections, dbs=Dbs, refs=Refs}}.
     
 
 %% @hidden
-handle_call({register, Name, ConnectionPid}, _, State) ->
+handle_call({register, ConnectionPid, #couchdb_params{name=Name}=CouchDBState}, _, State) ->
     R = case ets:lookup(couchbeam_conns_by_name, Name) of
         [] -> 
-            true = ets:insert(couchbeam_conns_by_name, {Name, ConnectionPid}),
+            Ref = erlang:monitor(process, ConnectionPid),
+            true = ets:insert(couchbeam_refs, {Ref, {connection, CouchDBState}}),
+            true = ets:insert(couchbeam_conns_by_name, {Name, {ConnectionPid, CouchDBState}}),
             {ok, ConnectionPid};
         [{_, MainPid}] ->
             {already_registered, MainPid}
@@ -96,7 +98,7 @@ handle_call({unregister, Name}, _, State) ->
 handle_call({connection, Name}, _, State) ->
     R = case ets:lookup(couchbeam_conns_by_name, Name) of
         [] -> not_found;
-        [{_, Pid}] -> Pid   
+        [{_, {Pid, _}}] -> Pid   
     end,
     {reply, R, State};
     
@@ -134,7 +136,28 @@ handle_call({db, Name}, _, State) ->
 handle_cast(_Msg, State) ->
     {no_reply, State}.
     
+handle_info({'DOWN', _, _, _, normal}, State) ->
+    {noreply, State};
+
+handle_info({'DOWN', Ref, _, _, _}, State) ->
+    case ets:lookup(couchbeam_refs, Ref) of
+        [] -> ok;
+        [{_, {connection, Params}}] ->
+              ets:delete(couchbeam_refs, Ref),
+              #couchdb_params{name=Name, prefix=Prefix} = Params,
+              InitialState = #server_state{couchdb = Params,
+                                           prefix  = Prefix,
+                                           name=Name},
+              {ok, Pid} = gen_server:start_link(couchbeam_server, InitialState, []),
+              Ref1 = erlang:monitor(process, Pid),
+              true = ets:insert(couchbeam_refs, {Ref1, {connection, Params}}),
+              true = ets:insert(couchbeam_conns_by_name, {Name, {Pid, Params}})
+    end,
+              
+    {noreply, State};    
+    
 handle_info(_Info, State) ->
+    io:format("got ~p ~n", [_Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->

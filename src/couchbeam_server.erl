@@ -53,7 +53,7 @@ start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbPara
                                          prefix  = Prefix1,
                                          name=Name},
             {ok, Pid1} = start_internal(InitialState, ProcLink),
-            couchbeam_manager:register_connection(Name, Pid1),
+            couchbeam_manager:register_connection(Pid1, CouchdbParams1),
             Pid1;
         Pid1 -> Pid1
     end,
