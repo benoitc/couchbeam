@@ -51,8 +51,11 @@ count(ViewPid, Refresh) ->
     gen_server:call(ViewPid, {count, Refresh}, infinity).
                      
 close_view(ViewPid) ->
-    catch exit(ViewPid, kill),
-    ok.
+    try
+        gen_server:call(ViewPid, close)
+    catch
+        exit:_ -> ok
+    end.
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
@@ -97,8 +100,8 @@ handle_call({count, Refresh}, _From, State) ->
     end,
      {reply, Count, NewState};
     
-handle_call(stop_view, _From, State) ->
-    {stop, ok, State}.
+handle_call(close, _From, State) ->
+    {stop, normal, State}.
     
 handle_cast(_Msg, State) ->
     {no_reply, State}.
