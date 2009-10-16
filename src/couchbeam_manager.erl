@@ -135,7 +135,6 @@ handle_call({db, Name}, _, #couchbeam_manager{dbs=Dbs, conns=Conns}=State) ->
         {ok, {Pid, {_, DbName}, ServerName, Ref}} -> 
             case process_info(Pid) of
                 undefined ->
-                    io:format(":()"),
                     Refs1 = dict:erase(Ref, Dbs),
                     case dict:find(ServerName, Conns) of
                         {ok, {ServerPid, _}} ->                 
@@ -163,7 +162,6 @@ handle_info({'DOWN', _, _, _, killed}, State) ->
 handle_info({'DOWN', Ref, _, _, _Reason}, #couchbeam_manager{conns=Conns,
                                                              dbs=Dbs,
                                                              refs=Refs}=State) ->
-                                                                 
     State1 = case dict:find(Ref, Refs) of
         {ok, {connection, Params}} ->
             Refs1 = dict:erase(Ref, Refs),
