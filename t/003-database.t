@@ -47,13 +47,12 @@ test() ->
     etap:not_ok(lists:member(<<"couchbeam_testdb2">>, AllDbs1), "couchbeam_testdb2 don't exists ok"),
     couchbeam_db:close(default, Db),
     % test managed db
-    Db3 = couchbeam_server:create_db(default, "couchbeam_testdb2"),
+    Db3 = couchbeam_server:create_db(default, {testdb2, "couchbeam_testdb2"}),
     etap:is(is_pid(Db3), true, "db3 created ok"),
-    couchbeam_db:register_db(testdb2, {default, "couchbeam_testdb2"}),
     etap:is(couchbeam_manager:get_db(testdb2), Db3, "db registered ok"),
-    couchbeam_db:register_db(testdb3, {default, "couchbeam_testdb3"}),
+    
+    couchbeam_db:open_or_create(default, {testdb3, "couchbeam_testdb3"}),
     etap:ok(is_pid(couchbeam_manager:get_db(testdb3)), "db3 created and  registered ok"),
     AllDbs2 = couchbeam_server:all_dbs(default),
     etap:ok(lists:member(<<"couchbeam_testdb3">>, AllDbs2), "couchbeam_testdb3 exists ok"),
-    
     ok.

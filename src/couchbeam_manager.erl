@@ -47,12 +47,8 @@ get_connection(Name) ->
 connection_count() ->
     gen_server:call(?MODULE, connection_count).
     
-register_db(Name, {ConnectionPid, DbName}) when is_atom(ConnectionPid) ->
-    ConnectionPid1 = get_connection(ConnectionPid),
-    register_db(Name, {ConnectionPid1, DbName});
-    
-register_db(Name, {ConnectionPid, DbName}) when is_pid(ConnectionPid)->
-    gen_server:call(?MODULE, {register_db, Name, {ConnectionPid, DbName}}).
+register_db(Name, DbPid) ->
+    gen_server:call(?MODULE, {register_db, Name, DbPid}).
  
 unregister_db(Name) ->
     gen_server:call(?MODULE, {unregister_db, Name}).
@@ -110,10 +106,10 @@ handle_call(connection_count, _, State) ->
      {reply, Size, State};
      
      
-handle_call({register_db, Name, {ConnectionPid, DbName}}, _From, State) ->
+handle_call({register_db, Name, DbPid}, _, State) ->
     R = case ets:lookup(couchbeam_dbs_by_name, Name) of
         [] ->
-            true = ets:insert(couchbeam_dbs_by_name, {Name, {ConnectionPid, DbName}}),
+            true = ets:insert(couchbeam_dbs_by_name, {Name, DbPid}),
             ok;
         [{_, _}] -> already_registered
     end,
@@ -131,8 +127,7 @@ handle_call({unregister_db, Name}, _, State) ->
 handle_call({db, Name}, _, State) ->
     R = case ets:lookup(couchbeam_dbs_by_name, Name) of
         [] -> not_found;
-        [{_, {ConnectionPid, DbName}}] -> 
-            couchbeam_server:open_or_create_db(ConnectionPid, DbName)
+        [{_, Pid}] -> Pid
     end,
     {reply, R, State}.
             

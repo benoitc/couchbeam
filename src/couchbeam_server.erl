@@ -69,7 +69,7 @@ info(ConnectionId) ->
 %% @spec all_dbs(ConnectionId::pid()) -> list()
 %% @doc fetch list of all dbs
 all_dbs(ConnectionId) ->
-    Pid = maybe_managed(ConnectionId),
+    Pid = server_pid(ConnectionId),
     gen_server:call(Pid, all_dbs, infinity).
 
 %% @spec is_db(ConnectionId::pid(), DbName::string()) -> true|false
@@ -81,17 +81,17 @@ is_db(ConnectionId, DbName) ->
 %% @spec create_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc create a database with DbName
 create_db(ConnectionId, DbName) ->
-    Pid = maybe_managed(ConnectionId),
+    Pid = server_pid(ConnectionId),
     gen_server:call(Pid, {create_db, DbName}, infinity).
     
 open_db(ConnectionId, DbName) ->
-    Pid = maybe_managed(ConnectionId),
+    Pid = server_pid(ConnectionId),
     gen_server:call(Pid, {open_db, DbName}, infinity).
 
 %% @spec delete_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc delete a database with dbname    
 delete_db(ConnectionId, DbName) ->
-    Pid = maybe_managed(ConnectionId),
+    Pid = server_pid(ConnectionId),
     gen_server:call(Pid, {delete_db, DbName}, infinity).
         
 open_or_create_db(ConnectionId, DbName) ->
@@ -103,7 +103,7 @@ open_or_create_db(ConnectionId, DbName) ->
     Pid.
     
 close_db(ConnectionPid, DbPid) ->
-    Pid = maybe_managed(ConnectionPid),
+    Pid = server_pid(ConnectionPid),
     gen_server:call(Pid, {close_db, DbPid}, infinity).
     
   
@@ -133,15 +133,19 @@ handle_call(all_dbs, _From, #server_state{prefix=Base, couchdb=C}=State) ->
 
 handle_call({open_db, DbName}, _From, #server_state{prefix=Base, 
                                             couchdb=C,
+                                            name=ServerName,
                                             dbs_by_name=DbsNameTid,
                                             dbs_by_pid=DbsPidTid}=State) ->
-    Pid = case ets:lookup(DbsNameTid, DbName) of
+    {Alias, DbName1} = alias_db(DbName, ServerName),                              
+    Pid = case ets:lookup(DbsNameTid, DbName1) of
         [] ->
-            case couchbeam_resource:get(C, Base ++ DbName, [], [], []) of
+            case couchbeam_resource:get(C, Base ++ DbName1, [], [], []) of
                 {ok, _} ->
-                    {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName, State}, []),
-                    true = ets:insert(DbsNameTid, {DbName, DbPid}),
-                    true = ets:insert(DbsPidTid, {DbPid, DbName}),
+                    
+                    {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
+                    true = ets:insert(DbsNameTid, {DbName1, DbPid}),
+                    true = ets:insert(DbsPidTid, {DbPid, DbName1}),
+                    couchbeam_manager:register_db(Alias, DbPid),
                     DbPid;
                 {error, Reason} -> Reason
             end;
@@ -151,20 +155,23 @@ handle_call({open_db, DbName}, _From, #server_state{prefix=Base,
     
 handle_call({create_db, DbName}, _From, #server_state{prefix=Base,
                                                 couchdb=C,
+                                                name=ServerName,
                                                 dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->
-    Pid = case ets:lookup(DbsNameTid, DbName) of
+    {Alias, DbName1} = alias_db(DbName, ServerName),   
+    Pid = case ets:lookup(DbsNameTid, DbName1) of
         [] ->
-            case couchbeam_resource:put(C, Base ++ DbName, [], [], [], []) of
+            case couchbeam_resource:put(C, Base ++ DbName1, [], [], [], []) of
                 ok ->
-                    {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName, State}, []),
-                    true = ets:insert(DbsNameTid, {DbName, DbPid}),
-                    true = ets:insert(DbsPidTid, {DbPid, DbName}),
+                    {ok, DbPid} = gen_server:start_link(couchbeam_db, {DbName1, State}, []),
+                    true = ets:insert(DbsNameTid, {DbName1, DbPid}),
+                    true = ets:insert(DbsPidTid, {DbPid, DbName1}),
+                    couchbeam_manager:register_db(Alias, DbPid),
                     DbPid;
                 {error, Reason} -> Reason
             end;
         [{_, DbPid1}] -> 
-            case couchbeam_resource:put(C, Base ++ DbName, [], [], [], []) of
+            case couchbeam_resource:put(C, Base ++ DbName1, [], [], [], []) of
                 ok -> DbPid1;
                 {error, Reason} -> Reason
             end 
@@ -175,6 +182,7 @@ handle_call({delete_db, DbName}, _From, #server_state{prefix=Base,
                                                 couchdb=C,
                                                 dbs_by_name=DbsNameTid,
                                                 dbs_by_pid=DbsPidTid}=State) ->
+                                                    
     Resp = case ets:lookup(DbsNameTid, DbName) of
         [] ->
             couchbeam_resource:delete(C, Base ++ DbName, [], [], []);
@@ -183,6 +191,7 @@ handle_call({delete_db, DbName}, _From, #server_state{prefix=Base,
             receive {'EXIT', Pid, _Reason} -> ok end,
             true = ets:delete(DbsNameTid, DbName),
             true = ets:delete(DbsPidTid, Pid),
+            couchbeam_manager:unregister_db(DbName),
             couchbeam_resource:delete(C, Base ++ DbName, [], [], [])
     end,
     {reply, Resp, State};
@@ -196,6 +205,7 @@ handle_call({close_db, DbPid}, _From, #server_state{dbs_by_name=DbsNameTid,
             receive {'EXIT', _Pid, _Reason} -> ok end,
             true = ets:delete(DbsPidTid, DbPid),
             true = ets:delete(DbsNameTid, DbName),
+            couchbeam_manager:unregister_db(DbName),
             ok
     end,
     {reply, Resp, State}.
@@ -210,6 +220,7 @@ handle_info({'EXIT', Pid, _Reason}, #server_state{dbs_by_name=DbsNameTid,
     [{DbName, Pid}] = ets:lookup(DbsNameTid, DbName),
     true = ets:delete(DbsPidTid, Pid),
     true = ets:delete(DbsNameTid, DbName),
+    couchbeam_manager:unregister_db(DbName),
     {noreply, State};
     
 handle_info(_Info, State) ->
@@ -223,8 +234,16 @@ code_change(_OldVsn, State, _Extra) ->
     
       
 %% @private
-maybe_managed(ConnectionId) when is_pid(ConnectionId) ->
+server_pid(ConnectionId) when is_pid(ConnectionId) ->
     ConnectionId;
-maybe_managed(ConnectionId) ->
+server_pid(ConnectionId) ->
     couchbeam_manager:get_connection(ConnectionId).    
+
+alias_db(DbName, ServerName) ->
+    case DbName of
+        {Alias1, Name1} -> {Alias1, Name1};
+        Name1 ->
+            Alias1 = {ServerName, Name1},
+            {Alias1, Name1}
+    end.
 

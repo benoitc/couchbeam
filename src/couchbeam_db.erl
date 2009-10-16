@@ -28,7 +28,7 @@
 -export([query_view/3, all_docs/2, all_docs_by_seq/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
--export([open/2, close/2, create/2, delete/2, open_or_create/2, register_db/2]).
+-export([open/2, close/2, create/2, delete/2, open_or_create/2]).
 -export([suscribe/2, suscribe/3]).
 
 %% @type node_info() = {Host::string(), Port::int()}
@@ -51,7 +51,7 @@ open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
 
 close(ConnectionPid, Db) ->
-    couchbeam_server:close_db(ConnectionPid, Db).
+    couchbeam_server:close_db(ConnectionPid, db_pid(Db)).
     
 create(ConnectionPid, DbName) ->
     couchbeam_server:create_db(ConnectionPid, DbName).
@@ -61,9 +61,6 @@ delete(ConnectionPid, DbName) ->
     
 open_or_create(ConnectionPid, DbName) ->
     couchbeam_server:open_or_create_db(ConnectionPid, DbName).
-    
-register_db(Name, {ConnectionPid, DbPid}) ->
-    couchbeam_manager:register_db(Name, {ConnectionPid, DbPid}).
     
 %%---------------------------------------------------------------------------
 %% Manage docs
@@ -255,10 +252,7 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
         {error, Reason} -> Reason
     end,
     {reply, Res, State};
-    
 
-    
-    
 handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
@@ -345,13 +339,13 @@ handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State
     ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
     Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
     {reply, Pid, State}.
-    
-    
+      
 handle_cast(_Msg, State) ->
     {noreply, State}.
     
 handle_info({'EXIT', _Pid, _Reason}, State) ->
     {stop, State};
+    
 handle_info(Msg, State) ->
     io:format("Bad message received for db ~s: ~p", [State#db.name, Msg]),
     exit({error, Msg}).
