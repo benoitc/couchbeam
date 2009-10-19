@@ -17,7 +17,7 @@
 -record(couchdb_params, {
     host        = "127.0.0.1" :: string(),
     port        = 5984 :: integer(),
-    ssl         = false :: bool(),
+    ssl         = false :: boolean(),
     prefix      = "/" :: string(),
     username    = nil :: string(),
     password    = nil :: string(),
@@ -57,6 +57,12 @@
     view_cache
 }).
 
+-record(change, {
+    db,
+    path,
+    consumer_pid
+}).
+
 -record(uuids, {
     couchdb=#couchdb_params{},
     base,
@@ -64,8 +70,9 @@
 }).
 
 -record(couchbeam_manager, {
-    connections=undefined,
-    conf=[]
+    conns=dict:new(),
+    dbs=dict:new(),
+    refs=dict:new()
 }).
     
 -define(USER_AGENT, "couchbeam/0.1").

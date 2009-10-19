@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module couchbeam_db</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module couchbeam_db</h1>
+<ul class="index"><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+<p>Copyright � 2009 Benoît Chesneau.</p>
+
+<p><b>Behaviours:</b> <a href="gen_server.html"><tt>gen_server</tt></a>.</p>
+<p><b>Authors:</b> Benoît Chesneau (<a href="mailto:benoitc@e-engura.org"><tt>benoitc@e-engura.org</tt></a>).</p>
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-attachment_content">attachment_content()</a></h3>
+<p><tt>attachment_content() = string() | binary() | <a href="#type-fun_arity_0">fun_arity_0()</a> | {<a href="#type-fun_arity_1">fun_arity_1()</a>, <a href="#type-initial_state">initial_state()</a>}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-database">database()</a></h3>
+<p><tt>database() = atom() | pid()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-iodata">iodata()</a></h3>
+<p><tt>iodata() = <a href="#type-iolist">iolist()</a> | binary()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-iolist">iolist()</a></h3>
+<p><tt>iolist() = [char() | binary() | <a href="#type-iolist">iolist()</a>]</tt></p>
+
+
+<h3 class="typedecl"><a name="type-json_array">json_array()</a></h3>
+<p><tt>json_array() = [<a href="#type-json_term">json_term()</a>]</tt></p>
+
+
+<h3 class="typedecl"><a name="type-json_number">json_number()</a></h3>
+<p><tt>json_number() = integer() | float()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-json_object">json_object()</a></h3>
+<p><tt>json_object() = {struct, [{<a href="#type-json_string">json_string()</a>, <a href="#type-json_term">json_term()</a>}]}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-json_string">json_string()</a></h3>
+<p><tt>json_string() = atom() | binary()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-json_term">json_term()</a></h3>
+<p><tt>json_term() = <a href="#type-json_string">json_string()</a> | <a href="#type-json_number">json_number()</a> | <a href="#type-json_array">json_array()</a> | <a href="#type-json_object">json_object()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-node_info">node_info()</a></h3>
+<p><tt>node_info() = {Host::string(), Port::<a href="#type-int">int()</a>}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-view_params">view_params()</a></h3>
+<p><tt>view_params() = <a href="#type-proplist">proplist()</a></tt></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all_docs-2">all_docs/2</a></td><td>This method has the same behavior as a view.</td></tr>
+<tr><td valign="top"><a href="#all_docs_by_seq-2">all_docs_by_seq/2</a></td><td>(<em>Deprecated</em>.) This method has the same behavior as a view.</td></tr>
+<tr><td valign="top"><a href="#close-2">close/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#create-2">create/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#delete_attachment-3">delete_attachment/3</a></td><td>delete attachment.</td></tr>
+<tr><td valign="top"><a href="#delete_doc-2">delete_doc/2</a></td><td>delete a document.</td></tr>
+<tr><td valign="top"><a href="#delete_docs-2">delete_docs/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#delete_docs-3">delete_docs/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#fetch_attachment-3">fetch_attachment/3</a></td><td>fetch attachment.</td></tr>
+<tr><td valign="top"><a href="#fetch_attachment-4">fetch_attachment/4</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#info-1">info/1</a></td><td>fetch information of Database.</td></tr>
+<tr><td valign="top"><a href="#open-2">open/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#open_doc-2">open_doc/2</a></td><td>open a doc with DocId.</td></tr>
+<tr><td valign="top"><a href="#open_doc-3">open_doc/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#open_or_create-2">open_or_create/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#put_attachment-5">put_attachment/5</a></td><td>put attachment attachment, It will try to guess mimetype.</td></tr>
+<tr><td valign="top"><a href="#put_attachment-6">put_attachment/6</a></td><td>put attachment attachment with ContentType fixed.</td></tr>
+<tr><td valign="top"><a href="#query_view-3">query_view/3</a></td><td>query a view and return results depending on params.</td></tr>
+<tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a do with DocId.</td></tr>
+<tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_docs-2">save_docs/2</a></td><td>bulk update.</td></tr>
+<tr><td valign="top"><a href="#save_docs-3">save_docs/3</a></td><td>bulk update with options, currently support only all_or_nothing.</td></tr>
+<tr><td valign="top"><a href="#suscribe-2">suscribe/2</a></td><td>suscribe to db changes.</td></tr>
+<tr><td valign="top"><a href="#suscribe-3">suscribe/3</a></td><td>suscribe to db changes, wait for changes heartbeat.</td></tr>
+<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="all_docs-2">all_docs/2</a></h3>
+<div class="spec">
+<p><tt>all_docs(Db::<a href="#type-database">database()</a>, Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>This method has the same behavior as a view. Return all docs</p>
+
+<h3 class="function"><a name="all_docs_by_seq-2">all_docs_by_seq/2</a></h3>
+<div class="spec">
+<p><tt>all_docs_by_seq(Db::<a href="#type-database">database()</a>, Params::list()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p><b>This function is deprecated:</b>  This feature don't exist anymore in couchdb 0.11, use suscribe() instead.</p>
+<p>This method has the same behavior as a view.
+  Return an updated list of all documents.</p>
+
+<h3 class="function"><a name="close-2">close/2</a></h3>
+<div class="spec">
+<p><tt>close(ConnectionPid, Db) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
+<div class="spec">
+<p><tt>code_change(OldVsn, State, Extra) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="create-2">create/2</a></h3>
+<div class="spec">
+<p><tt>create(ConnectionPid, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="delete-2">delete/2</a></h3>
+<div class="spec">
+<p><tt>delete(ConnectionPid, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="delete_attachment-3">delete_attachment/3</a></h3>
+<div class="spec">
+<p><tt>delete_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+</div><p>delete attachment</p>
+
+<h3 class="function"><a name="delete_doc-2">delete_doc/2</a></h3>
+<div class="spec">
+<p><tt>delete_doc(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>delete a document</p>
+
+<h3 class="function"><a name="delete_docs-2">delete_docs/2</a></h3>
+<div class="spec">
+<p><tt>delete_docs(Db, Docs) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="delete_docs-3">delete_docs/3</a></h3>
+<div class="spec">
+<p><tt>delete_docs(Db, Docs, Opts) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="fetch_attachment-3">fetch_attachment/3</a></h3>
+<div class="spec">
+<p><tt>fetch_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-iolist">iolist()</a></tt></p>
+</div><p>fetch attachment</p>
+
+<h3 class="function"><a name="fetch_attachment-4">fetch_attachment/4</a></h3>
+<div class="spec">
+<p><tt>fetch_attachment(Db, Doc, AName, Opts) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
+<div class="spec">
+<p><tt>handle_call(X1, From, Db) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
+<div class="spec">
+<p><tt>handle_cast(Msg, State) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
+<div class="spec">
+<p><tt>handle_info(Msg, State) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="info-1">info/1</a></h3>
+<div class="spec">
+<p><tt>info(Db::<a href="#type-database">database()</a>) -&gt; list()</tt></p>
+</div><p>fetch information of Database</p>
+
+<h3 class="function"><a name="open-2">open/2</a></h3>
+<div class="spec">
+<p><tt>open(ConnectionPid, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="open_doc-2">open_doc/2</a></h3>
+<div class="spec">
+<p><tt>open_doc(Db::<a href="#type-database">database()</a>, DocId::string()) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>open a doc with DocId</p>
+
+<h3 class="function"><a name="open_doc-3">open_doc/3</a></h3>
+<div class="spec">
+<p><tt>open_doc(Db, DocId, Params) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="open_or_create-2">open_or_create/2</a></h3>
+<div class="spec">
+<p><tt>open_or_create(ConnectionPid, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="put_attachment-5">put_attachment/5</a></h3>
+<div class="spec">
+<p><tt>put_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+</div><p>put attachment attachment, It will try to guess mimetype</p>
+
+<h3 class="function"><a name="put_attachment-6">put_attachment/6</a></h3>
+<div class="spec">
+<p><tt>put_attachment(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), Length::string(), ContentType::string()) -&gt; <a href="#type-json_obj">json_obj()</a></tt></p>
+</div><p>put attachment attachment with ContentType fixed.</p>
+
+<h3 class="function"><a name="query_view-3">query_view/3</a></h3>
+<div class="spec">
+<p><tt>query_view(Db::<a href="#type-database">database()</a>, ViewName::<a href="#type-view_name">view_name()</a>, Params::<a href="#type-view_params">view_params()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>query a view and return results depending on params</p>
+
+<h3 class="function"><a name="save_doc-2">save_doc/2</a></h3>
+<div class="spec">
+<p><tt>save_doc(Db::<a href="#type-database">database()</a>, Doc::<a href="#type-json_object">json_object()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>save a do with DocId.</p>
+
+<h3 class="function"><a name="save_doc-3">save_doc/3</a></h3>
+<div class="spec">
+<p><tt>save_doc(Db, Doc, Params) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="save_docs-2">save_docs/2</a></h3>
+<div class="spec">
+<p><tt>save_docs(Db::<a href="#type-database">database()</a>, Docs::<a href="#type-json_array">json_array()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>bulk update</p>
+
+<h3 class="function"><a name="save_docs-3">save_docs/3</a></h3>
+<div class="spec">
+<p><tt>save_docs(Db::<a href="#type-database">database()</a>, Docs::<a href="#type-json_array">json_array()</a>, Opts::<a href="#type-lists">lists()</a>) -&gt; <a href="#type-json_object">json_object()</a></tt></p>
+</div><p>bulk update with options, currently support only all_or_nothing.</p>
+
+<h3 class="function"><a name="suscribe-2">suscribe/2</a></h3>
+<div class="spec">
+<p><tt>suscribe(Db::<a href="#type-database">database()</a>, Consumer::pid()) -&gt; pid()</tt></p>
+</div><p>suscribe to db changes</p>
+
+<h3 class="function"><a name="suscribe-3">suscribe/3</a></h3>
+<div class="spec">
+<p><tt>suscribe(Db, Consumer, Options) -&gt; Result</tt>
+<ul class="definitions"><li><tt>Db = <a href="#type-database">database()</a></tt></li>
+<li><tt>Consumer = pid()</tt></li>
+<li><tt>Options = ChangeOptions</tt></li>
+<li><tt>Result = pid()</tt></li>
+<li><tt>Options = [ChangeOption]</tt></li>
+<li><tt>ChangeOption = {heartbeat, integer | string} | {timeout, integer()}</tt></li>
+</ul></p>
+</div><p>suscribe to db changes, wait for changes heartbeat</p>
+
+<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
+<div class="spec">
+<p><tt>terminate(Reason, State) -&gt; any()</tt></p>
+</div>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Oct 16 2009, 23:08:55.</i></p>
+</body>
+</html>

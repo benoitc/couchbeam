@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(8),
+    etap:plan(9),
     start_app(),
     case (catch test()) of
         ok ->
@@ -63,5 +63,14 @@ test() ->
         _ -> false
         end, "doc2 has been deleted"),
     etap:is(couchbeam_db:open_doc(Db, "test2"), not_found, "test2 not found"),
+    
+    % test managed db
+    Db1 = couchbeam_server:create_db(default, {testdb2, "couchbeam_testdb2"}),
+    Doc3 = couchbeam_db:save_doc(testdb2, {[{<<"test">>, <<"blah">>}]}),
+    etap:ok(case Doc3 of
+           {_} -> true;
+           _ -> false
+       end, "save doc in managed db ok"),
+    
     ok.
     

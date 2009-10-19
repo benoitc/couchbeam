@@ -1,6 +1,6 @@
 {application,couchbeam,
              [{description,"Erlang CouchDb kit"},
-              {vsn,"0.1"},
+              {vsn,"0.3"},
               {modules,[couchbeam,
                         couchbeam_resource,
                         couchbeam_server,
@@ -13,7 +13,7 @@
                         couchbeam_util,
                         couchbeam_manager,
                         couchbeam_sup]},
-              {registered,[couchbeam_server, couchbeam_sup]},
+              {registered,[couchbeam_server, couchbeam_manager, couchbeam_sup]},
               {applications,[kernel, stdlib]},
 			  {env, []},
 			  {mod, {couchbeam, []}}]}.

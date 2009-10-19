@@ -29,6 +29,7 @@
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
 -export([open/2, close/2, create/2, delete/2, open_or_create/2]).
+-export([suscribe/2, suscribe/3]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -44,15 +45,13 @@
 %% @spec info(Db::pid()) -> list()
 %% @doc fetch information of Database
 info(Db) ->
-    gen_server:call(Db, info, infinity).
-    
-    
-    
+    gen_server:call(db_pid(Db), info, infinity).
+
 open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
 
 close(ConnectionPid, Db) ->
-    couchbeam_server:close_db(ConnectionPid, Db).
+    couchbeam_server:close_db(ConnectionPid, db_pid(Db)).
     
 create(ConnectionPid, DbName) ->
     couchbeam_server:create_db(ConnectionPid, DbName).
@@ -73,7 +72,7 @@ open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
 
 open_doc(Db, DocId, Params) ->
-    gen_server:call(Db, {open_doc, DocId, Params}, infinity).
+    gen_server:call(db_pid(Db), {open_doc, DocId, Params}, infinity).
    
 %% @spec save_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc save a do with DocId. 
@@ -81,7 +80,7 @@ save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
 
 save_doc(Db, Doc, Params) ->
-    gen_server:call(Db, {save_doc, Doc, Params}, infinity). 
+    gen_server:call(db_pid(Db), {save_doc, Doc, Params}, infinity). 
    
 %% @spec save_docs(Db::pid(), Docs::json_array()) -> json_object() 
 %% @doc bulk update
@@ -91,7 +90,7 @@ save_docs(Db, Docs) ->
 %% @spec save_docs(Db::pid(), Docs::json_array(), opts: lists()) -> json_object() 
 %% @doc bulk update with options, currently support only all_or_nothing.    
 save_docs(Db, Docs, Params) ->
-    gen_server:call(Db, {save_docs, Docs, Params}, infinity). 
+    gen_server:call(db_pid(Db), {save_docs, Docs, Params}, infinity). 
     
 %% @spec delete_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc delete a document
@@ -107,6 +106,23 @@ delete_docs(Db, Docs, Opts) ->
         {[{<<"_deleted">>, true}|DocProps]}
         end, Docs),
     save_docs(Db, Docs1, Opts).
+    
+%%---------------------------------------------------------------------------
+%% suscribe to update notifications
+%%---------------------------------------------------------------------------  
+    
+%% @spec suscribe(Db::pid(), Consumer::pid()) -> pid() 
+%% @doc suscribe to db changes
+suscribe(Db, Consumer) ->
+    suscribe(Db, Consumer, []).
+    
+%% @spec suscribe(Db::pid(), Consumer::pid(), Options::ChangeOptions()) -> pid()
+%% @type ChangeOptions [ChangeOption]
+%%       ChangeOption = {heartbeat, integer | string} |
+%%                      {timeout, integer()}}
+%% @doc suscribe to db changes, wait for changes heartbeat 
+suscribe(Db, Consumer, Options) ->
+    gen_server:call(db_pid(Db), {suscribe_changes, Consumer, Options}, infinity).
   
 
 %%---------------------------------------------------------------------------
@@ -120,7 +136,7 @@ delete_docs(Db, Docs, Opts) ->
 %% @doc query a view and return results depending on params
     
 query_view(Db, Vname, Params) ->
-    gen_server:call(Db, {query_view, Vname, Params}, infinity). 
+    gen_server:call(db_pid(Db), {query_view, Vname, Params}, infinity). 
 
 %% @spec all_docs(Db::pid(), Params::list()) -> json_object()
 %% @doc This method has the same behavior as a view. Return all docs
@@ -146,46 +162,8 @@ all_docs_by_seq(Db, Params) ->
 fetch_attachment(Db, Doc, AName) ->
     fetch_attachment(Db, Doc, AName, []).
 
-
-
-%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
-%%                  AName::string(), Opts::list()) -> iolist()
-%%   Opts = [Opts]
-%%   Opts = {connect_timeout, Milliseconds | infinity} |
-%%            {send_retry, integer()} |
-%%            {partial_download, PartialDowloadOptions}
-%%   Milliseconds = integer()
-%%   WindowSize = integer()
-%%   PartialDownloadOptions = [PartialDownloadOption]
-%%   PartialDowloadOption = {window_size, WindowSize} |
-%%                          {part_size, PartSize}
-%%
-%% @doc fetch attachment
-%%
-%% `{partial_download, PartialDownloadOptions}' means that the response body
-%% will be supplied in parts by the client to the calling process. The partial
-%% download option `{window_size, WindowSize}' specifies how many part will be
-%% sent to the calling process before waiting for an acknowledgement. This is
-%% to create a kind of internal flow control if the calling process is slow to
-%% process the body part and the network is considerably faster. Flow control
-%% is disabled if `WindowSize' is `infinity'. If `WindowSize' is an integer it
-%% must be >=0. The partial download option `{part_size, PartSize}' specifies
-%% the size the body parts should come in. Note however that if the body size
-%% is not determinable (e.g entity body is termintated by closing the socket)
-%% it will be delivered in pieces as it is read from the wire. There is no
-%% caching of the body parts until the amount reaches body size. If the body
-%% size is bounded (e.g `Content-Length' specified or
-%% `Transfer-Encoding: chunked' specified) it will be delivered in `PartSize'
-%% pieces. Note however that the last piece might be smaller than `PartSize'.
-%% Size bounded entity bodies are handled the same way as unbounded ones if
-%% `PartSize' is `infinity'. If `PartSize' is integer it must be >= 0.
-%% If `{partial_download, PartialDownloadOptions}' is specified the 
-%% `ResponseBody' is going to be a `pid()' unless the response has no body
-%% (for example in case of `HEAD' requests). In that case it is going to be
-%% `undefined'. 
-%% @end
 fetch_attachment(Db, Doc, AName, Opts) ->
-    gen_server:call(Db, {fetch_attachment, Doc, AName, Opts}, infinity). 
+    gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Opts}, infinity). 
 
 %% @spec put_attachment(Db::pid(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
@@ -193,50 +171,19 @@ fetch_attachment(Db, Doc, AName, Opts) ->
 %% @doc put attachment attachment, It will try to guess mimetype
 put_attachment(Db, Doc, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
-    put_attachment(Db, Doc, Content, AName, Length, ContentType, []).
+    put_attachment(Db, Doc, Content, AName, Length, ContentType).
     
 %% @spec put_attachment(Db::pid(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
-    put_attachment(Db, Doc, Content, AName, Length, ContentType, []).
-    
-%% @spec put_attachment(Db::pid(), Doc::json_obj(),
-%%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string(), Opts::list()) -> pid() | json_obj()
-%% @doc put attachment attachment with ContentType fixed.
-put_attachment(Db, Doc, Content, AName, Length, ContentType, Opts) ->   
-    gen_server:call(Db, {put_attachment, Doc, Content, AName, Length, ContentType, Opts}, infinity). 
+    gen_server:call(db_pid(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
-%%   Opts = [Opts]
-%%   Opts = {connect_timeout, Milliseconds | infinity} |
-%%            {send_retry, integer()} |
-%%            {partial_upload, WindowSize}
-%%   Milliseconds = integer()
-%%   WindowSize = integer()
-%%
-%%
 %% @doc delete attachment
-%% `{partial_upload, WindowSize}' means that the body will be supplied in
-%% parts to the client by the calling process. The `WindowSize' specifies how
-%% many parts can be sent to the process controlling the socket before waiting
-%% for an acknowledgement. This is to create a kind of internal flow control
-%% if the network is slow and the process is blocked by the TCP stack. Flow
-%% control is disabled if `WindowSize' is `infinity'. If `WindowSize' is an
-%% integer, it must be >= 0.  If partial upload is specified and no
-%% `Content-Length' is specified in `Hdrs' the client will use chunked
-%% transfer encoding to send the entity body. If a content length is
-%% specified, this must be the total size of the entity body.
-%% The call to {@link request/6} will return `{ok, UploadState}'. The
-%% `UploadState' is supposed to be used as the first argument to the {@link
-%% send_body_part/2} or {@link send_body_part/3} functions to send body parts.
-%% Partial upload is intended to avoid keeping large request bodies in
-%% memory but can also be used when the complete size of the body isn't known
-%% when the request is started.
-%% @end
 delete_attachment(Db, Doc, AName) ->
-    gen_server:call(Db, {delete_attachment, Doc, AName}, infinity). 
+    gen_server:call(db_pid(Db), {delete_attachment, Doc, AName}, infinity). 
 
 
 %%---------------------------------------------------------------------------
@@ -305,7 +252,7 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
         {error, Reason} -> Reason
     end,
     {reply, Res, State};
-    
+
 handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
@@ -362,13 +309,43 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
              Doc2;
         {ok, R} ->  R
     end,
-    {reply, Resp, State}.
+    {reply, Resp, State};
     
+handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
+    {Timeout, Options1} = get_option(timeout, Options),
+    {HeartBeat, Options2} = get_option(heartbeat, Options1),
+    
+    ExtraParams = case HeartBeat of
+        undefined ->
+            case Timeout of
+                undefined -> [];
+                T when is_integer(T) -> 
+                    [{timeout,  integer_to_list(T)}];
+                T ->
+                    [{timeout, T}]
+            end;
+        H when is_integer(H) ->
+            [{heartbeat, integer_to_list(H)}];
+        H ->
+            [{heartbeat, H}]
+    end,
+    ExtraParams1 = ExtraParams ++ Options2,
+
+    Path0 = Base ++ "/_changes?feed=continuous",
+    Path = case ExtraParams1 of
+        [] -> Path0;
+        Extra -> Path0 ++ "&" ++ couchbeam_resource:encode_query(Extra)
+    end,
+    ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
+    Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
+    {reply, Pid, State}.
+      
 handle_cast(_Msg, State) ->
-    {no_reply, State}.
+    {noreply, State}.
     
 handle_info({'EXIT', _Pid, _Reason}, State) ->
     {stop, State};
+    
 handle_info(Msg, State) ->
     io:format("Bad message received for db ~s: ~p", [State#db.name, Msg]),
     exit({error, Msg}).
@@ -381,6 +358,54 @@ code_change(_OldVsn, State, _Extra) ->
     
     
 %% @private
+suscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
+    try
+        do_suscribe(ChangeState)
+    catch
+        Reason ->
+            ConsumerPid ! Reason;
+        exit:Reason ->
+            ConsumerPid ! {'EXIT', Reason};
+        error:Reason ->
+            ConsumerPid ! {'error', Reason}
+    end.
+
+do_suscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
+    #db{couchdb=CouchdbState} = DbState,
+    #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
+    Headers = [{"Accept", "application/json"}],
+    Options = [{partial_download, [{window_size, infinity}]}],
+    case lhttpc:request(Host, Port, Ssl, Path, 'GET', Headers, <<>>, Timeout, Options) of
+        {ok, {{_, _}, _, ResponseBody}} ->
+            case ResponseBody of
+                Body when is_pid(Body) ->
+                    ConsumerPid ! {body_pid, ResponseBody},
+                    InitialState = lhttpc:get_body_part(ResponseBody),
+                    send_changes(InitialState, ConsumerPid, ResponseBody);
+                _Body ->
+                    ConsumerPid ! {body_done, ResponseBody}
+            end;
+        {error, Reason} ->
+            ConsumerPid ! {error, Reason}
+    end.
+    
+send_changes({ok, {http_eob, _Trailers}}, ConsumerPid, _Pid) ->
+    ConsumerPid ! body_done,
+    ok;
+send_changes({ok, [<<"\n">>]}, ConsumerPid, Pid) ->    
+    NextState = lhttpc:get_body_part(Pid),
+    send_changes(NextState, ConsumerPid, Pid);
+send_changes({ok, Bin}, ConsumerPid, Pid) ->
+    Lines = decode_lines(string:tokens(Bin, "\n"), []),
+    ConsumerPid ! {change, Lines},
+    NextState = lhttpc:get_body_part(Pid),
+    send_changes(NextState, ConsumerPid, Pid).
+    
+decode_lines([], Acc) ->
+    lists:flatten(lists:reverse(Acc));
+decode_lines([Line|Rest], Acc) ->
+    Line1 = couchbeam:json_decode(list_to_binary(Line)),
+    decode_lines(Rest, [Line1, Acc]).
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
     #server_state{uuids_pid=UuidsPid} = ServerState,
@@ -392,3 +417,11 @@ maybe_docid(#db{server=ServerState}, {DocProps}) ->
             {DocProps}
     end.
     
+
+db_pid(Db) when is_pid(Db) ->
+    Db;
+db_pid(Db) ->
+    couchbeam_manager:get_db(Db).
+    
+get_option(Option, Options) ->
+    {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.

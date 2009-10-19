@@ -147,7 +147,9 @@ val(V) when is_list(V) ->
 val(V) when is_integer(V) ->
     integer_to_list(V);
 val(V) when is_binary(V) ->
-    binary_to_list(V).
+    binary_to_list(V);
+val(V) ->
+    V.
 
 %% @spec guess_mime(string()) -> string()
 %% @doc  Guess the mime type of a file by the extension of its filename.

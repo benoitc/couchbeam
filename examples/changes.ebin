@@ -1,0 +1,38 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -pa ./ebin -pa deps/lhttpc/ebin
+
+-module(test).
+
+main(_) ->
+    couchbeam:start(),
+    Conn = couchbeam_server:start_connection_link(),
+    Db = couchbeam_server:open_db(Conn, "couchdbproxy"),
+    Pid = spawn(fun() -> get_changes() end),
+    couchbeam_db:suscribe(Db, Pid, [{heartbeat, "true"}]),
+    receive
+        die -> ok
+    end.
+    
+    
+get_changes() ->
+    receive
+        body_done ->
+            ok;
+        {body_pid, _} ->
+            get_changes(); 
+        {body_done, Body} ->
+            io:format("body ~p ~n", Body);
+        {change, Change} ->
+            io:format("change ~p ~n", Change),
+            get_changes();    
+        E->
+            io:format("error ? ~p ~n", [E]),
+            get_changes()
+    end.
+    
+
+
+    
+    
+    

@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module couchbeam_server</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module couchbeam_server</h1>
+<ul class="index"><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+<p>Copyright � 2009 Benoît Chesneau.</p>
+
+<p><b>Behaviours:</b> <a href="gen_server.html"><tt>gen_server</tt></a>.</p>
+<p><b>Authors:</b> Benoît Chesneau (<a href="mailto:benoitc@e-engura.org"><tt>benoitc@e-engura.org</tt></a>).</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all_dbs-1">all_dbs/1</a></td><td>fetch list of all dbs.</td></tr>
+<tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#close_db-2">close_db/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#create_db-2">create_db/2</a></td><td>create a database with DbName.</td></tr>
+<tr><td valign="top"><a href="#delete_db-2">delete_db/2</a></td><td>delete a database with dbname.</td></tr>
+<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_db-2">is_db/2</a></td><td>If database exist in the node returns true.</td></tr>
+<tr><td valign="top"><a href="#open_db-2">open_db/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#open_db-3">open_db/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#open_or_create_db-2">open_or_create_db/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start_connection-0">start_connection/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start_connection-1">start_connection/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start_connection_link-0">start_connection_link/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start_connection_link-1">start_connection_link/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="all_dbs-1">all_dbs/1</a></h3>
+<div class="spec">
+<p><tt>all_dbs(ConnectionId::pid()) -&gt; list()</tt></p>
+</div><p>fetch list of all dbs</p>
+
+<h3 class="function"><a name="close-1">close/1</a></h3>
+<div class="spec">
+<p><tt>close(ConnectionId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="close_db-2">close_db/2</a></h3>
+<div class="spec">
+<p><tt>close_db(ConnectionPid, DbPid) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
+<div class="spec">
+<p><tt>code_change(OldVsn, State, Extra) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="create_db-2">create_db/2</a></h3>
+<div class="spec">
+<p><tt>create_db(ConnectionId::pid(), DbName::string()) -&gt; ok</tt></p>
+</div><p>create a database with DbName</p>
+
+<h3 class="function"><a name="delete_db-2">delete_db/2</a></h3>
+<div class="spec">
+<p><tt>delete_db(ConnectionId::pid(), DbName::string()) -&gt; ok</tt></p>
+</div><p>delete a database with dbname</p>
+
+<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
+<div class="spec">
+<p><tt>handle_call(X1, From, Server_state) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
+<div class="spec">
+<p><tt>handle_cast(Msg, State) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
+<div class="spec">
+<p><tt>handle_info(Info, Server_state) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="info-1">info/1</a></h3>
+<div class="spec">
+<p><tt>info(ConnectionId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="is_db-2">is_db/2</a></h3>
+<div class="spec">
+<p><tt>is_db(ConnectionId::pid(), DbName::string()) -&gt; true | false</tt></p>
+</div><p>If database exist in the node returns true</p>
+
+<h3 class="function"><a name="open_db-2">open_db/2</a></h3>
+<div class="spec">
+<p><tt>open_db(ConnectionId, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="open_db-3">open_db/3</a></h3>
+<div class="spec">
+<p><tt>open_db(ConnectionId, DbName, Register) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="open_or_create_db-2">open_or_create_db/2</a></h3>
+<div class="spec">
+<p><tt>open_or_create_db(ConnectionId, DbName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="start_connection-0">start_connection/0</a></h3>
+<div class="spec">
+<p><tt>start_connection() -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="start_connection-1">start_connection/1</a></h3>
+<div class="spec">
+<p><tt>start_connection(Params) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="start_connection_link-0">start_connection_link/0</a></h3>
+<div class="spec">
+<p><tt>start_connection_link() -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="start_connection_link-1">start_connection_link/1</a></h3>
+<div class="spec">
+<p><tt>start_connection_link(Params) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
+<div class="spec">
+<p><tt>terminate(Reason, State) -&gt; any()</tt></p>
+</div>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Oct 16 2009, 23:08:55.</i></p>
+</body>
+</html>

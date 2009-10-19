@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(9),
+    etap:plan(13),
     start_app(),
     case (catch test()) of
         ok ->
@@ -21,11 +21,13 @@ start_app() ->
     couchbeam_server:start_connection_link(),
     catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
     catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb3"),
     ok.
     
 stop_test() ->
     catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
     catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    catch couchbeam_server:delete_db(default, "couchbeam_testdb3"),
     ok.
     
 test() ->
@@ -44,4 +46,13 @@ test() ->
     AllDbs1 = couchbeam_server:all_dbs(default),
     etap:not_ok(lists:member(<<"couchbeam_testdb2">>, AllDbs1), "couchbeam_testdb2 don't exists ok"),
     couchbeam_db:close(default, Db),
+    % test managed db
+    Db3 = couchbeam_server:create_db(default, {testdb2, "couchbeam_testdb2"}),
+    etap:is(is_pid(Db3), true, "db3 created ok"),
+    etap:is(couchbeam_manager:get_db(testdb2), Db3, "db registered ok"),
+    
+    couchbeam_db:open_or_create(default, {testdb3, "couchbeam_testdb3"}),
+    etap:ok(is_pid(couchbeam_manager:get_db(testdb3)), "db3 created and  registered ok"),
+    AllDbs2 = couchbeam_server:all_dbs(default),
+    etap:ok(lists:member(<<"couchbeam_testdb3">>, AllDbs2), "couchbeam_testdb3 exists ok"),
     ok.
