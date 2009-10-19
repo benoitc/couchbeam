@@ -6,7 +6,7 @@ couchbeam 0.3 - 2009 (c) Benoît Chesneau <benoitc@e-engura.org>
 
 Couchbeam is under Apache License 2. see LICENSE file for more details.
 
-Full documentation of the project is on this [url](http://benoitc.github.com/couchbeam)
+Full documentation of the project is on this [url](http://benoitc.github.com/couchbeam).
 
 
 
