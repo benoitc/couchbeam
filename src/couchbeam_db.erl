@@ -169,29 +169,29 @@ fetch_attachment(Db, Doc, AName) ->
     fetch_attachment(Db, Doc, AName, false).
 
 
-%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
+%% @spec fetch_attachment(Db::pid(), DocId::string(), 
 %%                  AName::string(),
 %%                  Streaming::boolean()) -> attachment()
 %% @type attachment() = iolist() | pid()
 %% @doc fetch attachment. If streaming is set to true the function 
 %% couchbeam_resource:get_body_part
 %% should be use to fetch the body
-fetch_attachment(Db, Doc, AName, Streaming) ->
-    gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Streaming}, infinity). 
+fetch_attachment(Db, DocId, AName, Streaming) ->
+    gen_server:call(db_pid(Db), {fetch_attachment, DocId, AName, Streaming}, infinity). 
 
-%% @spec put_attachment(Db::pid(), Doc::json_obj(),
+%% @spec put_attachment(Db::pid(), DocId::string(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
 %% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_0(), initial_state()}
 %% @doc put attachment attachment, It will try to guess mimetype
-put_attachment(Db, Doc, Content, AName, Length) ->
+put_attachment(Db, DocId, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
-    put_attachment(Db, Doc, Content, AName, Length, ContentType).
+    put_attachment(Db, DocId, Content, AName, Length, ContentType).
     
-%% @spec put_attachment(Db::pid(), Doc::json_obj(),
+%% @spec put_attachment(Db::pid(), Doc::string(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
-put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
-    gen_server:call(db_pid(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
+put_attachment(Db, DocId, Content, AName, Length, ContentType) ->
+    gen_server:call(db_pid(Db), {put_attachment, DocId, Content, AName, Length, ContentType}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
