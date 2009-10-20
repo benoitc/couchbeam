@@ -221,7 +221,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
             #server_state{uuids_pid=UuidsPid} = ServerState,
             couchbeam_uuids:next_uuid(UuidsPid);
         Id1 when is_list(Id1) -> Id1;
-        Id1 -> ?b2l(Id1)
+        Id1 -> binary_to_list(Id1)
     end,
     Path = Base ++ "/" ++ DocId,
     Body = couchbeam:json_encode(Doc),

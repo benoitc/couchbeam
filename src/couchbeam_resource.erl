@@ -38,9 +38,17 @@ put(State, Path, Headers, Params, Body, Opts) ->
     request(State, "PUT", Path, Headers, Params, Body, Opts).
     
     
-request(State, Method, Path, Headers, Params, Body, Opts) ->
-    Result = do_request(State, Method, Path, Headers, Params, Body, Opts),
-    case Result of
+request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State,
+        Method, Path, Headers, Params, Body, Opts) ->
+    Path1 = lists:append([Path, 
+            case Params of
+            [] -> [];
+            Props -> "?" ++ encode_query(Props)
+            end]),
+    Headers1 = make_auth(State, Headers),
+    Headers2 = default_header("Content-Type", "application/json", Headers1),
+    
+    case lhttpc:request(Host, Port, Ssl, Path1, Method, Headers2, Body, Timeout, Opts) of
         {ok, {{StatusCode, ReasonPhrase}, _Hdrs, ResponseBody}} ->
             if
                 StatusCode >= 400, StatusCode == 404 ->
@@ -56,7 +64,7 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
                         Method == "HEAD" ->
                             {ok, {StatusCode, ReasonPhrase}};
                         true ->
-                            try couchbeam:json_decode(?b2l(ResponseBody)) of
+                            try couchbeam:json_decode(binary_to_list(ResponseBody)) of
                                 Resp1 -> 
                                     case Resp1 of
                                         {[{<<"ok">>, true}]} -> ok;
@@ -68,20 +76,9 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
                             end
                     end
             end;
-        _ -> Result
+        Else -> Else
     end.  
     
-do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State, 
-        Method, Path, Headers, Params, Body, Opts) ->
-    Path1 = lists:append([Path, 
-            case Params of
-            [] -> [];
-            Props -> "?" ++ encode_query(Props)
-            end]),
-    Headers1 = make_auth(State, Headers),
-    Headers2 = default_header("Content-Type", "application/json", Headers1),
-    Result = lhttpc:request(Host, Port, Ssl, Path1, Method, Headers2, Body, Timeout, Opts),
-    Result.
 
 make_auth(#couchdb_params{username=nil, password=nil}, Headers) ->
     Headers;

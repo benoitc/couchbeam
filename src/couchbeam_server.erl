@@ -89,7 +89,7 @@ all_dbs(ConnectionId) ->
 %% @doc If database exist in the node returns true    
 is_db(ConnectionId, DbName) ->
     AllDbs = all_dbs(ConnectionId),
-    lists:member(?l2b(DbName), AllDbs).
+    lists:member(list_to_binary(DbName), AllDbs).
 
 %% @spec create_db(ConnectionId::pid(), DbName::string()) -> ok
 %% @doc create a database with DbName

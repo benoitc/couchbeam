@@ -76,6 +76,3 @@
 }).
     
 -define(USER_AGENT, "couchbeam/0.1").
-
--define(b2l(V), binary_to_list(V)).
--define(l2b(V), list_to_binary(V)).

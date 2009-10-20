@@ -67,7 +67,7 @@ handle_call(next_uuid, _From, #uuids{couchdb=C, base=Base, tid=UuidsTid} = State
         [{_, []}] -> new_uuids(C, Base, UuidsTid);
         [{_, [Id2|Uuids]}] ->
             true = ets:insert(UuidsTid, {uuids, Uuids}),
-            ?b2l(Id2)
+            binary_to_list(Id2)
     end,
     {reply, Uuid, State}.
     
@@ -92,7 +92,7 @@ new_uuids(CouchdbParams, Base, UuidsTid) ->
                             [{"count", "1000"}], []) of
         {ok, {[{<<"uuids">>, [Id|Uuids1]}]}} -> 
             ets:insert(UuidsTid, {uuids, Uuids1}),
-            ?b2l(Id);
+            binary_to_list(Id);
         {error, Reason} -> Reason
     end,
     Uuid.
