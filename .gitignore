@@ -1,6 +1,8 @@
-doc/
+doc/*.html
 ebin/
 *.swp
 *.dump
 edoc-info
 .DS_Store
+
+deps/lhttpc/doc/*.html

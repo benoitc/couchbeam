@@ -73,7 +73,6 @@ request(State, Method, Path, Headers, Params, Body, Opts) ->
     
 do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State, 
         Method, Path, Headers, Params, Body, Opts) ->
-    verify_options(Opts, []),
     Path1 = lists:append([Path, 
             case Params of
             [] -> [];
@@ -81,24 +80,8 @@ do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=State
             end]),
     Headers1 = make_auth(State, Headers),
     Headers2 = default_header("Content-Type", "application/json", Headers1),
-    Args = [self(), Host, Port, Ssl, Path1, Method, Headers2, Body, Opts],
-    Pid = spawn_link(lhttpc_client, request, Args),
-    receive
-        {response, Pid, R} ->
-            R;
-        {exit, Pid, Reason} ->
-            % We would rather want to exit here, instead of letting the
-            % linked client send us an exit signal, since this can be
-            % caught by the caller.
-            exit(Reason);
-        {'EXIT', Pid, Reason} ->
-            % This could happen if the process we're running in taps exits
-            % and the client process exits due to some exit signal being
-            % sent to it. Very unlikely though
-            exit(Reason)
-    after Timeout ->
-            lhttpc:kill_client(Pid)
-    end.
+    Result = lhttpc:request(Host, Port, Ssl, Path1, Method, Headers2, Body, Timeout, Opts),
+    Result.
 
 make_auth(#couchdb_params{username=nil, password=nil}, Headers) ->
     Headers;
@@ -134,22 +117,3 @@ default_header(K, V, H) ->
     true -> H;
     false -> [{K, V}|H]
     end.
-    
-    
-verify_options([{send_retry, N} | Options], Errors)
-        when is_integer(N), N >= 0 ->
-    verify_options(Options, Errors);
-verify_options([{connect_timeout, infinity} | Options], Errors) ->
-    verify_options(Options, Errors);
-verify_options([{connect_timeout, MS} | Options], Errors)
-        when is_integer(MS), MS >= 0 ->
-    verify_options(Options, Errors);
-verify_options([Option | Options], Errors) ->
-    verify_options(Options, [Option | Errors]);
-verify_options([], []) ->
-    ok;
-verify_options([], Errors) ->
-    bad_options(Errors).
-
-bad_options(Errors) ->
-    erlang:error({bad_options, Errors}).
