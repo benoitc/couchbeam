@@ -220,8 +220,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
         undefined ->
             #server_state{uuids_pid=UuidsPid} = ServerState,
             couchbeam_uuids:next_uuid(UuidsPid);
-        Id1 when is_list(Id1) -> Id1;
-        Id1 -> binary_to_list(Id1)
+        Id1 -> encode_docid(Id1)
     end,
     Path = Base ++ "/" ++ DocId,
     Body = couchbeam:json_encode(Doc),
@@ -406,6 +405,11 @@ decode_lines([], Acc) ->
 decode_lines([Line|Rest], Acc) ->
     Line1 = couchbeam:json_decode(list_to_binary(Line)),
     decode_lines(Rest, [Line1, Acc]).
+    
+encode_docid(Id) when is_list(Id) ->
+    Id;
+encode_docid(Id) ->
+    binary_to_list(Id).
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
     #server_state{uuids_pid=UuidsPid} = ServerState,
