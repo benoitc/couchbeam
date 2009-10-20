@@ -21,6 +21,8 @@
 
 -include("couchbeam.hrl").
 
+-define(STREAM_CHUNK_SIZE, 16384). %% 16384
+
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
 -export([info/1, open_doc/2, open_doc/3, save_doc/2, save_doc/3, save_docs/2,
@@ -160,14 +162,22 @@ all_docs_by_seq(Db, Params) ->
 %%                  AName::string()) -> iolist()
 %% @doc fetch attachment
 fetch_attachment(Db, Doc, AName) ->
-    fetch_attachment(Db, Doc, AName, []).
+    fetch_attachment(Db, Doc, AName, false).
 
-fetch_attachment(Db, Doc, AName, Opts) ->
-    gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Opts}, infinity). 
+
+%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
+%%                  AName::string(),
+%%                  Streaming::boolean()) -> attachment()
+%% @type attachment = iolist() | pid()
+%% @doc fetch attachment. If streaming is set to true the function 
+%% `couchbeam_resource:get_body_part/1` or `couchbeam_resource:get_body_part/2` 
+%% should be use to fetch the body
+fetch_attachment(Db, Doc, AName, Streaming) ->
+    gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Streaming}, infinity). 
 
 %% @spec put_attachment(Db::pid(), Doc::json_obj(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
-%% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_1(), initial_state()}
+%% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_0(), initial_state()}
 %% @doc put attachment attachment, It will try to guess mimetype
 put_attachment(Db, Doc, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
@@ -256,9 +266,15 @@ handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
-handle_call({fetch_attachment, DocId, AName, Opts}, _From, #db{couchdb=C, base=Base}=State) ->
+handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
     Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
-    Resp = case couchbeam_resource:get(C, Path, [], [], Opts) of
+    Options = case Streaming of
+        true ->
+            [{window_size, infinity}, {part_size, ?STREAM_CHUNK_SIZE}];
+        false -> []
+    end,
+    
+    Resp = case couchbeam_resource:get(C, Path, [], [], Options) of
         {error, Reason} -> Reason;
         {ok, R} -> R
     end,
