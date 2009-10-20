@@ -118,10 +118,14 @@ delete_docs(Db, Docs, Opts) ->
 suscribe(Db, Consumer) ->
     suscribe(Db, Consumer, []).
     
-%% @spec suscribe(Db::pid(), Consumer::pid(), Options::ChangeOptions()) -> pid()
-%% @type ChangeOptions [ChangeOption]
-%%       ChangeOption = {heartbeat, integer | string} |
-%%                      {timeout, integer()}}
+%% @spec suscribe(Db, Consumer, Options) -> Result
+%% Db = database()
+%% Consumer = pid()
+%% Options = ChangeOptions
+%% Result = pid()
+%% Options = [ChangeOption]
+%% ChangeOption = {heartbeat, integer | string} |
+%%                      {timeout, integer()}
 %% @doc suscribe to db changes, wait for changes heartbeat 
 suscribe(Db, Consumer, Options) ->
     gen_server:call(db_pid(Db), {suscribe_changes, Consumer, Options}, infinity).
@@ -168,9 +172,9 @@ fetch_attachment(Db, Doc, AName) ->
 %% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
 %%                  AName::string(),
 %%                  Streaming::boolean()) -> attachment()
-%% @type attachment = iolist() | pid()
+%% @type attachment() = iolist() | pid()
 %% @doc fetch attachment. If streaming is set to true the function 
-%% `couchbeam_resource:get_body_part/1` or `couchbeam_resource:get_body_part/2` 
+%% couchbeam_resource:get_body_part
 %% should be use to fetch the body
 fetch_attachment(Db, Doc, AName, Streaming) ->
     gen_server:call(db_pid(Db), {fetch_attachment, Doc, AName, Streaming}, infinity). 
