@@ -210,6 +210,8 @@ and license :
 
 Couchbeam Subcomponents
 
+lhttpc :
+
 Copyright (c) 2009, Erlang Training and Consulting Ltd.
 All rights reserved.
 
