@@ -24,24 +24,24 @@
          delete_inline_attachment/2]).
 -export([get_id/1, get_rev/1, get_idrev/1, is_saved/1]).        
 
-%% @spec get_id(Doc:json_obj()) -> binary()
+%% @spec get_id(Doc::json_obj()) -> binary()
 %% @doc get document id. 
 get_id(Doc) ->
     get_value(<<"_id">>, Doc).
     
-%% @spec get_rev(Doc:json_obj()) -> binary()
+%% @spec get_rev(Doc::json_obj()) -> binary()
 %% @doc get document revision.    
 get_rev(Doc) ->
     get_value(<<"_rev">>, Doc).
 
-%% @spec get_idrev(Doc:json_obj()) -> {DocId, DocRev}
+%% @spec get_idrev(Doc::json_obj()) -> {DocId, DocRev}
 %% @doc get  a tuple containing docucment id and revision.    
 get_idrev(Doc) ->
     DocId = get_value(<<"_id">>, Doc),
     DocRev = get_value(<<"_rev">>, Doc),
     {DocId, DocRev}.
     
-%% @spec is_saved(Doc:json_obj()) -> boolean()
+%% @spec is_saved(Doc::json_obj()) -> boolean()
 %% @doc If document have been saved (revision is defined) return true,
 %% else, return false.
 is_saved(Doc) ->
@@ -69,7 +69,7 @@ get_value(Key, JsonObj) ->
     get_value(Key, JsonObj, undefined).
 
 
-%% @spec get_value(Key::key_val(), JsonObj::json_obj(), Default:term()) -> term()
+%% @spec get_value(Key::key_val(), JsonObj::json_obj(), Default::term()) -> term()
 %% @type key_val() = lis() | binary()
 %% @doc Returns the value of a simple key/value property in json object
 %% function from erlang_couchdb
@@ -80,8 +80,8 @@ get_value(Key, JsonObj, Default) when is_binary(Key) ->
     proplists:get_value(Key, Props, Default).
 
 %% @spec delete_value(Key::key_val(), JsonObj::json_obj()) -> json_obj()
-%% @type key_val() = lis() | binary()
-%% @docDeletes all entries associated with Key in json object.  
+%% @type key_val() = list() | binary()
+%% @doc Deletes all entries associated with Key in json object.  
 delete_value(Key, JsonObj) when is_list(Key) ->
     delete_value(list_to_binary(Key), JsonObj);
 delete_value(Key, JsonObj) when is_binary(Key) ->

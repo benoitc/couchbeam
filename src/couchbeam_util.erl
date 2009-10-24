@@ -84,11 +84,10 @@ hexdigit(C) when C < 10 -> $0 + C;
 hexdigit(C) when C < 16 -> $A + (C - 10).
 
 
+
+%% @spec url_encode(Str::string()) -> UrlEncodedStr::string()
 %% @doc URL-encodes a string based on RFC 1738. Returns a flat list.
-%% @spec url_encode(Str) -> UrlEncodedStr
-%% Str = string()
-%% UrlEncodedStr = string()
-%% function imported from ibrowse project 
+%% imported from ibrowse project :
 %% http://github.com/cmullaparthi/ibrowse
 url_encode(Str) when is_list(Str) ->
     url_encode_char(lists:reverse(Str), []).
