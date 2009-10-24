@@ -18,8 +18,10 @@
 -author('Benoît Chesneau <benoitc@e-engura.org>').
 -include("couchbeam.hrl").
 
--export([set_value/3, get_value/2, delete_value/2, extend/2, extend/3,
-        add_attachment/3, add_attachment/4, delete_inline_attachment/2]).
+-export([set_value/3, get_value/2, get_value/3, 
+         delete_value/2, extend/2, extend/3,
+         add_attachment/3, add_attachment/4, 
+         delete_inline_attachment/2]).
 
 %% @spec set_value(Key::key_val(), Value::term(), JsonObj::json_obj()) -> term()
 %% @doc set a value for a key in jsonobj. If key exists it will be updated.
@@ -34,14 +36,21 @@ set_value(Key, Value, JsonObj) when is_binary(Key) ->
     
 %% @spec get_value(Key::key_val(), JsonObj::json_obj()) -> term()
 %% @type key_val() = lis() | binary()
-%% @doc get value from a json obje
+%% @doc Returns the value of a simple key/value property in json object
+%% Equivalent to get_value(Key, JsonObj, undefined).
+get_value(Key, JsonObj) ->
+    get_value(Key, JsonObj, undefined).
+
+
+%% @spec get_value(Key::key_val(), JsonObj::json_obj(), Default:term()) -> term()
+%% @type key_val() = lis() | binary()
+%% @doc Returns the value of a simple key/value property in json object
 %% function from erlang_couchdb
-get_value(Key, JsonObj) when is_list(Key) ->
-    get_value1(Key, JsonObj);
-get_value(Key, JsonObj) when is_binary(Key) ->
+get_value(Key, JsonObj, Default) when is_list(Key) ->
+    get_value(list_to_binary(Key), JsonObj, Default);
+get_value(Key, JsonObj, Default) when is_binary(Key) ->
     {Props} = JsonObj,
-    proplists:get_value(Key, Props).
-    
+    proplists:get_value(Key, Props, Default).
 
 %% @spec delete_value(Key::key_val(), JsonObj::json_obj()) -> json_obj()
 %% @type key_val() = lis() | binary()
@@ -140,15 +149,6 @@ set_value1([{K, V}|T], Key, Value, Acc) ->
         end,
     set_value1(T, Key, Value, Acc1).
     
-get_value1([Key], JsonObj) ->
-    get_value(Key, JsonObj);
-get_value1([Key|T], JsonObj) ->
-    case get_value(Key, JsonObj) of
-    List when is_list(List) -> [get_value1(T, X) || X <- List];
-    NewObj when is_tuple(NewObj) -> get_value(T, NewObj)
-    end.
-    
-
 %% @private
 set_attachment(Attachments, NewAttachments, Attachment) ->
     set_attachment(Attachments, NewAttachments, Attachment, false).

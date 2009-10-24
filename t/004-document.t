@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(9),
+    etap:plan(18),
     start_app(),
     case (catch test()) of
         ok ->
@@ -71,6 +71,21 @@ test() ->
            {_} -> true;
            _ -> false
        end, "save doc in managed db ok"),
+    
+    Doc4 = {[{<<"a">>, 1}]},
+    etap:is(couchbeam_doc:get_value(<<"a">>, Doc4), 1, "get value ok"),
+    etap:is(couchbeam_doc:get_value("a", Doc4), 1, "get value from string ok"),
+    etap:is(couchbeam_doc:get_value("b", Doc4), undefined, "get undefined value ok"),
+    etap:is(couchbeam_doc:get_value("b", Doc4, nil), nil, "get undefined value with default ok"),
+    Doc5 = couchbeam_doc:set_value("b", 1, Doc4),
+    etap:is(couchbeam_doc:get_value("b", Doc5), 1, "set value ok"),
+    Doc6 = couchbeam_doc:set_value("b", 0, Doc5),
+    etap:is(couchbeam_doc:get_value("b", Doc6), 0, "update value ok"),
+    Doc7 = couchbeam_doc:delete_value("b", Doc6),
+    etap:is(couchbeam_doc:get_value("b", Doc7), undefined, "delete value ok"),
+    Doc8 = couchbeam_doc:extend([{<<"b">>, 1}, {<<"c">>, 1}], Doc7),
+    etap:is(couchbeam_doc:get_value("b", Doc8), 1, "set value ok"),
+    etap:is(couchbeam_doc:get_value("c", Doc8), 1, "set value ok"),
     
     ok.
     
