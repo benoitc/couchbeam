@@ -2,8 +2,11 @@
 %% -*- erlang -*-
 %%! -pa ./ebin
 
+
+-include_lib("kernel/include/file.hrl").
+
 main(_) ->
-    etap:plan(8),
+    etap:plan(13),
     start_app(),
     case (catch test()) of
         ok ->
@@ -28,6 +31,13 @@ stop_test() ->
     catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
     ok.
     
+
+get_streamed_attachment({ok, {http_eob, _Trailers}}, _Pid, Acc) ->
+    iolist_to_binary(lists:reverse(Acc));
+get_streamed_attachment({ok, Bin}, Pid, Acc) ->
+    NextState = couchbeam_resource:get_body_part(Pid),
+    get_streamed_attachment(NextState, Pid, [binary_to_list(Bin)|Acc]).
+
 test() ->
     Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
     etap:is(is_pid(Db), true, "db created ok"),
@@ -63,4 +73,28 @@ test() ->
     etap:is(Attachment3, not_found, "inline attachment deleted"),
     Attachment4 = couchbeam_db:fetch_attachment(Db, "test2", "test.txt"),
     etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
+    
+    Doc8 = couchbeam_db:save_doc(Db, {[]}),
+    {ok, FileInfo} = file:read_file_info("deps/lhttpc/test/1M"),
+    FileSize = FileInfo#file_info.size,
+    {ok, Fd} = file:open("deps/lhttpc/test/1M", [read]),
+    Doc801 = couchbeam_db:put_attachment(Db, Doc8, fun() ->
+        case file:read(Fd, 4096) of
+            {ok, Data} ->  {ok, iolist_to_binary(Data)};
+            _ -> eof
+        end
+    end, "1M", FileSize),
+    file:close(Fd),
+    Doc9 = couchbeam_db:open_doc(Db, couchbeam_doc:get_id(Doc801)),
+    Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
+    etap:isnt(Attachements, undefined, "attachment stream ok"),
+    Attachment5 = couchbeam_doc:get_value(<<"1M">>, Attachements),
+    etap:isnt(Attachment5, undefined, "attachment 1M uploaded ok"),
+    etap:is(couchbeam_doc:get_value(<<"length">>, Attachment5), FileSize, "attachment 1M size ok"),
+    
+    Pid = couchbeam_db:fetch_attachment(Db, couchbeam_doc:get_id(Doc801), "1M", true),
+    etap:ok(is_pid(Pid), "get attachment pid ok"),
+    InitialState = couchbeam_resource:get_body_part(Pid),
+    Bin = get_streamed_attachment(InitialState, Pid, []),
+    etap:is(iolist_size(Bin), FileSize, "fetch streammed attachment ok"),
     ok.

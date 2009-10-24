@@ -188,30 +188,41 @@ make_body(Body, Headers, Options) when is_binary(Body) ->
 make_body(Fun, Headers, Options) when is_function(Fun) ->
     case body_length(Headers) of
         true ->
-            {ok, InitialState, NextState} = Fun(),
+            {ok, InitialState} = Fun(),
             Options1 = [{partial_upload, infinity}|Options],
-            {Headers, Options1, InitialState, NextState};
+            {Headers, Options1, InitialState, Fun};
         false ->
             {error,  "Content-Length undefined"}
     end;
-make_body({Fun, InitialState}, Headers, Options) when is_function(Fun) ->
+make_body({Fun, State}, Headers, Options) when is_function(Fun) ->
     case body_length(Headers) of
         true ->
             Options1 = [{partial_upload, infinity}|Options],
-            {Headers, Options1, InitialState, Fun};
+            {ok, InitialState, NextState} = Fun(State),
+            
+            {Headers, Options1, InitialState, {Fun, NextState}};
         false ->
             {error,  "Content-Length undefined"}
     end;
 make_body(_, _, _) ->
     {error, "body invalid"}.
      
-stream_body(Fun, CurrentState) ->
-    case Fun() of
+     
+stream_body({Source, State}, CurrentState) ->
+    do_stream_body(Source, Source(State), CurrentState);
+stream_body(Source, CurrentState) ->
+    do_stream_body(Source, Source(), CurrentState).
+    
+do_stream_body(Source, Resp, CurrentState) ->
+    case Resp of
         {ok, Data} ->
             {ok, NextState} = lhttpc:send_body_part(CurrentState, Data),
-            stream_body(Fun, NextState);
+            stream_body(Source, NextState);
+        {ok, Data, NewSourceState} ->
+            {ok, NextState} = lhttpc:send_body_part(CurrentState, Data),
+            stream_body({Source, NewSourceState}, NextState);
         eof ->
-            httpc:send_body_part(CurrentState, http_eob)
+            lhttpc:send_body_part(CurrentState, http_eob)
     end.
             
 %% @spec (HTTPClient :: pid()) -> Result

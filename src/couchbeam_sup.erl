@@ -25,6 +25,6 @@ start_link() ->
     
 init(_) ->
     Manager = {couchbeam_manager, {couchbeam_manager, start_link, []},
-        permanent, brutal_kill, worker, [couchbeam_manager]
+        permanent, infinity, supervisor, [couchbeam_manager]
     },
     {ok, {{one_for_one, 10, 3600}, [Manager]}}.

@@ -167,18 +167,27 @@ all_docs_by_seq(Db, Params) ->
 %%                  AName::string()) -> iolist()
 %% @doc fetch attachment
 fetch_attachment(Db, DocId, AName) ->
-    fetch_attachment(Db, DocId, AName, false).
+   fetch_attachment(Db, DocId, AName, false).
 
 
 %% @spec fetch_attachment(Db::pid(), DocId::string(), 
 %%                  AName::string(),
 %%                  Streaming::boolean()) -> attachment()
 %% @type attachment() = iolist() | pid()
-%% @doc fetch attachment. If streaming is set to true the function 
-%% couchbeam_resource:get_body_part
+%% @doc fetch attachment. 
 %% should be use to fetch the body
-fetch_attachment(Db, DocId, AName, Streaming) ->
-    gen_server:call(db_pid(Db), {fetch_attachment, encode_docid(DocId), AName, Streaming}, infinity). 
+fetch_attachment(Db, DocId, AName, Streaming)  ->
+    
+    {C, Path, Options} = gen_server:call(db_pid(Db), {fetch_attachment, 
+                encode_docid(DocId), AName, Streaming}),
+    case couchbeam_resource:get(C, Path, [], [], Options) of
+        {error, Reason} -> Reason;
+        {ok, R} when is_pid(R) ->
+            true = unlink(R),
+            R;
+        {ok, R} -> R    
+    end.
+        
 
 %% @spec put_attachment(Db::pid(), DocId::doc(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
@@ -283,19 +292,16 @@ handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
-handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
+handle_call({fetch_attachment, DocId, AName, Streaming}, From, #db{couchdb=C, base=Base}=State) ->
     Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
-    Options = case Streaming of
+    Options = case Streaming of     
         true ->
-            [{window_size, infinity}, {part_size, ?STREAM_CHUNK_SIZE}];
+            [{partial_download, [{window_size, infinity}, {part_size, ?STREAM_CHUNK_SIZE}]}];
         false -> []
     end,
+
     
-    Resp = case couchbeam_resource:get(C, Path, [], [], Options) of
-        {error, Reason} -> Reason;
-        {ok, R} -> R
-    end,
-    {reply, Resp, State};
+    {reply, {C, Path, Options}, State};
 
 handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From, 
             #db{couchdb=C, base=Base}=State) ->
