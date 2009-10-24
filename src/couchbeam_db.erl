@@ -210,7 +210,7 @@ encode_docid(DocId) ->
             Rest1 = encode_docid(Rest),
             "_design/" ++ Rest1;
         _ ->
-            edoc_lib:escape_uri(DocId)
+            couchbeam_util:url_encode(DocId)
     end.
 
 %%---------------------------------------------------------------------------

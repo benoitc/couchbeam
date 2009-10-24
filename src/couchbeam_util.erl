@@ -33,6 +33,26 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 %%% THE SOFTWARE.
 %%%
+%%% Some code imported from ibrowse project
+%%% Copyright 2009, Chandrashekhar Mullaparthi
+%%% Permission is hereby granted, free of charge, to any person obtaining a copy
+%%% of this software and associated documentation files (the "Software"), to deal
+%%% in the Software without restriction, including without limitation the rights
+%%% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+%%% copies of the Software, and to permit persons to whom the Software is
+%%% furnished to do so, subject to the following conditions:
+%%% 
+%%% The above copyright notice and this permission notice shall be included in
+%%% all copies or substantial portions of the Software.
+%%% 
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+%%% THE SOFTWARE.
+%%%  
 
 %% @author Benoît Chesneau <benoitc@e-engura.org>
 %% @copyright 2009 Benoît Chesneau.
@@ -45,7 +65,7 @@
 -module(couchbeam_util).
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
-         join/2, revjoin/3, quote_plus/1, split/2, 
+         join/2, revjoin/3, url_encode/1, quote_plus/1, split/2, 
          guess_mime/1, val/1, encodeBase64/1]).
 
 
@@ -62,6 +82,34 @@
                       
 hexdigit(C) when C < 10 -> $0 + C;
 hexdigit(C) when C < 16 -> $A + (C - 10).
+
+
+%% @doc URL-encodes a string based on RFC 1738. Returns a flat list.
+%% @spec url_encode(Str) -> UrlEncodedStr
+%% Str = string()
+%% UrlEncodedStr = string()
+%% function imported from ibrowse project 
+%% http://github.com/cmullaparthi/ibrowse
+url_encode(Str) when is_list(Str) ->
+    url_encode_char(lists:reverse(Str), []).
+
+url_encode_char([X | T], Acc) when X >= $0, X =< $9 ->
+    url_encode_char(T, [X | Acc]);
+url_encode_char([X | T], Acc) when X >= $a, X =< $z ->
+    url_encode_char(T, [X | Acc]);
+url_encode_char([X | T], Acc) when X >= $A, X =< $Z ->
+    url_encode_char(T, [X | Acc]);
+url_encode_char([X | T], Acc) when X == $-; X == $_; X == $. ->
+    url_encode_char(T, [X | Acc]);
+url_encode_char([32 | T], Acc) ->
+    url_encode_char(T, [$+ | Acc]);
+url_encode_char([X | T], Acc) ->
+    url_encode_char(T, [$%, d2h(X bsr 4), d2h(X band 16#0f) | Acc]);
+url_encode_char([], Acc) ->
+    Acc.
+
+d2h(N) when N<10 -> N+$0;
+d2h(N) -> N+$a-10.
 
 %% @spec quote_plus(atom() | integer() | float() | string() | binary()) -> string()
 %% @doc URL safe encoding of the given term.
