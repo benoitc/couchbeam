@@ -32,6 +32,7 @@
          delete_attachment/3]).
 -export([open/2, close/2, create/2, delete/2, open_or_create/2]).
 -export([suscribe/2, suscribe/3]).
+-export([encode_docid/1]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -162,7 +163,7 @@ all_docs_by_seq(Db, Params) ->
 %%---------------------------------------------------------------------------
 
  
-%% @spec fetch_attachment(Db::pid(), Doc::string(), 
+%% @spec fetch_attachment(Db::pid(), DocId::string(), 
 %%                  AName::string()) -> iolist()
 %% @doc fetch attachment
 fetch_attachment(Db, DocId, AName) ->
@@ -177,7 +178,7 @@ fetch_attachment(Db, DocId, AName) ->
 %% couchbeam_resource:get_body_part
 %% should be use to fetch the body
 fetch_attachment(Db, DocId, AName, Streaming) ->
-    gen_server:call(db_pid(Db), {fetch_attachment, DocId, AName, Streaming}, infinity). 
+    gen_server:call(db_pid(Db), {fetch_attachment, encode_docid(DocId), AName, Streaming}, infinity). 
 
 %% @spec put_attachment(Db::pid(), DocId::doc(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
@@ -200,6 +201,17 @@ put_attachment(Db, DocId, Content, AName, Length, ContentType) ->
 delete_attachment(Db, Doc, AName) ->
     gen_server:call(db_pid(Db), {delete_attachment, Doc, AName}, infinity). 
 
+
+encode_docid(DocId) when is_binary(DocId) ->
+    encode_docid(binary_to_list(DocId));
+encode_docid(DocId) ->
+    case DocId of
+        "_design/" ++ Rest ->
+            Rest1 = encode_docid(Rest),
+            "_design/" ++ Rest1;
+        _ ->
+            edoc_lib:escape_uri(DocId)
+    end.
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
@@ -426,11 +438,6 @@ decode_lines([], Acc) ->
 decode_lines([Line|Rest], Acc) ->
     Line1 = couchbeam:json_decode(list_to_binary(Line)),
     decode_lines(Rest, [Line1, Acc]).
-    
-encode_docid(Id) when is_binary(Id) ->
-    binary_to_list(Id);
-encode_docid(Id) ->
-    Id.
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
     #server_state{uuids_pid=UuidsPid} = ServerState,

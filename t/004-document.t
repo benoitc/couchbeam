@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(18),
+    etap:plan(20),
     start_app(),
     case (catch test()) of
         ok ->
@@ -87,5 +87,13 @@ test() ->
     etap:is(couchbeam_doc:get_value("b", Doc8), 1, "set value ok"),
     etap:is(couchbeam_doc:get_value("c", Doc8), 1, "set value ok"),
     
+    Doc9 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
+    Doc10 = couchbeam_db:save_doc(Db, Doc9),
+    Doc101 = couchbeam_db:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
+    etap:ok(case Doc10 of
+        {_} -> true;
+        _ -> false
+        end, "doc with special char created ok"),
+    etap:is(couchbeam_doc:get_value(<<"_id">>, Doc101), <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, "doc with special char created ok 2"),
     ok.
     
