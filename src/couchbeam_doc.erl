@@ -18,7 +18,7 @@
 -author('Benoît Chesneau <benoitc@e-engura.org>').
 -include("couchbeam.hrl").
 
--export([set_value/3, get_value/2,  extend/2, extend/3,
+-export([set_value/3, get_value/2, delete_value/2, extend/2, extend/3,
         add_attachment/3, add_attachment/4, delete_inline_attachment/2]).
 
 %% @spec set_value(Key::key_val(), Value::term(), JsonObj::json_obj()) -> term()
@@ -28,8 +28,8 @@ set_value(Key, Value, JsonObj) when is_list(Key)->
 set_value(Key, Value, JsonObj) when is_binary(Key) ->
     {Props} = JsonObj,
     case proplists:is_defined(Key, Props) of
-    true -> set_value1(Props, Key, Value, []);
-    false-> {lists:reverse([{Key, Value}|lists:reverse(Props)])}
+        true -> set_value1(Props, Key, Value, []);
+        false-> {lists:reverse([{Key, Value}|lists:reverse(Props)])}
     end.
     
 %% @spec get_value(Key::key_val(), JsonObj::json_obj()) -> term()
@@ -42,6 +42,17 @@ get_value(Key, JsonObj) when is_binary(Key) ->
     {Props} = JsonObj,
     proplists:get_value(Key, Props).
     
+
+%% @spec delete_value(Key::key_val(), JsonObj::json_obj()) -> json_obj()
+%% @type key_val() = lis() | binary()
+%% @docDeletes all entries associated with Key in json object.  
+delete_value(Key, JsonObj) when is_list(Key) ->
+    delete_value(list_to_binary(Key), JsonObj);
+delete_value(Key, JsonObj) when is_binary(Key) ->
+    {Props} = JsonObj,
+    Props1 = proplists:delete(Key, Props),
+    {Props1}.
+       
 %% @spec extend(Key::binary(), Value::json_term(), JsonObj::json_obj()) -> json_obj()
 %% @doc extend a jsonobject by key, value 
 extend(Key, Value, JsonObj) ->
