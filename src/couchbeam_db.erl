@@ -74,7 +74,7 @@ open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
 
 open_doc(Db, DocId, Params) ->
-    gen_server:call(db_pid(Db), {open_doc, DocId, Params}, infinity).
+    gen_server:call(db_pid(Db), {open_doc, encode_docid(DocId), Params}, infinity).
    
 %% @spec save_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc save a do with DocId. 
@@ -162,11 +162,11 @@ all_docs_by_seq(Db, Params) ->
 %%---------------------------------------------------------------------------
 
  
-%% @spec fetch_attachment(Db::pid(), Doc::json_obj(), 
+%% @spec fetch_attachment(Db::pid(), Doc::string(), 
 %%                  AName::string()) -> iolist()
 %% @doc fetch attachment
-fetch_attachment(Db, Doc, AName) ->
-    fetch_attachment(Db, Doc, AName, false).
+fetch_attachment(Db, DocId, AName) ->
+    fetch_attachment(Db, DocId, AName, false).
 
 
 %% @spec fetch_attachment(Db::pid(), DocId::string(), 
@@ -179,15 +179,16 @@ fetch_attachment(Db, Doc, AName) ->
 fetch_attachment(Db, DocId, AName, Streaming) ->
     gen_server:call(db_pid(Db), {fetch_attachment, DocId, AName, Streaming}, infinity). 
 
-%% @spec put_attachment(Db::pid(), DocId::string(),
+%% @spec put_attachment(Db::pid(), DocId::doc(),
 %%      Content::attachment_content(), AName::string(), Length::string()) -> json_obj()
 %% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_0(), initial_state()}
+%% @type doc() = json_obj() | {DocID, Rev}
 %% @doc put attachment attachment, It will try to guess mimetype
 put_attachment(Db, DocId, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
     put_attachment(Db, DocId, Content, AName, Length, ContentType).
     
-%% @spec put_attachment(Db::pid(), Doc::string(),
+%% @spec put_attachment(Db::pid(), Doc::doc(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, DocId, Content, AName, Length, ContentType) ->
@@ -426,10 +427,10 @@ decode_lines([Line|Rest], Acc) ->
     Line1 = couchbeam:json_decode(list_to_binary(Line)),
     decode_lines(Rest, [Line1, Acc]).
     
-encode_docid(Id) when is_list(Id) ->
-    Id;
+encode_docid(Id) when is_binary(Id) ->
+    binary_to_list(Id);
 encode_docid(Id) ->
-    binary_to_list(Id).
+    Id.
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
     #server_state{uuids_pid=UuidsPid} = ServerState,
