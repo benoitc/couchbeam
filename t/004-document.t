@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(20),
+    etap:plan(26),
     start_app(),
     case (catch test()) of
         ok ->
@@ -95,5 +95,14 @@ test() ->
         _ -> false
         end, "doc with special char created ok"),
     etap:is(couchbeam_doc:get_value(<<"_id">>, Doc101), <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, "doc with special char created ok 2"),
+    
+    Doc11 = {[{<<"f">>, 1}]},
+    etap:not_ok(couchbeam_doc:is_saved(Doc11), "document isn't saved ok"),
+    etap:is(couchbeam_doc:get_id(Doc11), undefined, "document id is undefined ok"),
+    etap:is(couchbeam_doc:get_rev(Doc11), undefined, "document rev is undefined ok"),
+    Doc12 = couchbeam_db:save_doc(Db, Doc11),
+    etap:ok(couchbeam_doc:is_saved(Doc12), "document saved ok"),
+    etap:isnt(couchbeam_doc:get_id(Doc12), undefined, "document id  defined ok"),
+    etap:isnt(couchbeam_doc:get_rev(Doc12), undefined, "document rev is defined ok"),
     ok.
     
