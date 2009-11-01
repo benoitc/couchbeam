@@ -143,7 +143,11 @@ encode_query(Props) ->
                                    encode_query_value(K, V)] | Acc]
                            end, [], Props),
     lists:flatten(couchbeam_util:revjoin(RevPairs, $&, [])).
-        
+  
+encode_query_value(K,V) when is_atom(K) ->
+    encode_query_value(atom_to_list(K), V);
+encode_query_value(K,V) when is_binary(K) ->
+    encode_query_value(binary_to_list(K), V);
 encode_query_value(K,V) ->
     V1 = case K of
     "key"-> encode_value(V);

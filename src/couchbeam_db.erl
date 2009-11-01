@@ -177,7 +177,6 @@ fetch_attachment(Db, DocId, AName) ->
 %% @doc fetch attachment. 
 %% should be use to fetch the body
 fetch_attachment(Db, DocId, AName, Streaming)  ->
-    
     {C, Path, Options} = gen_server:call(db_pid(Db), {fetch_attachment, 
                 encode_docid(DocId), AName, Streaming}),
     case couchbeam_resource:get(C, Path, [], [], Options) of
@@ -292,7 +291,7 @@ handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
-handle_call({fetch_attachment, DocId, AName, Streaming}, From, #db{couchdb=C, base=Base}=State) ->
+handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
     Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
     Options = case Streaming of     
         true ->
