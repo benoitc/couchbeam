@@ -111,7 +111,7 @@ open_db(ConnectionId, DbName, Register) ->
 %% @doc delete a database with dbname    
 delete_db(ConnectionId, DbName) ->
     Pid = server_pid(ConnectionId),
-    gen_server:call(Pid, {delete_db, DbName}, infinity).
+    gen_server:call(Pid, {delete_db, couchbeam_util:url_encode(DbName)}, infinity).
         
 open_or_create_db(ConnectionId, DbName) ->
     open_or_create_db(ConnectionId, DbName, true).
@@ -283,9 +283,9 @@ server_pid(ConnectionId) ->
 
 alias_db(DbName, ServerName) ->
     case DbName of
-        {Alias1, Name1} -> {Alias1, Name1};
+        {Alias1, Name1} -> {Alias1, couchbeam_util:url_encode(Name1)};
         Name1 ->
             Alias1 = {ServerName, Name1},
-            {Alias1, Name1}
+            {Alias1, couchbeam_util:url_encode(Name1)}
     end.
 
