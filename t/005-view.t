@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(11),
+    etap:plan(12),
     start_app(),
     case (catch test()) of
         ok ->
@@ -82,4 +82,6 @@ test() ->
     etap:is(couchbeam_view:count(VRresults4), 2, "view, startkey, endkey : nb rows ok"),
     VResults5 = couchbeam_db:query_view(Db, {"couchbeam",  "test"}, [{"keys", [<<"test">>, <<"test3">>]}]),
     etap:is(couchbeam_view:count(VResults5), 2, "view, keys : nb rows ok"),
+    {Id, _, _} = couchbeam_view:first(VResults5),
+    etap:is(Id, <<"test">>, "first key ok"),
     ok.

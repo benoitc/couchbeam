@@ -26,7 +26,7 @@
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
 -export([fetch_view/1, fetch_view/2, parse_view/1, parse_view/2,
-         count/1, count/2]).
+         count/1, count/2, first/1, first/2]).
 -export([close_view/1]).
                   
                   
@@ -49,6 +49,14 @@ count(ViewPid) ->
     count(ViewPid, false).
 count(ViewPid, Refresh) ->
     gen_server:call(ViewPid, {count, Refresh}, infinity).
+    
+first(ViewPid) ->
+    first(ViewPid, false).
+first(ViewPid, Refresh) ->
+    case parse_view(ViewPid, Refresh) of
+        {_, _, _, []} -> {[]};
+        {_, _, _, [FirstRow|_]} -> FirstRow
+    end.
                      
 close_view(ViewPid) ->
     try
@@ -197,12 +205,12 @@ parse_view1(#view{view_cache={_ViewCache}, total_rows=TotalRows,offset=Offset, r
         Id = proplists:get_value(<<"id">>, Row1),
         Key = proplists:get_value(<<"key">>, Row1),
         case proplists:get_value(<<"value">>, Row1) of
-        [] -> Id;
-        {Value} -> {Id, Key, {Value}};
-        Value when is_list(Value) -> {Id, Key, Value};
-        Value when is_integer(Value) -> {Id, Key, Value};
-        Value when is_binary(Value) -> {Id, Key, Value};
-        _ -> Id
+            [] -> Id;
+            {Value} -> {Id, Key, {Value}};
+            Value when is_list(Value) -> {Id, Key, Value};
+            Value when is_integer(Value) -> {Id, Key, Value};
+            Value when is_binary(Value) -> {Id, Key, Value};
+            _ -> Id
         end
     end || Row <- Rows],
     {TotalRows, Offset, Meta, Rows1};
