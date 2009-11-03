@@ -128,7 +128,7 @@ is_fetch_view(Refresh, #view{couchdb=C, base=Base, params=Params,
             fetch_view(C, Params, Base);
         false when(Fetched =:= false) ->
             fetch_view(C, Params, Base);
-        false -> ViewCache
+        false -> {ok, ViewCache}
     end,
     NewState = update_view_state(ViewResults, Refresh, State),
     {ViewResults, NewState}.
