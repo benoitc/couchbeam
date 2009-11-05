@@ -20,7 +20,7 @@
 -record(couchdb_params, {
     host        = "127.0.0.1" :: string(),
     port        = 5984 :: integer(),
-    ssl         = false :: boolean(),
+    ssl         = false :: bool(),
     prefix      = "/" :: string(),
     username    = nil :: string(),
     password    = nil :: string(),
