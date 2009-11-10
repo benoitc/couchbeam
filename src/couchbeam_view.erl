@@ -76,7 +76,9 @@ init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}
         '_all_docs_by_seq' ->
             io_lib:format("~s/_all_docs_by_seq", [BaseDB]);
         {DName, VName1} ->
-            io_lib:format("~s/_design/~s/_view/~s", [BaseDB, DName, VName1])
+            io_lib:format("~s/_design/~s/_view/~s", [BaseDB, DName, VName1]);
+        {AnotherBase,DName,VName1} ->
+            io_lib:format("~s/~s/~s/~s",[BaseDB,AnotherBase,DName,VName1])
     end,
     ViewState = #view{server    = ServerState, 
                       couchdb   = CouchdbParams, 
