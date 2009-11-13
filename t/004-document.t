@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(26),
+    etap:plan(27),
     start_app(),
     case (catch test()) of
         ok ->
@@ -104,5 +104,12 @@ test() ->
     etap:ok(couchbeam_doc:is_saved(Doc12), "document saved ok"),
     etap:isnt(couchbeam_doc:get_id(Doc12), undefined, "document id  defined ok"),
     etap:isnt(couchbeam_doc:get_rev(Doc12), undefined, "document rev is defined ok"),
+    
+    Doc13 = couchbeam_db:save_doc(Db, {[]}),
+    Doc14 = couchbeam_db:save_doc(Db, {[]}),
+    couchbeam_db:delete_docs(Db, [Doc13, Doc14]),
+    
+    etap:is(couchbeam_db:open_doc(Db, couchbeam_doc:get_id(Doc13)), not_found, "bulk docs delete ok"),
+    
     ok.
     
