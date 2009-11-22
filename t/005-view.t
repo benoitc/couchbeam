@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(12),
+    etap:plan(15),
     start_app(),
     case (catch test()) of
         ok ->
@@ -39,8 +39,14 @@ test() ->
                 {[{<<"map">>,
                     <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
                 }]}
+            },{<<"test2">>,
+                {[{<<"map">>,
+                    <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
+                }]}
             }]}
-        }]},
+        }
+    ]},
+ 
     Doc = {[
         {<<"type">>, <<"test">>}
     ]},
@@ -66,9 +72,14 @@ test() ->
         {<<"_id">>, <<"test3">>},
         {<<"type">>, <<"test">>}
     ]},
+    Doc4 = {[
+         {<<"_id">>, <<"test4">>},
+         {<<"type">>, <<"test2">>}
+    ]},
     couchbeam_db:save_doc(Db, Doc1),
     couchbeam_db:save_doc(Db, Doc2),
     couchbeam_db:save_doc(Db, Doc3),
+    couchbeam_db:save_doc(Db, Doc4),
     VResults = couchbeam_db:query_view(Db, {"couchbeam", "test"}, []),
     {T2, _, _, R2} = couchbeam_view:parse_view(VResults),
     etap:is(T2, 5, "view: total_rows in view ok"),
@@ -84,4 +95,14 @@ test() ->
     etap:is(couchbeam_view:count(VResults5), 2, "view, keys : nb rows ok"),
     {Id, _, _} = couchbeam_view:first(VResults5),
     etap:is(Id, <<"test">>, "first key ok"),
+    VResults6 = couchbeam_db:query_view(Db, {"couchbeam", "test2"}, [{"key", <<"test4">>},{"include_docs", true}]),
+    etap:is(couchbeam_view:count(VResults6), 1, "view, include_docs: nb rows ok"),
+    
+    {_, _, _, [R31|_]} = couchbeam_view:parse_view(VResults6),
+    etap:ok(case R31 of
+        {_Id, _Key, _Value, _Doc} -> true;
+        _ -> false
+    end, "include_doc ok"),
+    {_, _, _, {Doc41}} = R31,
+    etap:is(proplists:get_value(<<"_id">>, Doc41), <<"test4">>, "include doc id ok"),
     ok.

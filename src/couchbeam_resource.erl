@@ -153,13 +153,15 @@ encode_query_value(K,V) ->
     "key"-> encode_value(V);
     "startkey" -> encode_value(V);
     "endkey" -> encode_value(V);
-    _ -> couchbeam_util:val(V)
+    _ -> 
+        couchbeam_util:quote_plus(V)
     end,
     V1.
 
 encode_value(V) ->
     V1 = couchbeam:json_encode(V),
     couchbeam_util:quote_plus(binary_to_list(iolist_to_binary(V1))).
+    
     
 default_header(K, V, H) ->
     case proplists:is_defined(K, H) of

@@ -206,13 +206,15 @@ parse_view1(#view{view_cache={_ViewCache}, total_rows=TotalRows,offset=Offset, r
         {Row1} = Row,
         Id = proplists:get_value(<<"id">>, Row1),
         Key = proplists:get_value(<<"key">>, Row1),
-        case proplists:get_value(<<"value">>, Row1) of
-            [] -> Id;
-            {Value} -> {Id, Key, {Value}};
-            Value when is_list(Value) -> {Id, Key, Value};
-            Value when is_integer(Value) -> {Id, Key, Value};
-            Value when is_binary(Value) -> {Id, Key, Value};
-            _ -> Id
+        Value = proplists:get_value(<<"value">>, Row1),
+        case proplists:get_value(<<"doc">>, Row1) of
+            undefined ->
+                case Value of 
+                    [] -> Id;
+                    _ -> {Id, Key, Value}
+                end;
+            Doc ->
+                {Id, Key, Value, Doc}
         end
     end || Row <- Rows],
     {TotalRows, Offset, Meta, Rows1};
