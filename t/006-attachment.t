@@ -6,7 +6,7 @@
 -include_lib("kernel/include/file.hrl").
 
 main(_) ->
-    etap:plan(13),
+    etap:plan(14),
     start_app(),
     case (catch test()) of
         ok ->
@@ -97,4 +97,13 @@ test() ->
     InitialState = couchbeam_resource:get_body_part(Pid),
     Bin = get_streamed_attachment(InitialState, Pid, []),
     etap:is(iolist_size(Bin), FileSize, "fetch streammed attachment ok"),
+    
+    Doc10 = {[
+           {<<"_id">>, <<"test/2">>}
+       ]},
+       
+    Doc101 = couchbeam_db:save_doc(Db, Doc10),
+    Doc102= couchbeam_db:put_attachment(Db, Doc101, "test", "test", length("test")),
+    Attachment10 = couchbeam_db:fetch_attachment(Db, "test/2", "test"),
+    etap:is(Attachment10, <<"test">>, "fetch attachment with encoded id ok"),   
     ok.

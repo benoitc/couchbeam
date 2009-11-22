@@ -193,15 +193,15 @@ fetch_attachment(Db, DocId, AName, Streaming)  ->
 %% @type attachment_content() = string() |binary() | fun_arity_0() | {fun_arity_0(), initial_state()}
 %% @type doc() = json_obj() | {DocID, Rev}
 %% @doc put attachment attachment, It will try to guess mimetype
-put_attachment(Db, DocId, Content, AName, Length) ->
+put_attachment(Db, Doc, Content, AName, Length) ->
     ContentType = couchbeam_util:guess_mime(AName),
-    put_attachment(Db, DocId, Content, AName, Length, ContentType).
+    put_attachment(Db, Doc, Content, AName, Length, ContentType).
     
 %% @spec put_attachment(Db::pid(), Doc::doc(),
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
-put_attachment(Db, DocId, Content, AName, Length, ContentType) ->
-    gen_server:call(db_pid(Db), {put_attachment, DocId, Content, AName, Length, ContentType}, infinity). 
+put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
+    gen_server:call(db_pid(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
@@ -312,7 +312,7 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
             {DocId1, Rev2, true}
     end,
     Headers = [{"Content-Length", couchbeam_util:val(Length)}, {"Content-Type", ContentType}],
-    Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
+    Path = io_lib:format("~s/~s/~s", [Base, encode_docid(DocId), AName]),
     Resp = case couchbeam_resource:put(C, Path, Headers, [{"rev", Rev}], Content, []) of
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
@@ -334,7 +334,7 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
             Rev2 = couchbeam_doc:get_value(<<"_rev">>, Doc),
             {DocId1, Rev2, true}
     end,
-    Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
+    Path = io_lib:format("~s/~s/~s", [Base, encode_docid(DocId), AName]),
     Resp = case couchbeam_resource:delete(C, Path, [], [{"rev", Rev}], []) of
         {error, Reason} -> Reason;
         {ok, R} when (IsJson =:= true) ->
