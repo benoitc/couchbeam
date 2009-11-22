@@ -22,6 +22,7 @@
 -include("couchbeam.hrl").
 
 -define(STREAM_CHUNK_SIZE, 16384). %% 16384
+-define(ENCODE_DOCID, true).
 
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
@@ -212,7 +213,13 @@ delete_attachment(Db, Doc, AName) ->
 
 encode_docid(DocId) when is_binary(DocId) ->
     encode_docid(binary_to_list(DocId));
-encode_docid(DocId) ->
+encode_docid(DocId)->
+    case ?ENCODE_DOCID of
+        true -> encode_docid1(DocId);
+        false -> DocId
+    end.
+    
+encode_docid1(DocId) ->
     case DocId of
         "_design/" ++ Rest ->
             Rest1 = encode_docid(Rest),
