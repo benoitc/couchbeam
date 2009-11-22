@@ -97,13 +97,13 @@ extend(Key, Value, JsonObj) ->
 %% @spec extend(Prop::property(), JsonObj::json_obj()) -> json_obj()
 %% @type property() = json_obj() | tuple()  
 %% @doc extend a jsonobject by a property or list of property
-extend({Prop}, JsonObj) ->
-    extend(Prop, JsonObj);
-extend(Prop, JsonObj) when is_list(Prop)->
-    extend1(Prop, JsonObj);
-extend(Prop, JsonObj) when is_tuple(Prop)->
-    {Props} = JsonObj,
-    {lists:reverse([Prop|lists:reverse(Props)])}.
+extend([], JsonObj) ->
+    JsonObj;
+extend([Prop|R], JsonObj)->
+    NewObj = extend(Prop, JsonObj),
+    extend(R, NewObj);
+extend({Key, Value}, JsonObj) ->
+    set_value(Key, Value, JsonObj).
 
 %% @spec add_attachment(Doc::json_obj(),Content::attachment_content(), 
 %%      AName::string()) -> json_obj()
@@ -156,15 +156,6 @@ delete_inline_attachment(Doc, AName) when is_binary(AName) ->
  
 
 %% @private
-   
-extend1([], JsonObj) ->
-    {Props} = JsonObj,
-    {lists:reverse(Props)};
-extend1([Prop|T], JsonObj) ->
-    {Props} = JsonObj,
-    extend(T, {[Prop|Props]}).
-
-
 set_value1([], _Key, _Value, Acc) ->
     {lists:reverse(Acc)};
 set_value1([{K, V}|T], Key, Value, Acc) ->

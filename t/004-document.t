@@ -3,7 +3,7 @@
 %%! -pa ./ebin
 
 main(_) ->
-    etap:plan(27),
+    etap:plan(29),
     start_app(),
     case (catch test()) of
         ok ->
@@ -86,6 +86,9 @@ test() ->
     Doc8 = couchbeam_doc:extend([{<<"b">>, 1}, {<<"c">>, 1}], Doc7),
     etap:is(couchbeam_doc:get_value("b", Doc8), 1, "set value ok"),
     etap:is(couchbeam_doc:get_value("c", Doc8), 1, "set value ok"),
+    Doc81 = couchbeam_doc:extend([{<<"c">>, 3}, {<<"d">>, 1}], Doc8),
+    etap:is(couchbeam_doc:get_value("c", Doc81), 3, "set value ok"),
+    etap:is(couchbeam_doc:get_value("d", Doc81), 1, "set value ok"),
     
     Doc9 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
     Doc10 = couchbeam_db:save_doc(Db, Doc9),
@@ -110,6 +113,5 @@ test() ->
     couchbeam_db:delete_docs(Db, [Doc13, Doc14]),
     
     etap:is(couchbeam_db:open_doc(Db, couchbeam_doc:get_id(Doc13)), not_found, "bulk docs delete ok"),
-    
     ok.
     
