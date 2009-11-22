@@ -78,4 +78,4 @@
     refs=dict:new()
 }).
     
--define(USER_AGENT, "couchbeam/0.4").
+-define(USER_AGENT, "couchbeam/0.4.1").
