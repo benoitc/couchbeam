@@ -2,7 +2,7 @@
 %% -*- erlang -*-
 %%! -pa ./ebin -pa deps/lhttpc/ebin
 
--module(test).
+-module(changes).
 
 main(_) ->
     couchbeam:start(),
