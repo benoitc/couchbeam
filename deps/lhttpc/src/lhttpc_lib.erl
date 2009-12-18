@@ -29,6 +29,8 @@
 %%% @doc
 %%% This module implements various library functions used in lhttpc.
 %%% @end
+%%% @type boolean() = boolean().
+%%% @type iolist() = [] | binary() | [char() | binary() | iolist()].
 -module(lhttpc_lib).
 
 -export([
@@ -97,9 +99,9 @@ maybe_atom_to_list(List) when is_list(List) ->
 %%   Host = string()
 %%   Port = integer()
 %%   Path = string()
-%%   Ssl = bool()
+%%   Ssl = boolean()
 %% @doc
--spec parse_url(string()) -> {string(), integer(), string(), bool()}.
+-spec parse_url(string()) -> {string(), integer(), string(), boolean()}.
 parse_url(URL) ->
     % XXX This should be possible to do with the re module?
     {Scheme, HostPortPath} = split_scheme(URL),

@@ -59,7 +59,7 @@ request(State, Method, Path, Headers, Params, Body, Options) ->
         
      case has_body(Method) of
             true ->
-                case make_body(Body, Headers, Options) of
+                case make_body(Body, Headers2, Options) of
                     {Headers3, Options1, InitialBody, BodyFun} ->
                         do_request(State, Method, Path1, Headers3, {BodyFun, InitialBody}, Options1);
                     Error ->

@@ -28,10 +28,13 @@
 %%% @doc Main interface to the lightweight http client.
 %%% See {@link request/4}, {@link request/5} and {@link request/6} functions.
 %%% @end
+%%% @type boolean() = bool().
+%%% @type iolist() = [] | binary() | [char() | binary() | iolist()].
 -module(lhttpc).
 -behaviour(application).
 
--export([request/4, request/5, request/6, request/9]).
+-export([start/0, stop/0, request/4, request/5, request/6, request/9]).
+-export([start/2, stop/1]).
 -export([
         send_body_part/2,
         send_body_part/3, 
@@ -42,7 +45,6 @@
         get_body_part/1,
         get_body_part/2
         ]).
--export([start/2, stop/1]).
 
 -include("lhttpc_types.hrl").
 
@@ -68,6 +70,33 @@ start(_, _) ->
 stop(_) ->
     ok.
 
+%% @spec () -> ok | {error, Reason}
+%%   Reason = term()
+%% @doc
+%% Start the application.
+%% This is a helper function that will call `application:start(lhttpc)' to
+%% allow the library to be started using the `-s' flag.
+%% For instance:
+%% `$ erl -s crypto -s ssl -s lhttpc'
+%%
+%% For more info on possible return values the `application' module.
+%% @end
+-spec start() -> ok | {error, any()}.
+start() ->
+    application:start(lhttpc).
+
+%% @spec () -> ok | {error, Reason}
+%%   Reason = term()
+%% @doc
+%% Stops the application.
+%% This is a helper function that will call `application:stop(lhttpc)'.
+%%
+%% For more info on possible return values the `application' module.
+%% @end
+-spec stop() -> ok | {error, any()}.
+stop() ->
+    application:stop(lhttpc).
+
 %% @spec (URL, Method, Hdrs, Timeout) -> Result
 %%   URL = string()
 %%   Method = string() | atom()
@@ -85,6 +114,7 @@ stop(_) ->
 %% Would be the same as calling `request(URL, Method, Hdrs, [], Timeout)',
 %% that is {@link request/5} with an empty body (`Body' could also be `<<>>').
 %% @end
+%% @see request/9
 -spec request(string(), string() | atom(), headers(), pos_integer() |
         infinity) -> result().
 request(URL, Method, Hdrs, Timeout) ->
@@ -109,6 +139,7 @@ request(URL, Method, Hdrs, Timeout) ->
 %% `request(URL, Method, Hdrs, Body, Timeout, [])', that is {@link request/6}
 %% with no options.
 %% @end
+%% @see request/9
 -spec request(string(), string() | atom(), headers(), iolist(),
         pos_integer() | infinity) -> result().
 request(URL, Method, Hdrs, Body, Timeout) ->
@@ -124,9 +155,17 @@ request(URL, Method, Hdrs, Body, Timeout) ->
 %%   Timeout = integer() | infinity
 %%   Options = [Option]
 %%   Option = {connect_timeout, Milliseconds | infinity} |
-%%            {send_retry, integer()} | {partial_upload, WindowSize}
+%%            {connect_options, [ConnectOptions]} |
+%%            {send_retry, integer()} |
+%%            {partial_upload, WindowSize} |
+%%            {partial_download, PartialDownloadOptions}
 %%   Milliseconds = integer()
+%%   ConnectOptions = term()
 %%   WindowSize = integer() | infinity
+%%   PartialDownloadOptions = [PartialDownloadOption]
+%%   PartialDowloadOption = {window_size, WindowSize} |
+%%                          {part_size, PartSize}
+%%   PartSize = integer() | infinity
 %%   Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}} |
 %%            {ok, UploadState} | {error, Reason}
 %%   StatusCode = integer()
@@ -142,6 +181,7 @@ request(URL, Method, Hdrs, Body, Timeout) ->
 %% `URL' is expected to be a valid URL: 
 %% `scheme://host[:port][/path]'.
 %% @end
+%% @see request/9
 -spec request(string(), string() | atom(), headers(), iolist(),
         pos_integer() | infinity, [option()]) -> result().
 request(URL, Method, Hdrs, Body, Timeout, Options) ->
@@ -162,15 +202,16 @@ request(URL, Method, Hdrs, Body, Timeout, Options) ->
 %%   Timeout = integer() | infinity
 %%   Options = [Option]
 %%   Option = {connect_timeout, Milliseconds | infinity} |
+%%            {connect_options, [ConnectOptions]} |
 %%            {send_retry, integer()} |
 %%            {partial_upload, WindowSize} |
-%%            {partial_download, PartialDowloadOptions}
+%%            {partial_download, PartialDownloadOptions}
 %%   Milliseconds = integer()
 %%   WindowSize = integer()
 %%   PartialDownloadOptions = [PartialDownloadOption]
 %%   PartialDowloadOption = {window_size, WindowSize} |
 %%                          {part_size, PartSize}
-%%   PartSize = integer()
+%%   PartSize = integer() | infinity
 %%   Result = {ok, {{StatusCode, ReasonPhrase}, Hdrs, ResponseBody}}
 %%          | {error, Reason}
 %%   StatusCode = integer()
@@ -210,6 +251,17 @@ request(URL, Method, Hdrs, Body, Timeout, Options) ->
 %% client will also give up. The default value is infinity, which means that
 %% it will either give up when the TCP stack gives up, or when the overall
 %% request timeout is reached. 
+%%
+%% `{connect_options, Options}' specifies options to pass to the socket at
+%% connect time. This makes it possible to specify both SSL options and
+%% regular socket options, such as which IP/Port to connect from etc. Note
+%% that some options shouldn't be included here, namely the mode, `binary'
+%% or `list', `{active, boolean()}', `{active, once}' or `{packet, Packet}'.
+%% These options would confuse the client if they are included.
+%% Please note that these options will only be included for *new*
+%% connections, and it isn't possible for different requests
+%% to the same host uses different options, unless using HTTP/1.0 since tha
+%% would open a new socket for each request.
 %%
 %% `{send_retry, N}' specifies how many times the client should retry
 %% sending a request if the connection is closed after the data has been
@@ -292,10 +344,10 @@ request(Host, Port, Ssl, Path, Method, Hdrs, Body, Timeout, Options) ->
 %% Would be the same as calling
 %% `send_body_part(UploadState, BodyPart, infinity)'.
 %% @end
--spec send_body_part({pid(), window_size()}, binary()) -> 
+-spec send_body_part({pid(), window_size()}, iolist()) -> 
         {pid(), window_size()} | result().
-send_body_part({Pid, Window}, Bin) ->
-    send_body_part({Pid, Window}, Bin, infinity).
+send_body_part({Pid, Window}, IoList) ->
+    send_body_part({Pid, Window}, IoList, infinity).
 
 %% @spec (UploadState :: UploadState, BodyPart :: BodyPart, Timeout) -> Result
 %%   BodyPart = iolist() | binary()
@@ -318,13 +370,15 @@ send_body_part({Pid, Window}, Bin) ->
 %% there is no response within `Timeout' milliseconds, the request is
 %% canceled and `{error, timeout}' is returned.
 %% @end
--spec send_body_part({pid(), window_size()}, binary(), timeout()) -> 
+-spec send_body_part({pid(), window_size()}, iolist(), timeout()) -> 
         {ok, {pid(), window_size()}} | result().
-send_body_part({Pid, 0}, Bin, Timeout) 
-        when is_binary(Bin), is_pid(Pid) ->
+send_body_part({Pid, _Window}, http_eob, Timeout) when is_pid(Pid) ->
+    Pid ! {body_part, self(), http_eob},
+    read_response(Pid, Timeout);
+send_body_part({Pid, 0}, IoList, Timeout) when is_pid(Pid) ->
     receive
         {ack, Pid} ->
-            send_body_part({Pid, 1}, Bin, Timeout);
+            send_body_part({Pid, 1}, IoList, Timeout);
         {response, Pid, R} ->
             R;
         {exit, Pid, Reason} ->
@@ -334,17 +388,13 @@ send_body_part({Pid, 0}, Bin, Timeout)
     after Timeout ->
         kill_client(Pid)
     end;
-send_body_part({Pid, Window}, Bin, _Timeout) 
-        when Window > 0, is_binary(Bin), is_pid(Pid) ->
-    Pid ! {body_part, self(), Bin},
+send_body_part({Pid, Window}, IoList, _Timeout) when Window > 0, is_pid(Pid) ->
+                                                     % atom > 0 =:= true
+    Pid ! {body_part, self(), IoList},
     receive
         {ack, Pid} ->
-            %% body_part ACK
             {ok, {Pid, Window}};
         {reponse, Pid, R} ->
-            %% something went wrong in the client
-            %% for example the connection died or
-            %% the last body part has been sent 
             R;
         {exit, Pid, Reason} ->
             exit(Reason);
@@ -352,10 +402,7 @@ send_body_part({Pid, Window}, Bin, _Timeout)
             exit(Reason)
     after 0 ->
         {ok, {Pid, lhttpc_lib:dec(Window)}}
-    end;
-send_body_part({Pid, _Window}, http_eob, Timeout) when is_pid(Pid) ->
-    Pid ! {body_part, self(), http_eob},
-    read_response(Pid, Timeout).
+    end.
 
 %% @spec (UploadState :: UploadState, Trailers) -> Result
 %%   Header = string() | binary() | atom()
@@ -402,7 +449,8 @@ send_trailers({Pid, _Window}, Trailers, Timeout)
     read_response(Pid, Timeout).
 
 %% @spec (HTTPClient :: pid()) -> Result
-%%   Result = {ok, Bin} | {ok, {http_eob, Trailers}} 
+%%   Result = {ok, BodyPart} | {ok, {http_eob, Trailers}}
+%%   BodyPart = binary()
 %%   Trailers = [{Header, Value}]
 %%   Header = string() | binary() | atom()
 %%   Value = string() | binary()
@@ -418,7 +466,8 @@ get_body_part(Pid) ->
 
 %% @spec (HTTPClient :: pid(), Timeout:: Timeout) -> Result
 %%   Timeout = integer() | infinity
-%%   Result = {ok, Bin} | {ok, {http_eob, Trailers}} 
+%%   Result = {ok, BodyPart} | {ok, {http_eob, Trailers}}
+%%   BodyPart = binary()
 %%   Trailers = [{Header, Value}]
 %%   Header = string() | binary() | atom()
 %%   Value = string() | binary()
@@ -495,6 +544,9 @@ verify_options([{partial_download, DownloadOptions} | Options], Errors)
             NewErrors = [{partial_download, OptionErrors} | Errors],
             verify_options(Options, NewErrors)
     end;
+verify_options([{connect_options, List} | Options], Errors)
+        when is_list(List) ->
+    verify_options(Options, Errors);
 verify_options([Option | Options], Errors) ->
     verify_options(Options, [Option | Errors]);
 verify_options([], []) ->
@@ -507,7 +559,6 @@ bad_options(Errors) ->
     erlang:error({bad_options, Errors}).
 
 -spec verify_partial_download(options(), options()) -> options().
-
 verify_partial_download([{window_size, infinity} | Options], Errors)->
     verify_partial_download(Options, Errors);
 verify_partial_download([{window_size, Size} | Options], Errors) when
@@ -515,6 +566,8 @@ verify_partial_download([{window_size, Size} | Options], Errors) when
     verify_partial_download(Options, Errors);
 verify_partial_download([{part_size, Size} | Options], Errors) when
         is_integer(Size), Size >= 0 ->
+    verify_partial_download(Options, Errors);
+verify_partial_download([{part_size, infinity} | Options], Errors) ->
     verify_partial_download(Options, Errors);
 verify_partial_download([Option | Options], Errors) ->
     verify_partial_download(Options, [Option | Errors]);

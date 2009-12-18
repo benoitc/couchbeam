@@ -39,9 +39,8 @@ start_connection_link() -> start_connection_link(#couchdb_params{}).
 
 start_connection_link(Params) -> start_connection_internal(Params, true).        
 
-start_connection_internal(#couchdb_params{prefix=Prefix,name=Name} = CouchdbParams,
+start_connection_internal(#couchdb_params{prefix=Prefix,name=Name}=CouchdbParams,
                     ProcLink) ->
-
     Pid = case server_pid(Name) of
         not_found ->
             Prefix1 = case Prefix of
