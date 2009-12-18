@@ -1,9 +1,4 @@
 Version ?:
-* Add support for connect_options
-    * Enables the user to pass socket options, for instance ip and port,
-      that will be used when connecting the socket
-    * Allows the user to specify SSL options during the connect phase
-* Add support for "streaming" of entities
 * Add start/0 and stop/0
 * Fix for decoding chunked HTTP responses with extraneous whitespace
   (thanks to Bob Ippolito) 

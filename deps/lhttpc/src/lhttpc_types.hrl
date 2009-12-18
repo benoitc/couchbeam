@@ -41,5 +41,6 @@
 
 -type socket_options() :: [{atom(), term()} | atom()].
 
--type window_size() :: non_neg_integer() | infinity.
+%%-type timeout() :: non_neg_integer() | infinity.
 
+-type window_size() :: non_neg_integer() | infinity.

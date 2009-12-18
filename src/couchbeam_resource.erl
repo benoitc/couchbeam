@@ -48,26 +48,24 @@ put(State, Path, Headers, Params, Body, Opts) ->
     request(State, "PUT", Path, Headers, Params, Body, Opts).
     
     
-request(#couchdb_params{host=Host, port=Port}=State, Method, Path, Headers, Params, Body, Options) ->
+request(State, Method, Path, Headers, Params, Body, Options) ->
     Path1 = lists:append([Path, 
             case Params of
             [] -> [];
             Props -> "?" ++ encode_query(Props)
             end]),
-    Headers1 = make_auth(State, Headers),
-    Headers2 = default_header("Content-Type", "application/json", Headers1),
-    Headers3 = default_header("Host", Host++":"++ integer_to_list(Port), Headers2),
-        
+    Headers1 = make_auth(State, 
+                     default_header("Content-Type", "application/json", Headers)),     
      case has_body(Method) of
             true ->
-                case make_body(Body, Headers3, Options) of
-                    {Headers4, Options1, InitialBody, BodyFun} ->
-                        do_request(State, Method, Path1, Headers4, {BodyFun, InitialBody}, Options1);
+                case make_body(Body, Headers1, Options) of
+                    {Headers2, Options1, InitialBody, BodyFun} ->
+                        do_request(State, Method, Path1, Headers2, {BodyFun, InitialBody}, Options1);
                     Error ->
                         Error
                 end;
             false ->
-                do_request(State, Method, Path1, Headers3, {nil, <<>>}, Options)
+                do_request(State, Method, Path1, Headers1, {nil, <<>>}, Options)
     end.
     
 

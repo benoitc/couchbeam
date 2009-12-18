@@ -32,7 +32,6 @@
 %%% The gen_server is supposed to be started by a supervisor, which is
 %%% normally {@link lhttpc_sup}.
 %%% @end
-%%% @type boolean() = bool().
 -module(lhttpc_manager).
 
 -export([
@@ -71,19 +70,19 @@ connection_count() ->
 %%    Destination = {Host, Port, Ssl}
 %%    Host = string()
 %%    Port = integer()
-%%    Ssl = boolean()
+%%    Ssl = bool()
 %%    Count = integer()
 %% @doc Returns the number of active connections to the specific
 %% `Destination' maintained by the httpc manager.
 %% @end
--spec connection_count({string(), pos_integer(), boolean()}) ->
+-spec connection_count({string(), pos_integer(), bool()}) ->
     non_neg_integer().
 connection_count({Host, Port, Ssl}) ->
     Destination = {string:to_lower(Host), Port, Ssl},
     gen_server:call(?MODULE, {connection_count, Destination}).
 
 %% @spec (Timeout) -> ok
-%%    Timeout = integer()
+%%    Timeout = intetger()
 %% @doc Updates the timeout for persistent connections.
 %% This will only affect future sockets handed to the manager. The sockets
 %% already managed will keep their timers.

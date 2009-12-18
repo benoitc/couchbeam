@@ -13,7 +13,7 @@ start_client(Clients) ->
 
 start_client(Host, Port, Clients) when Clients > 0 ->
 	process_flag(trap_exit, true),
-	{ok, Body} = file:read_file("tests/1M"),
+	{ok, Body} = file:read_file("test/1M"),
 	URL = "http://" ++ Host ++ ":" ++ integer_to_list(Port) ++ "/static/1M",
 	start(Clients, URL, Body, Clients).
 
@@ -54,11 +54,11 @@ init(_, _) ->
 handle_continue(_Method, _URI, _Vsn, _ReqHdrs, CBState) ->
 	{continue, [], CBState}.
 
-handle_request(_Method, "/static/1M", {1,1}, _, Entity, State) ->
-	case Entity of
-		{identity, Reader} ->
-			case Reader(complete, 50000) of
-				{ok, Body} ->
+handle_request(_Method, "/static/1M", {1,1}, _, EntityBody, State) ->
+	case EntityBody of
+		{identity, EntityState} ->
+			case gen_httpd:read_body(complete, 50000, EntityState) of
+				{ok, {Body, http_eob}} ->
 					{reply, 200, [], Body, State};
 				{error, Reason} ->
 					{reply, 500, [], io_lib:format("~p", [Reason]), State}
