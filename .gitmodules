@@ -1,0 +1,3 @@
+[submodule "deps/ibrowse"]
+	path = deps/ibrowse
+	url = git://github.com/cmullaparthi/ibrowse.git
