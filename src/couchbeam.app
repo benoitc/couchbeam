@@ -5,6 +5,7 @@
                         couchbeam_resource,
                         couchbeam_server,
                         couchbeam_db,
+                        couchbeam_deps,
                         couchbeam_doc,
                         couchbeam_view,
                         couchbeam_uuids, 
