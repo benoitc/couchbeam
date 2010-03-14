@@ -1,3 +1,0 @@
-* Add support for chunked dowload
-* Add support for HTTP redirects
-* Consider support for streaming of bodies
