@@ -4,11 +4,6 @@ EBIN_DIRS    := $(wildcard deps/*/ebin)
 ERLC_FLAGS := -W $(INCLUDE_DIRS:%=-I %) $(EBIN_DIRS:%=-pa %)
 APP          := couchbeam
 
-all: lhttpc erl ebin/$(APP).app
-
-lhttpc:
-	@(cd deps/lhttpc;$(MAKE))
-
 erl:
 	./rebar compile
 
@@ -25,8 +20,5 @@ cover: all
 
 clean: 
 	./rebar clean
-
-ebin/$(APP).app: src/$(APP).app
-	@cp -v src/$(APP).app $@
 
 
