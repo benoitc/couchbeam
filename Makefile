@@ -10,9 +10,7 @@ lhttpc:
 	@(cd deps/lhttpc;$(MAKE))
 
 erl:
-	@mkdir -p src/ebin
-	@$(ERL) -pa $(EBIN_DIRS) -noinput +B \
-	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
+	./rebar compile
 
 docs:
 	@mkdir -p doc
@@ -26,9 +24,7 @@ cover: all
 	erl -detached -noshell -eval 'etap_report:create()' -s init stop
 
 clean: 
-	@echo "removing:"
-	@rm -fv ebin/*.beam ebin/*.app
-	@rm -fv deps/lhttpc/ebin/*.beam deps/lhttpc/ebin/*.app
+	./rebar clean
 
 ebin/$(APP).app: src/$(APP).app
 	@cp -v src/$(APP).app $@
