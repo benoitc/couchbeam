@@ -4,7 +4,7 @@ EBIN_DIRS    := $(wildcard deps/*/ebin)
 ERLC_FLAGS := -W $(INCLUDE_DIRS:%=-I %) $(EBIN_DIRS:%=-pa %)
 APP          := couchbeam
 
-erl:
+all:
 	./rebar compile
 
 docs:
