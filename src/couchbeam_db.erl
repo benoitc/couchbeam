@@ -440,7 +440,12 @@ send_changes({ok, [<<"\n">>]}, ConsumerPid, Pid) ->
     NextState = lhttpc:get_body_part(Pid),
     send_changes(NextState, ConsumerPid, Pid);
 send_changes({ok, Bin}, ConsumerPid, Pid) ->
-    Lines = decode_lines(string:tokens(Bin, "\n"), []),
+    BinString = case is_binary(Bin) of
+        true -> binary_to_list(Bin);
+        _ -> Bin
+    end,
+    
+    Lines = decode_lines(string:tokens(BinString, "\n"), []),
     ConsumerPid ! {change, Lines},
     NextState = lhttpc:get_body_part(Pid),
     send_changes(NextState, ConsumerPid, Pid).
