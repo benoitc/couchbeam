@@ -20,4 +20,4 @@ cover: all
 clean: 
 	./rebar clean
 	@rm -f t/*.beam
-	@rm -rf doc/api
+	@rm -rf docs/api
