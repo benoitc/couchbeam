@@ -1,7 +1,5 @@
 ERL          ?= erl
-
-EBIN_DIRS    := $(wildcard deps/*/ebin)
-ERLC_FLAGS := -W $(INCLUDE_DIRS:%=-I %) $(EBIN_DIRS:%=-pa %)
+ERLC		     ?= erlc
 APP          := couchbeam
 
 all:
@@ -12,13 +10,15 @@ docs:
 	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}]'
 
 test: all
-	prove -v t/*.t
+	@$(ERLC) -o t/ t/etap.erl
+	prove t/*.t
 
 cover: all
 	COVER=1 prove t/*.t
-	erl -detached -noshell -eval 'etap_report:create()' -s init stop
+	@$(ERL) -detached -noshell -eval 'etap_report:create()' -s init stop
 
 clean: 
 	./rebar clean
+	@rm t/*.beam
 
 
