@@ -2,12 +2,12 @@ ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
 
-all:
+all: doc
 	./rebar compile
 
-docs:
-	@mkdir -p doc
-	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}]'
+doc:
+	@mkdir -p doc/api
+	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
 
 test: all
 	@$(ERLC) -o t/ t/etap.erl
@@ -19,6 +19,5 @@ cover: all
 
 clean: 
 	./rebar clean
-	@rm t/*.beam
-
-
+	@rm -f t/*.beam
+	@rm -rf doc/api
