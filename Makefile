@@ -5,7 +5,7 @@ APP          := couchbeam
 all: doc
 	./rebar compile
 
-doc:
+docs:
 	@mkdir -p doc/api
 	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
 
