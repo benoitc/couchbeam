@@ -461,7 +461,7 @@ maybe_docid(#db{server=ServerState}, {DocProps}) ->
     case proplists:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = couchbeam_uuids:next_uuid(UuidsPid),
-            {[{<<"_id">>, DocId}|DocProps]};
+            {[{<<"_id">>, list_to_binary(DocId)}|DocProps]};
         _DocId ->
             {DocProps}
     end.
