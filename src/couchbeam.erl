@@ -61,7 +61,7 @@ version() ->
 
 start(_Start_Type, _Start_Args) ->
     couchbeam_deps:ensure(),
-    case start_apps([ssl, crypto, lhttpc]) of
+    case start_apps([ssl, crypto, public_key, ssl, lhttpc]) of
         ok->
             couchbeam_sup:start_link();
         {error, Reason} ->
@@ -80,6 +80,9 @@ start_apps([App|Rest]) ->
     ok ->
        start_apps(Rest);
     {error, {already_started, App}} ->
+       start_apps(Rest);
+    {error, _Reason} when App =:= public_key ->
+       % ignore on R12B5
        start_apps(Rest);
     {error, _Reason} ->
        {error, {app_would_not_start, App}}
