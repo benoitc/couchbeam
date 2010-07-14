@@ -32,7 +32,7 @@
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
 -export([open/2, close/2, create/2, delete/2, open_or_create/2]).
--export([suscribe/2, suscribe/3]).
+-export([subscribe/2, subscribe/3]).
 -export([encode_docid/1]).
 
 %% @type node_info() = {Host::string(), Port::int()}
@@ -112,15 +112,15 @@ delete_docs(Db, Docs, Opts) ->
     save_docs(Db, Docs1, Opts).
     
 %%---------------------------------------------------------------------------
-%% suscribe to update notifications
+%% subscribe to update notifications
 %%---------------------------------------------------------------------------  
     
-%% @spec suscribe(Db::pid(), Consumer::pid()) -> pid() 
-%% @doc suscribe to db changes
-suscribe(Db, Consumer) ->
-    suscribe(Db, Consumer, []).
+%% @spec subscribe(Db::pid(), Consumer::pid()) -> pid() 
+%% @doc subscribe to db changes
+subscribe(Db, Consumer) ->
+    subscribe(Db, Consumer, []).
     
-%% @spec suscribe(Db, Consumer, Options) -> Result
+%% @spec subscribe(Db, Consumer, Options) -> Result
 %% Db = database()
 %% Consumer = pid()
 %% Options = ChangeOptions
@@ -128,9 +128,9 @@ suscribe(Db, Consumer) ->
 %% Options = [ChangeOption]
 %% ChangeOption = {heartbeat, integer | string} |
 %%                      {timeout, integer()}
-%% @doc suscribe to db changes, wait for changes heartbeat 
-suscribe(Db, Consumer, Options) ->
-    gen_server:call(db_pid(Db), {suscribe_changes, Consumer, Options}, infinity).
+%% @doc subscribe to db changes, wait for changes heartbeat 
+subscribe(Db, Consumer, Options) ->
+    gen_server:call(db_pid(Db), {subscribe_changes, Consumer, Options}, infinity).
   
 
 %%---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ all_docs(Db, Params) ->
     query_view(Db, '_all_docs', Params).
     
 %% @spec all_docs_by_seq(Db::pid(), Params::list()) -> json_object()
-%% @deprecated  This feature don't exist anymore in couchdb 0.11, use suscribe() instead.
+%% @deprecated  This feature don't exist anymore in couchdb 0.11, use subscribe() instead.
 %% @doc This method has the same behavior as a view. 
 %% Return an updated list of all documents.
 all_docs_by_seq(Db, Params) ->
@@ -355,7 +355,7 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
     end,
     {reply, Resp, State};
     
-handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
+handle_call({subscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
     {Timeout, Options1} = get_option(timeout, Options),
     {HeartBeat, Options2} = get_option(heartbeat, Options1),
     
@@ -381,7 +381,7 @@ handle_call({suscribe_changes, Consumer, Options}, _From, #db{base=Base} = State
         Extra -> Path0 ++ "&" ++ couchbeam_resource:encode_query(Extra)
     end,
     ChangeState = #change{db=State, path=Path, consumer_pid=Consumer},
-    Pid = spawn_link(fun() -> suscribe_changes(ChangeState) end),
+    Pid = spawn_link(fun() -> subscribe_changes(ChangeState) end),
     {reply, Pid, State}.
       
 handle_cast(_Msg, State) ->
@@ -402,9 +402,9 @@ code_change(_OldVsn, State, _Extra) ->
     
     
 %% @private
-suscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
+subscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
     try
-        do_suscribe(ChangeState)
+        do_subscribe(ChangeState)
     catch
         Reason ->
             ConsumerPid ! Reason;
@@ -414,7 +414,7 @@ suscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
             ConsumerPid ! {'error', Reason}
     end.
 
-do_suscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
+do_subscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
     #db{couchdb=CouchdbState} = DbState,
     #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
     Headers = [{"Accept", "application/json"}],

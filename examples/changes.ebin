@@ -9,7 +9,7 @@ main(_) ->
     Conn = couchbeam_server:start_connection_link(),
     Db = couchbeam_server:open_db(Conn, "couchdbproxy"),
     Pid = spawn(fun() -> get_changes() end),
-    couchbeam_db:suscribe(Db, Pid, [{heartbeat, "true"}]),
+    couchbeam_db:subscribe(Db, Pid, [{heartbeat, "true"}]),
     receive
         die -> ok
     end.
