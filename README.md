@@ -1,5 +1,5 @@
 
-couchbeam 0.4 - 2009 (c) Benoît Chesneau <benoitc@e-engura.org>
+couchbeam 0.4.3 - 2009-2010 (c) Benoît Chesneau <benoitc@e-engura.org>
 ---------------------------------------------------------------
 
 **couchbeam** is a simple erlang CouchDB framework. couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
@@ -21,4 +21,4 @@ To bulid the application simply run 'make'. This should build .beam, .app
 files and documentation.
 
 To run tests run 'make test'.
-To generate doc, run 'make docs'.
+To generate doc, run 'make doc'.
