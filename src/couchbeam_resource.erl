@@ -21,7 +21,7 @@
 
 
 -export([get/5, head/5, delete/5, post/6, put/6]).
--export([get_body_part/1,get_body_part/2]).
+-export([make_auth/2, get_body_part/1,get_body_part/2]).
 -export([encode_query/1]).
 
 -record(response, {

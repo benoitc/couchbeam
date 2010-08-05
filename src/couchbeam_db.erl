@@ -417,7 +417,7 @@ subscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
 do_subscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
     #db{couchdb=CouchdbState} = DbState,
     #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
-    Headers = [{"Accept", "application/json"}],
+    Headers = couchbeam_resource:make_auth(CouchdbState, [{"Accept", "application/json"}]),
     Options = [{partial_download, [{window_size, infinity}]}],
     case lhttpc:request(Host, Port, Ssl, Path, 'GET', Headers, <<>>, Timeout, Options) of
         {ok, {{_, _}, _, ResponseBody}} ->
