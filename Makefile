@@ -2,8 +2,11 @@ ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
 
-all: doc
+all: deps docs
 	./rebar compile
+
+deps:
+	./rebar get-deps
 
 docs:
 	@mkdir -p doc/api
