@@ -68,7 +68,7 @@
          join/2, revjoin/3, url_encode/1, quote_plus/1, split/2, 
          guess_mime/1, val/1, encodeBase64/1]).
 
-
+-export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
 -define(FULLSTOP, 46). % $\.
 -define(IS_HEX(C), ((C >= $0 andalso C =< $9) orelse
@@ -79,7 +79,23 @@
                      (C >= $0 andalso C =< $9) orelse
                      (C =:= ?FULLSTOP orelse C =:= $- orelse C =:= $~ orelse
                       C =:= $_))).
-                      
+
+
+shutdown_sync(Pid) when not is_pid(Pid)->
+    ok;
+shutdown_sync(Pid) ->
+    MRef = erlang:monitor(process, Pid),
+    try
+        catch unlink(Pid),
+        catch exit(Pid, shutdown),
+        receive
+        {'DOWN', MRef, _, _, _} ->
+            ok
+        end
+    after
+        erlang:demonitor(MRef, [flush])
+    end.
+
 hexdigit(C) when C < 10 -> $0 + C;
 hexdigit(C) when C < 16 -> $A + (C - 10).
 

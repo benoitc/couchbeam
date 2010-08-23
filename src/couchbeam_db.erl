@@ -31,9 +31,10 @@
 -export([query_view/3, all_docs/2, all_docs_by_seq/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
--export([open/2, close/2, create/2, delete/2, open_or_create/2]).
+-export([open/2, close/1, create/2, delete/2, open_or_create/2]).
 -export([subscribe/2, subscribe/3]).
 -export([encode_docid/1]).
+-export([is_idle/1]).
 
 %% @type node_info() = {Host::string(), Port::int()}
 %% @type iolist() = [char() | binary() | iolist()]
@@ -46,6 +47,13 @@
 %%                     json_object()
 
 
+is_idle(Db) ->
+    case process_info(Db, monitored_by) of
+        {monitored_by, []} -> true;
+        _ -> false
+    end.
+ 
+
 %% @spec info(Db::pid()) -> list()
 %% @doc fetch information of Database
 info(Db) ->
@@ -54,8 +62,8 @@ info(Db) ->
 open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
 
-close(ConnectionPid, Db) ->
-    couchbeam_server:close_db(ConnectionPid, db_pid(Db)).
+close(Db) ->
+    gen_server:call(Db, close, infinity). 
     
 create(ConnectionPid, DbName) ->
     couchbeam_server:create_db(ConnectionPid, DbName).
@@ -233,13 +241,17 @@ encode_docid1(DocId) ->
 %%---------------------------------------------------------------------------
 %% @private
 
-init({DbName, #server_state{couchdb=C, prefix=Prefix} = ServerState}) ->
+init({DbName, #server{couchdb=C, prefix=Prefix} = Server, ServerPid}) ->
     State = #db{name    = DbName,
-                server  = ServerState,
+                server  = Server,
+                server_pid = ServerPid,
                 couchdb = C,
                 base    = Prefix ++ DbName},
     {ok, State}.
-    
+  
+handle_call(close, _From, #db{server_pid=ServerPid,name=Name}=State) ->
+    {reply, couchbeam_server:close_db(ServerPid, Name), State};
+
 handle_call(info, _From, #db{couchdb=C, base=Base} = State) ->
     Infos = case couchbeam_resource:get(C, Base, [], [], []) of
         {ok, {Infos1}} -> Infos1;
@@ -260,7 +272,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
         undefined ->
-            #server_state{uuids_pid=UuidsPid} = ServerState,
+            #server{uuids_pid=UuidsPid} = ServerState,
             couchbeam_uuids:next_uuid(UuidsPid);
         Id1 -> encode_docid(Id1)
     end,
@@ -457,7 +469,7 @@ decode_lines([Line|Rest], Acc) ->
     decode_lines(Rest, [Line1, Acc]).
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->
-    #server_state{uuids_pid=UuidsPid} = ServerState,
+    #server{uuids_pid=UuidsPid} = ServerState,
     case proplists:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = couchbeam_uuids:next_uuid(UuidsPid),

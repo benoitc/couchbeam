@@ -21,14 +21,16 @@ main(_) ->
 
 start_app() ->
     couchbeam:start(),
-    couchbeam_server:start_connection_link(),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    Conn = couchbeam_server:start_connection_link(),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    Conn = couchbeam_server:start_connection_link(),
+    
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
     ok.
     
 
@@ -39,7 +41,9 @@ get_streamed_attachment({ok, Bin}, Pid, Acc) ->
     get_streamed_attachment(NextState, Pid, [binary_to_list(Bin)|Acc]).
 
 test() ->
-    Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
+    Conn = couchbeam_server:start_connection_link(),
+    
+    Db = couchbeam_server:create_db(Conn, "couchbeam_testdb"),
     etap:is(is_pid(Db), true, "db created ok"),
     Doc = {[
         {<<"_id">>, <<"test">>}

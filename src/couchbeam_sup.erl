@@ -21,10 +21,7 @@
 -export([start_link/0, init/1]).
 
 start_link() ->
-    supervisor:start_link(?MODULE, nil).
+    supervisor:start_link({local,?MODULE}, ?MODULE, []).
     
 init(_) ->
-    Manager = {couchbeam_manager, {couchbeam_manager, start_link, []},
-        permanent, infinity, supervisor, [couchbeam_manager]
-    },
-    {ok, {{one_for_one, 10, 3600}, [Manager]}}.
+    {ok, {{one_for_one, 10, 3600}, []}}.

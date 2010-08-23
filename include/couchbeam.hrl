@@ -28,15 +28,17 @@
     username    = nil :: string(),
     password    = nil :: string(),
     name        = default :: term(),
-    timeout     = infinity :: integer() | infinity
+    timeout     = infinity :: integer() | infinity,
+    max_dbs_open = 100
 }).
 
--record(server_state, {
+-record(server, {
     couchdb = #couchdb_params{},
-    prefix,
     name,
-    dbs_by_name = undefined,
-    dbs_by_pid = undefined,
+    prefix,
+    max_dbs_open,
+    dbs_open=0,
+    dbname_regexp,
     uuids_pid = undefined
 }).
 
@@ -44,6 +46,7 @@
 -record(db, {
     name,
     server,
+    server_pid,
     couchdb = #couchdb_params{},
     base
 }).

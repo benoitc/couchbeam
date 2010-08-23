@@ -3,7 +3,7 @@
 %%! -pa ./ebin -pa ./t
 
 main(_) ->
-    etap:plan(29),
+    etap:plan(28),
     start_app(),
     case (catch test()) of
         ok ->
@@ -18,18 +18,20 @@ main(_) ->
 
 start_app() ->
     couchbeam:start(),
-    couchbeam_server:start_connection_link(),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    Conn = couchbeam_server:start_connection_link(),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(default, "couchbeam_testdb2"),
+    Conn = couchbeam_server:start_connection_link(),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
+    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
     ok.
     
 test() ->
-    Db = couchbeam_server:create_db(default, "couchbeam_testdb"),
+    Conn = couchbeam_server:start_connection_link(),
+    Db = couchbeam_server:create_db(Conn, "couchbeam_testdb"),
     etap:is(is_pid(Db), true, "db created ok"),
     Doc = couchbeam_db:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
     etap:ok(case Doc of
@@ -64,19 +66,11 @@ test() ->
         end, "doc2 has been deleted"),
     etap:is(couchbeam_db:open_doc(Db, "test2"), not_found, "test2 not found"),
     
-    % test managed db
-    Db1 = couchbeam_server:create_db(default, {testdb2, "couchbeam_testdb2"}),
-    Doc3 = couchbeam_db:save_doc(testdb2, {[{<<"test">>, <<"blah">>}]}),
-    etap:ok(case Doc3 of
-           {_} -> true;
-           _ -> false
-       end, "save doc in managed db ok"),
-    
-    Doc4 = {[{<<"a">>, 1}]},
+       Doc4 = {[{<<"a">>, 1}]},
     etap:is(couchbeam_doc:get_value(<<"a">>, Doc4), 1, "get value ok"),
     etap:is(couchbeam_doc:get_value("a", Doc4), 1, "get value from string ok"),
     etap:is(couchbeam_doc:get_value("b", Doc4), undefined, "get undefined value ok"),
-    etap:is(couchbeam_doc:get_value("b", Doc4, nil), nil, "get undefined value with default ok"),
+    etap:is(couchbeam_doc:get_value("b", Doc4, nil), nil, "get undefined value with Conn ok"),
     Doc5 = couchbeam_doc:set_value("b", 1, Doc4),
     etap:is(couchbeam_doc:get_value("b", Doc5), 1, "set value ok"),
     Doc6 = couchbeam_doc:set_value("b", 0, Doc5),
