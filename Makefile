@@ -14,7 +14,7 @@ docs:
 
 test: all
 	@$(ERLC) -o t/ t/etap.erl
-	prove -v t/*.t
+	prove t/*.t
 
 cover: all
 	COVER=1 prove t/*.t
