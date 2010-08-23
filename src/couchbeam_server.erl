@@ -75,9 +75,6 @@ start_internal(#server{name=Name}=InitialState, _Link = true) ->
         {ok, Pid} ->
             Pid;
         {error, running} ->
-            %% this error occurs if multiple replicators are racing
-            %% each other to start and somebody else won.  Just grab
-            %% the Pid by calling start_child again.
             {error, {already_started, Pid}} =
                 supervisor:start_child(couchbeam_sup, Conn),
             Pid
