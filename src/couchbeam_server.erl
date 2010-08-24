@@ -159,9 +159,9 @@ check_dbname(#server{dbname_regexp=RegExp}, DbName) ->
 %% @private
   
 init([#server{couchdb=C, prefix=P} = InitialState]) ->
-    ets:new(couch_dbs_by_name, [set, private, named_table]),
-    ets:new(couch_dbs_by_pid, [set, private, named_table]),
-    ets:new(couch_dbs_by_lru, [ordered_set, private, named_table]),
+    ets:new(couchbeam_dbs_by_name, [set, private, named_table]),
+    ets:new(couchbeam_dbs_by_pid, [set, private, named_table]),
+    ets:new(couchbeam_dbs_by_lru, [ordered_set, private, named_table]),
 
     {ok, UuidsPid} = gen_server:start_link(couchbeam_uuids, {C, P}, []),
     {ok, RegExp} = re:compile("^[a-z][a-z0-9\\_\\$()\\+\\-\\/]*$"),
@@ -186,15 +186,15 @@ handle_call(all_dbs, _From, #server{prefix=Base, couchdb=C}=State) ->
 
 handle_call({open_db, DbName, Options}, _From, Server) ->
     LruTime = now(),
-    case ets:lookup(couch_dbs_by_name, DbName) of
+    case ets:lookup(couchbeam_dbs_by_name, DbName) of
         [] ->
             do_open_db(DbName, Server, Options);
         [{_, {MainPid, PrevLruTime, _Ref}}] ->
             Ref = erlang:monitor(process, MainPid),
-            true = ets:insert(couch_dbs_by_name, {DbName, {MainPid,
+            true = ets:insert(couchbeam_dbs_by_name, {DbName, {MainPid,
                         LruTime, Ref}}),
-            true = ets:delete(couch_dbs_by_lru, PrevLruTime),
-            true = ets:insert(couch_dbs_by_lru, {LruTime, DbName}),
+            true = ets:delete(couchbeam_dbs_by_lru, PrevLruTime),
+            true = ets:insert(couchbeam_dbs_by_lru, {LruTime, DbName}),
             {reply, MainPid, Server}
     end;
     
@@ -202,7 +202,7 @@ handle_call({create_db, DbName, Options}, _From, Server) ->
     #server{prefix=Base, couchdb=C} = Server, 
     case check_dbname(Server, DbName) of
         ok ->
-            case ets:lookup(couch_dbs_by_name, DbName) of
+            case ets:lookup(couchbeam_dbs_by_name, DbName) of
             [] ->
                 case couchbeam_resource:put(C, Base ++ DbName, [], [], 
                         [], []) of
@@ -220,33 +220,33 @@ handle_call({create_db, DbName, Options}, _From, Server) ->
 
 handle_call({delete_db, DbName}, _From, Server) ->
     #server{prefix=Base,couchdb=C} = Server,       
-    case ets:lookup(couch_dbs_by_name, DbName) of
+    case ets:lookup(couchbeam_dbs_by_name, DbName) of
     [] ->
         couchbeam_resource:delete(C, Base ++ DbName, [], [], []),
         {reply, ok, Server};
     [{_, {Pid, LruTime, Ref}}] ->
         erlang:demonitor(Ref, [flush]),
         couchbeam_util:shutdown_sync(Pid),
-        true = ets:delete(couch_dbs_by_name, DbName),
-        true = ets:delete(couch_dbs_by_pid, Pid),
-        true = ets:delete(couch_dbs_by_lru, LruTime),
+        true = ets:delete(couchbeam_dbs_by_name, DbName),
+        true = ets:delete(couchbeam_dbs_by_pid, Pid),
+        true = ets:delete(couchbeam_dbs_by_lru, LruTime),
         couchbeam_resource:delete(C, Base ++ DbName, [], [], []),
         DbsOpen = Server#server.dbs_open - 1,
         {reply, ok, Server#server{dbs_open=DbsOpen}} 
     end;
    
 handle_call({close_db, DbName}, _From, Server) ->
-    case ets:lookup(couch_dbs_by_name, DbName) of
+    case ets:lookup(couchbeam_dbs_by_name, DbName) of
         [] -> ok;
         [{_, {_Pid, _LruTime, Ref}}] -> erlang:demonitor(Ref, [flush])
     end,
     {reply, ok, Server};
 
 handle_call({close_db_pid, DbPid}, _From, Server) ->
-    case ets:lookup(couch_dbs_by_pid, DbPid) of 
+    case ets:lookup(couchbeam_dbs_by_pid, DbPid) of 
     [] -> ok;
     [DbName] ->
-        case ets:lookup(couch_dbs_by_name, DbName) of
+        case ets:lookup(couchbeam_dbs_by_name, DbName) of
         [] -> ok;
         [{_, {_Pid, _LruTime, Ref}}] ->
             erlang:demonitor(Ref, [flush])
@@ -258,15 +258,15 @@ handle_cast(Msg, _Server) ->
     exit({unknown_cast_message, Msg}).
 
 handle_info({'DOWN', _MonRef, _, Pid, _}, Server) ->
-    case ets:lookup(couch_dbs_by_pid, Pid) of 
+    case ets:lookup(couchbeam_dbs_by_pid, Pid) of 
     [] -> ok;
     [DbName] ->
-        ets:delete(couch_dbs_by_pid, Pid),
-        case ets:lookup(couch_dbs_by_name, DbName) of
+        ets:delete(couchbeam_dbs_by_pid, Pid),
+        case ets:lookup(couchbeam_dbs_by_name, DbName) of
         [] -> ok;
         [{_, {_Pid, LruTime, _Ref}}] ->
-            ets:delete(couch_dbs_by_name, DbName),
-            ets:delete(couch_dbs_by_lru, LruTime)
+            ets:delete(couchbeam_dbs_by_name, DbName),
+            ets:delete(couchbeam_dbs_by_lru, LruTime)
         end
     end,
     DbsOpen = Server#server.dbs_open - 1,
@@ -279,7 +279,7 @@ handle_info(Error, _Server) ->
 terminate(_Reason, _State) ->
     % close all dbs related to this server
     [couchbeam_util:shutdown_sync(Pid) || {_, {Pid, _LruTime}} <-
-            ets:tab2list(couch_dbs_by_name)],
+            ets:tab2list(couchbeam_dbs_by_name)],
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -305,8 +305,8 @@ try_close_lru(StartTime) ->
         % all in use.
         {error, all_dbs_active};
     true ->
-        [{_, DbName}] = ets:lookup(couch_dbs_by_lru, LruTime),
-        [{_, {MainPid, LruTime}}] = ets:lookup(couch_dbs_by_name, DbName),
+        [{_, DbName}] = ets:lookup(couchbeam_dbs_by_lru, LruTime),
+        [{_, {MainPid, LruTime}}] = ets:lookup(couchbeam_dbs_by_name, DbName),
         case couch_db:is_idle(MainPid) of
         true ->
             ok = shutdown_idle_db(DbName, MainPid, LruTime);
@@ -314,36 +314,36 @@ try_close_lru(StartTime) ->
             % this still has referrers. Go ahead and give it a current lru time
             % and try the next one in the table.
             NewLruTime = now(),
-            true = ets:insert(couch_dbs_by_name, {DbName, {MainPid, NewLruTime}}),
-            true = ets:insert(couch_dbs_by_pid, {MainPid, DbName}),
-            true = ets:delete(couch_dbs_by_lru, LruTime),
-            true = ets:insert(couch_dbs_by_lru, {NewLruTime, DbName}),
+            true = ets:insert(couchbeam_dbs_by_name, {DbName, {MainPid, NewLruTime}}),
+            true = ets:insert(couchbeam_dbs_by_pid, {MainPid, DbName}),
+            true = ets:delete(couchbeam_dbs_by_lru, LruTime),
+            true = ets:insert(couchbeam_dbs_by_lru, {NewLruTime, DbName}),
             try_close_lru(StartTime)
         end
     end.
 
 get_lru() ->
-    get_lru(ets:first(couch_dbs_by_lru)).
+    get_lru(ets:first(couchbeam_dbs_by_lru)).
 
 get_lru(LruTime) ->
-    [{LruTime, DbName}] = ets:lookup(couch_dbs_by_lru, LruTime),
+    [{LruTime, DbName}] = ets:lookup(couchbeam_dbs_by_lru, LruTime),
 
-    [{_, {MainPid, _, _}}] = ets:lookup(couch_dbs_by_name, DbName),
+    [{_, {MainPid, _, _}}] = ets:lookup(couchbeam_dbs_by_name, DbName),
     case couch_db:is_idle(MainPid) of
     true ->
-        NextLru = ets:next(couch_dbs_by_lru, LruTime),
+        NextLru = ets:next(couchbeam_dbs_by_lru, LruTime),
         ok = shutdown_idle_db(DbName, MainPid, LruTime),
         get_lru(NextLru);
     false ->
-        get_lru(ets:next(couch_dbs_by_lru, LruTime))
+        get_lru(ets:next(couchbeam_dbs_by_lru, LruTime))
     end.
 
 
 shutdown_idle_db(DbName, MainPid, LruTime) ->
     couchbeam_util:shutdown_sync(MainPid),
-    true = ets:delete(couch_dbs_by_lru, LruTime),
-    true = ets:delete(couch_dbs_by_name, DbName),
-    true = ets:delete(couch_dbs_by_pid, MainPid),
+    true = ets:delete(couchbeam_dbs_by_lru, LruTime),
+    true = ets:delete(couchbeam_dbs_by_name, DbName),
+    true = ets:delete(couchbeam_dbs_by_pid, MainPid),
     ok.
 
 do_open_db(DbName, Server, _Options) ->
@@ -356,10 +356,10 @@ do_open_db(DbName, Server, _Options) ->
                     {DbName, Server2, self()}, []),
                 LruTime = now(),
                 Ref = erlang:monitor(process, DbPid),
-                true = ets:insert(couch_dbs_by_name, {DbName, {DbPid,
+                true = ets:insert(couchbeam_dbs_by_name, {DbName, {DbPid,
                             LruTime, Ref}}),
-                true = ets:insert(couch_dbs_by_pid, {DbPid, DbName}),
-                true = ets:insert(couch_dbs_by_lru, {LruTime, DbName}),
+                true = ets:insert(couchbeam_dbs_by_pid, {DbPid, DbName}),
+                true = ets:insert(couchbeam_dbs_by_lru, {LruTime, DbName}),
                 DbsOpen = Server2#server.dbs_open + 1,
                 {reply, DbPid, Server2#server{dbs_open=DbsOpen}};
             CloseError ->
