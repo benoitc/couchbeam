@@ -244,7 +244,7 @@ handle_call({fetch, Options}, _From, #view{db=Db, view_uri=Uri}=View) ->
             {reply, Results, View}
     end;
 handle_call(close, _From, View) ->
-    {stop, normal, State}.
+    {stop, normal, View}.
 
 handle_cast(_Msg,  State) ->
     {no_reply, State}.
