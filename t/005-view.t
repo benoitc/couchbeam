@@ -95,6 +95,8 @@ include docs ok"),
     couchbeam_view:foreach(View, Fun1),
     etap:is(ets:info(Tid, size), 2, "foreach ok"),
 
+    couchbeam_view:close(View),
+    couchbeam_view:close(AllDocs),
     ok.
 
 

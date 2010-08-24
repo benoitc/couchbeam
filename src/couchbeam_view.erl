@@ -22,7 +22,7 @@
          handle_info/2]).
 -export([count/1, count/2, fetch/1, fetch/2, first/1, first/2, 
         fold/2, fold/3, foreach/2, foreach/3]).
--export([start_view/2]).
+-export([start_view/2, close/1]).
 
 %% @type json_string() = atom | binary()
 %% @type json_number() = integer() | float()
@@ -60,6 +60,11 @@ start_view(Db, ViewName) ->
     {error, {already_started, Pid}} ->
         Pid
     end.
+
+%% spec close(ViewPid:pid) -> void()
+%% @doc close view pid
+close(ViewPid) ->
+    couchbeam_util:shutdown_sync(ViewPid).
 
 %% spec count(ViewPid:pid()) -> Integer
 %% @doc get number of results in the view
