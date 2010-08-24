@@ -66,7 +66,7 @@
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
          join/2, revjoin/3, url_encode/1, quote_plus/1, split/2, 
-         guess_mime/1, val/1, encodeBase64/1]).
+         guess_mime/1, val/1, encodeBase64/1, to_list/1]).
 
 -export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
@@ -318,3 +318,10 @@ encodeBase64(<<>>, Acc) ->
 %%
 enc(C) ->
     65 + C + 6*?st(C,26) - 75*?st(C,52) -15*?st(C,62) + 3*?st(C,63).
+
+to_list(V) when is_list(V) ->
+    V;
+to_list(V) when is_binary(V) ->
+    binary_to_list(V);
+to_list(V)  ->
+    atom_to_list(V).

@@ -28,7 +28,7 @@
          handle_info/2]).
 -export([info/1, open_doc/2, open_doc/3, save_doc/2, save_doc/3, save_docs/2,
          save_docs/3, delete_doc/2, delete_docs/2, delete_docs/3]).
--export([query_view/3, all_docs/2, all_docs_by_seq/2]).
+-export([query_view/3, all_docs/1, all_docs/2, all_docs_by_seq/2, view/2]).
 -export([fetch_attachment/3, fetch_attachment/4, put_attachment/5, put_attachment/6, 
          delete_attachment/3]).
 -export([open/2, close/1, create/2, delete/2, open_or_create/2]).
@@ -57,7 +57,7 @@ is_idle(Db) ->
 %% @spec info(Db::pid()) -> list()
 %% @doc fetch information of Database
 info(Db) ->
-    gen_server:call(db_pid(Db), info, infinity).
+    gen_server:call(Db, info, infinity).
 
 open(ConnectionPid, DbName) ->
     couchbeam_server:open_db(ConnectionPid, DbName).
@@ -84,7 +84,7 @@ open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
 
 open_doc(Db, DocId, Params) ->
-    gen_server:call(db_pid(Db), {open_doc, encode_docid(DocId), Params}, infinity).
+    gen_server:call(Db, {open_doc, encode_docid(DocId), Params}, infinity).
    
 %% @spec save_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc save a do with DocId. 
@@ -92,7 +92,7 @@ save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
 
 save_doc(Db, Doc, Params) ->
-    gen_server:call(db_pid(Db), {save_doc, Doc, Params}, infinity). 
+    gen_server:call(Db, {save_doc, Doc, Params}, infinity). 
    
 %% @spec save_docs(Db::pid(), Docs::json_array()) -> json_object() 
 %% @doc bulk update
@@ -102,7 +102,7 @@ save_docs(Db, Docs) ->
 %% @spec save_docs(Db::pid(), Docs::json_array(), opts: lists()) -> json_object() 
 %% @doc bulk update with options, currently support only all_or_nothing.    
 save_docs(Db, Docs, Params) ->
-    gen_server:call(db_pid(Db), {save_docs, Docs, Params}, infinity). 
+    gen_server:call(Db, {save_docs, Docs, Params}, infinity). 
     
 %% @spec delete_doc(Db::pid(), Doc::json_object()) -> json_object() 
 %% @doc delete a document
@@ -138,31 +138,50 @@ subscribe(Db, Consumer) ->
 %%                      {timeout, integer()}
 %% @doc subscribe to db changes, wait for changes heartbeat 
 subscribe(Db, Consumer, Options) ->
-    gen_server:call(db_pid(Db), {subscribe_changes, Consumer, Options}, infinity).
+    gen_server:call(Db, {subscribe_changes, Consumer, Options}, infinity).
   
 
 %%---------------------------------------------------------------------------
 %% View docs
 %%---------------------------------------------------------------------------  
-    
+
+%% spec view(Db, ViewName) -> ViewPid
+%% Db = pid()
+%% ViewName = term()
+%% ViewPid = pid()
+%% @doc function that create a view that can be used with couch_view
+%% function.
+view(Db, ViewName) ->
+    gen_server:call(Db, {view, ViewName}, infinity). 
+
+%% spec all_docs(Db) -> ViewPid
+%% Db = pid()
+%% ViewPid = pid()
+%% @doc function that create a view that can be used with couch_view
+%% functions.
+all_docs(Db) ->
+    gen_server:call(Db, {view, "_all_docs"}, infinity). 
+
 %% @spec query_view(Db::pid(), 
 %%                  ViewName::view_name(),
 %%                  Params::view_params()) -> json_object()
 %% @type view_params() = proplist()
 %% @doc query a view and return results depending on params
-    
+%% @deprecated use couchbeam_db:view 
 query_view(Db, Vname, Params) ->
-    gen_server:call(db_pid(Db), {query_view, Vname, Params}, infinity). 
+    gen_server:call(Db, {query_view, Vname, Params}, infinity). 
 
 %% @spec all_docs(Db::pid(), Params::list()) -> json_object()
 %% @doc This method has the same behavior as a view. Return all docs
+%% @deprecated use all_docs/1 
+
 all_docs(Db, Params) ->
     query_view(Db, '_all_docs', Params).
     
 %% @spec all_docs_by_seq(Db::pid(), Params::list()) -> json_object()
-%% @deprecated  This feature don't exist anymore in couchdb 0.11, use subscribe() instead.
 %% @doc This method has the same behavior as a view. 
 %% Return an updated list of all documents.
+%% @deprecated doesn't exist anymore in couchdb >= 0.11, use suscribe function instead.
 all_docs_by_seq(Db, Params) ->
     query_view(Db, '_all_docs_by_seq', Params).
    
@@ -186,7 +205,7 @@ fetch_attachment(Db, DocId, AName) ->
 %% @doc fetch attachment. 
 %% should be use to fetch the body
 fetch_attachment(Db, DocId, AName, Streaming)  ->
-    {C, Path, Options} = gen_server:call(db_pid(Db), {fetch_attachment, 
+    {C, Path, Options} = gen_server:call(Db, {fetch_attachment, 
                 encode_docid(DocId), AName, Streaming}),
     case couchbeam_resource:get(C, Path, [], [], Options) of
         {error, Reason} -> Reason;
@@ -210,13 +229,13 @@ put_attachment(Db, Doc, Content, AName, Length) ->
 %%      Content::attachment_content(), AName::string(), Length::string(), ContentType::string()) -> json_obj()
 %% @doc put attachment attachment with ContentType fixed.
 put_attachment(Db, Doc, Content, AName, Length, ContentType) ->
-    gen_server:call(db_pid(Db), {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
+    gen_server:call(Db, {put_attachment, Doc, Content, AName, Length, ContentType}, infinity). 
     
 %% @spec delete_attachment(Db::pid(), Doc::json_obj(),
 %%      AName::string()) -> json_obj()
 %% @doc delete attachment
 delete_attachment(Db, Doc, AName) ->
-    gen_server:call(db_pid(Db), {delete_attachment, Doc, AName}, infinity). 
+    gen_server:call(Db, {delete_attachment, Doc, AName}, infinity). 
 
 
 encode_docid(DocId) when is_binary(DocId) ->
@@ -305,9 +324,12 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
         {error, Reason} -> Reason
     end,
     {reply, Res, State};
+handle_call({view, ViewName}, _From, Db) ->
+    {reply, couchbeam_view:start_view(Db, ViewName), Db};
+
 
 handle_call({query_view, Vname, Params}, _From, State) ->
-    {ok, ViewPid} = gen_server:start_link(couchbeam_view, {Vname, Params, State}, []),
+    {ok, ViewPid} = gen_server:start_link(couchbeam_view1, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
 handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
@@ -477,12 +499,6 @@ maybe_docid(#db{server=ServerState}, {DocProps}) ->
         _DocId ->
             {DocProps}
     end.
-    
-
-db_pid(Db) when is_pid(Db) ->
-    Db;
-db_pid(Db) ->
-    couchbeam_manager:get_db(Db).
     
 get_option(Option, Options) ->
     {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.

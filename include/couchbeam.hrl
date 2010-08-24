@@ -51,7 +51,7 @@
     base
 }).
 
--record(view, {
+-record(old_view, {
     server,
     db,
     couchdb = #couchdb_params{},
@@ -64,6 +64,12 @@
     rows=[],
     meta=[],
     view_cache
+}).
+
+-record(view, {
+    db,
+    view_name,
+    view_uri
 }).
 
 -record(change, {

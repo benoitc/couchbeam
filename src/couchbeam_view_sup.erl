@@ -1,4 +1,4 @@
-%%% Copyright 2009 Benoît Chesneau.
+%%% Copyright 2010 Benoît Chesneau.
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
 %%% You may obtain a copy of the License at
@@ -10,25 +10,19 @@
 %%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
-%%%
-%% @author Benoît Chesneau <benoitc@e-engura.org>
-%% @copyright 2009 Benoît Chesneau.
 
--module(couchbeam_sup).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-module(couchbeam_view_sup).
 -behaviour(supervisor).
+-export([init/1, start_link/0]).
 
--export([start_link/0, init/1]).
+-include("couchbeam.hrl").
 
 start_link() ->
     supervisor:start_link({local,?MODULE}, ?MODULE, []).
-    
-init(_) ->
-    {ok, {{one_for_one, 10, 3600}, [ 
-            {couchbeam_view_supervisor,
-                {couchbeam_view_sup, start_link, []},
-                permanent,
-                infinity,
-                supervisor,
-                [couchbeam_view_sup]}
-    ]}}.
+
+%%=============================================================================
+%% supervisor callbacks
+%%=============================================================================
+
+init([]) ->
+    {ok, {{one_for_one, 3, 10}, []}}.

@@ -8,6 +8,8 @@
                         couchbeam_deps,
                         couchbeam_doc,
                         couchbeam_view,
+                        couchbeam_view_sup,
+                        couchbeam_view1,
                         couchbeam_uuids, 
                         couchbeam_mochijson2,
                         couchbeam_mochinum,

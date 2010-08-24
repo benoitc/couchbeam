@@ -1,4 +1,4 @@
-%%% Copyright 2009 Benoît Chesneau.
+%%% Copyright 2010 Benoît Chesneau.
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
 %%% You may obtain a copy of the License at
@@ -10,11 +10,6 @@
 %%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
-%%%
-%% @author Benoît Chesneau <benoitc@e-engura.org>
-%% @copyright 2009 Benoît Chesneau.
-
-
 
 -module(couchbeam_view).
 -author('Benoît Chesneau <benoitc@e-engura.org>').
@@ -25,101 +20,225 @@
 
 -export([init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
--export([fetch_view/1, fetch_view/2, parse_view/1, parse_view/2,
-         count/1, count/2, first/1, first/2]).
--export([close_view/1]).
-                  
-                  
-fetch_view(ViewPid) ->
-    fetch_view(ViewPid, false).
-fetch_view(ViewPid, Refresh) ->
-    gen_server:call(ViewPid, {fetch_view, Refresh}, infinity).
- 
+-export([count/1, count/2, fetch/1, fetch/2, first/1, first/2, 
+        fold/2, fold/3, foreach/2, foreach/3]).
+-export([start_view/2]).
 
-%% @spec parse_view(json_object()) -> view_result()
-%% @type view_result() = {TotalRows::integer(), Offset::interger(), Rows::rows()}
-%% @type rows() = {Id::binary(), Key::term(), Row::proplist()}
-%% @doc Return a list of document ids for a given view.   
-parse_view(ViewPid) ->
-    parse_view(ViewPid, false).
-parse_view(ViewPid, Refresh) ->
-    gen_server:call(ViewPid, {parse_view, Refresh}, infinity).
-    
-count(ViewPid) ->
-    count(ViewPid, false).
-count(ViewPid, Refresh) ->
-    gen_server:call(ViewPid, {count, Refresh}, infinity).
-    
-first(ViewPid) ->
-    first(ViewPid, false).
-first(ViewPid, Refresh) ->
-    case parse_view(ViewPid, Refresh) of
-        {_, _, _, []} -> {[]};
-        {_, _, _, [FirstRow|_]} -> FirstRow
+%% @type json_string() = atom | binary()
+%% @type json_number() = integer() | float()
+%% @type json_array() = [json_term()]
+%% @type json_object() = {struct, [{json_string(), json_term()}]}
+%% @type json_term() = json_string() | json_number() | json_array() |
+%%                     json_object()
+
+%% @spec start_view(Db, ViewName) -> ViewPid
+%% @doc start a view supervised
+%% ViewName could be "_all_docs" or with the form "DesignName/ViewName"
+start_view(Db, ViewName) ->
+    ViewName1 = view_name(ViewName),
+    View = {
+        make_view_id(Db, ViewName1),
+        {gen_server, start_link,
+            [?MODULE, [Db, ViewName1], []]},
+        permanent,
+        1000,
+        worker,
+        [?MODULE]
+    },
+    case supervisor:start_child(couchbeam_view_sup, View) of
+    {ok, Pid} ->
+        Pid;
+    {error, already_present} ->
+        case supervisor:restart_child(couchbeam_view_sup, View) of
+        {ok, Pid} ->
+            Pid;
+        {error, running} ->
+            {error, {already_started, Pid}} =
+                supervisor:start_child(couchbeam_view_sup, View),
+            Pid
+        end;
+    {error, {already_started, Pid}} ->
+        Pid
     end.
-                     
-close_view(ViewPid) ->
-    try
-        gen_server:call(ViewPid, close)
-    catch
-        exit:_ -> ok
+
+%% spec count(ViewPid:pid()) -> Integer
+%% @doc get number of results in the view
+count(ViewPid) ->
+    count(ViewPid, []).
+
+%% spec count(ViewPid, Options) -> Result
+%% ViewPid = pid()
+%% Options = ViewOptions
+%% Result = Integer
+%% Options = [ViewOptions]
+%% @doc get number of results in the view
+
+count(ViewPid,  Options) ->
+     Fetch = gen_server:call(ViewPid, {fetch, Options}, infinity),
+     case Fetch of
+        {ok, {Results}} ->
+            case proplists:get_value(<<"limit">>, Options) of
+                0 ->
+                    proplists:get_value(<<"total_rows">>, Results);
+                _ ->
+                    Rows = proplists:get_value(<<"rows">>, Results),
+                    length(Rows)
+            end;
+        {error, _} ->
+            Fetch
+    end.
+
+%% spec first(ViewPid) -> Result
+%% ViewPid = pid()
+%% Result = json_term()
+%% @doc get iall results of the view
+fetch(ViewPid) ->
+    fetch(ViewPid, []).
+
+%% spec fetch(ViewPid, Options) -> Result
+%% ViewPid = pid()
+%% Options = ViewOptions
+%% Result = json_term()
+%% Options = [ViewOptions]
+%% @doc get all results in a view.
+fetch(ViewPid, Options) ->
+    gen_server:call(ViewPid, {fetch, Options}, infinity).
+
+
+%% spec first(ViewPid) -> Result
+%% ViewPid = pid()
+%% Result = json_term()
+%% @doc get first row in results of the view
+first(ViewPid) ->
+    first(ViewPid, []).
+
+%% spec first(ViewPid, Options) -> Result
+%% ViewPid = pid()
+%% Options = ViewOptions
+%% Result = json_term()
+%% Options = [ViewOptions]
+%% @doc get first row in results of the view
+first(ViewPid, Options) ->
+    % make sure we don't override the limit
+    Options1 = case proplists:get_value("limit", Options) of
+        undefined ->
+            [{"limit", 1}|Options];
+        _Else ->
+            Opts = proplists:delete("limit", Options),
+            [{"limit", 1}|Opts]
+    end,
+
+    Fetch = gen_server:call(ViewPid, {fetch, Options1}, infinity),
+    case Fetch of
+        {ok, {Results}} ->
+            Rows = proplists:get_value(<<"rows">>, Results),
+            [FirstRow|_] = Rows,
+            FirstRow;
+        {error, _} ->
+            Fetch
+    end.
+
+
+%% spec fold(ViewPid, Fun) -> Acc
+%% ViewPid = pid()
+%% Fun = fun(Row, AccIn) -> AccOut
+%% Row = json_term()
+%% Acc = AccIn = AccOut = term()
+%% @doc like fold/3 but without options given to the view
+fold(ViewPid, Fun) ->
+    fold(ViewPid, Fun, []).
+
+%% spec fold(ViewPid, Fun, Options) -> Acc
+%% ViewPid = pid()
+%% Fun = fun(Row, AccIn) -> AccOut
+%% Row = json_term()
+%% Options = ViewOptions
+%% Acc = AccIn = AccOut = term()
+%% Options = [ViewOptions]
+%% @doc Calls Fun on successive keys and values of View Results. Fun must return a new accumulator 
+%% which is passed to the next call. [] is returned if the list is empty.
+%% The evaluation order is undefined.
+fold(ViewPid, Fun, Options) ->
+    Fetch = gen_server:call(ViewPid, {fetch, Options}, infinity),
+    case Fetch of
+        {ok, {Results}} ->
+            Rows = proplists:get_value(<<"rows">>, Results),
+            fold_fun(Rows, Fun, []);
+        {error, _} ->
+            Fetch
+    end.
+
+%% spec foreah(ViewPid, Fun) -> void()
+%% ViewPid = pid()
+%% Fun = fun(Row) -> void()
+%% Row = json_term()
+%% like foreach/3 but without options given to the view
+foreach(ViewPid, Fun) ->
+    foreach(ViewPid, Fun, []).
+
+%% spec foreah(ViewPid, Fun, Options) -> void()
+%% ViewPid = pid()
+%% Fun = fun(Row) -> void()
+%% Row = json_term()
+%% Options = ViewOptions
+%% Options = [ViewOptions]
+%% @doc Calls Fun(Elem) for each element Row in view results. This function is used 
+%% for its side effects and the evaluation order is defined to be the
+%% same as the order of the elements in the results.
+foreach(ViewPid, Fun, Options) ->
+    Fetch = gen_server:call(ViewPid, {fetch, Options}, infinity),
+    case Fetch of
+        {ok, {Results}} ->
+            Rows = proplists:get_value(<<"rows">>, Results),
+            do_foreach(Rows, Fun);
+        {error, _} ->
+            Fetch
     end.
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
-%% @private                 
-init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}=DbState}) -> 
-    Base = case Vname of
-        '_all_docs' ->
-            io_lib:format("~s/_all_docs", [BaseDB]);
-        '_all_docs_by_seq' ->
-            io_lib:format("~s/_all_docs_by_seq", [BaseDB]);
-        {DName, VName1} ->
-            io_lib:format("~s/_design/~s/_view/~s", [BaseDB, DName, VName1]);
-        {AnotherBase,DName,VName1} ->
-            io_lib:format("~s/~s/~s/~s",[BaseDB,AnotherBase,DName,VName1])
+
+init([#db{base=Base}=Db, ViewName]) ->
+    Uri = case ViewName of
+        "_all_docs" ->
+            io_lib:format("~s/_all_docs", [Base]);
+        _Else ->
+            case string:tokens(ViewName, "/") of
+            [DName, VName] ->
+                io_lib:format("~s/_design/~s/_view/~s", [Base, DName,
+                        VName]);
+            _ ->
+                throw(invalid_view_name)
+            end
     end,
-    ViewState = #view{server    = ServerState, 
-                      couchdb   = CouchdbParams, 
-                      db        = DbState,
-                      name      = Vname,
-                      base      = Base, 
-                      params    = Params},
-    {ok, ViewState}.
-    
-handle_call({fetch_view, Refresh}, _From, State) ->
-    {ViewResults, NewState} = is_fetch_view(Refresh, State),
-    {reply, ViewResults, NewState};
-    
-handle_call({parse_view, Refresh}, _From, State) ->
-    {ViewResults, NewState} = is_fetch_view(Refresh, State),
-    #view{fetched=Fetched} = NewState,
-    Parsed = case Fetched of
-        true -> parse_view1(NewState);
-        false -> ViewResults
-    end,
-    {reply, Parsed, NewState};
-    
-handle_call({count, Refresh}, _From, State) ->
-    {_, NewState} = is_fetch_view(Refresh, State),
-    #view{fetched=Fetched, rows=Rows} = NewState,
-    Count = case Fetched of
-        true -> length(Rows);
-        false -> 0
-    end,
-     {reply, Count, NewState};
-    
-handle_call(close, _From, State) ->
-    {stop, normal, State}.
-    
-handle_cast(_Msg, State) ->
+    {ok, #view{db=Db, 
+                view_name=ViewName,
+                view_uri= Uri}}.
+
+handle_call({fetch, Options}, _From, #view{db=Db, view_uri=Uri}=View) ->
+    case parse_view_options(Options, []) of
+        fail ->
+            {reply, {error, invalid_view_options}, View};
+        Options1 ->
+            #db{couchdb=C}=Db,
+            Results = case proplists:get_value("keys", Options1) of
+                undefined ->
+                    couchbeam_resource:get(C, Uri, [], Options1, []);
+                Keys ->
+                    Options2 = proplists:delete("keys", Options1),
+                    Payload = couchbeam:json_encode({[{<<"keys">>,
+                                    Keys}]}),
+                    couchbeam_resource:post(C, Uri, [], Options2,
+                        Payload,[])
+            end,
+            {reply, Results, View}
+    end.
+
+handle_cast(_Msg,  State) ->
     {no_reply, State}.
     
 
-handle_info({'EXIT', _Pid, _Reason}, State) ->
-    io:format("Stopping view ~p ~n", [State#view.name]),
-    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -129,94 +248,36 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+
+
 %% @private
+do_foreach([], _Fun) ->
+    ok;
+do_foreach([Row|Rest], Fun) ->
+    Fun(Row),
+    do_foreach(Rest, Fun).
 
-is_fetch_view(Refresh, #view{couchdb=C, base=Base, params=Params, 
-                            fetched=Fetched, view_cache=ViewCache}=State) ->
-    ViewResults = case Refresh of
-        true ->
-            fetch_view(C, Params, Base);
-        false when(Fetched =:= false) ->
-            fetch_view(C, Params, Base);
-        false -> {ok, ViewCache}
-    end,
-    NewState = update_view_state(ViewResults, Refresh, State),
-    {ViewResults, NewState}.
-    
+fold_fun([], _Fun, Acc) ->
+    Acc;
+fold_fun([Row|Rest], Fun, Acc) ->
+    fold_fun(Rest, Fun, Fun(Row, Acc)).
 
-fetch_view(C, Params, Base) ->
-    case proplists:get_value("keys", Params) of
-        undefined -> 
-            couchbeam_resource:get(C, Base, [], Params, []);
-        Keys ->
-            Params1 = proplists:delete("keys", Params),
-            Body = couchbeam:json_encode({[{<<"keys">>, Keys}]}),
-            couchbeam_resource:post(C, Base, [], Params1, Body, [])
-    end.
-    
-update_view_state(ViewResults, Refresh, #view{fetched=Fetched}=ViewState) ->
-    if 
-        Refresh =:= false, Fetched =:= true ->
-            %% don't do unnecessary things
-            ViewState;
-        true ->
-            case ViewResults of
-                {ok, Results} ->
-                    update_view_state1(Results, ViewState);
-                {error, _} ->
-                    reset_view_state(ViewState)
-            end
-        end.
-      
-update_view_state1({ViewProps}=ViewResult, ViewState) ->  
-    TotalRows = proplists:get_value(<<"total_rows">>, ViewProps, 0),
-    Offset = proplists:get_value(<<"offset">>, ViewProps, 0),
-    Rows = proplists:get_value(<<"rows">>, ViewProps, []),
-    {Meta, Rows} = case  proplists:get_value(<<"rows">>, ViewProps) of
-        undefined ->
-            {ViewProps, []};
-        Rows1 ->
-            ViewProps1 = proplists:delete(<<"rows">>, ViewProps),
-            {ViewProps1, Rows1}
-    end,    
-    ViewState1 = ViewState#view{fetched  = true,
-                       total_rows = TotalRows,
-                       offset = Offset,
-                       rows = Rows,
-                       meta = Meta,
-                       view_cache = ViewResult},
-    ViewState1;
+parse_view_options([], Acc) ->
+    Acc;
+parse_view_options([V|Rest], Acc) when is_atom(V) ->
+    parse_view_options(Rest, [{atom_to_list(V), true}|Acc]);
+parse_view_options([{K,V}|Rest], Acc) when is_list(K) ->    
+    parse_view_options(Rest, [{K,V}|Acc]);
+parse_view_options([{K,V}|Rest], Acc) when is_binary(K) ->
+    parse_view_options(Rest, [{binary_to_list(K),V}|Acc]);
+parse_view_options([{K,V}|Rest], Acc) when is_atom(K) ->   
+    parse_view_options(Rest, [{atom_to_list(K),V}|Acc]);
+parse_view_options(_,_) ->
+    fail.
 
-update_view_state1(ViewResult, ViewState) -> 
-    ViewState1 = reset_view_state(ViewState),
-    ViewState2 = ViewState1#view{fetched = true,
-                                 view_cache = ViewResult},
-    ViewState2.
-    
-reset_view_state(ViewState) ->
-    ViewState1 = ViewState#view{fetched  = false,
-                                total_rows = 0,
-                                offset = 0,
-                                rows = [],
-                                meta = []},
-    ViewState1.
+make_view_id(#db{name=DbName}, VName) ->
+    Md5 = crypto:md5(DbName ++ VName),
+    couchbeam_util:to_hex(Md5). 
 
-parse_view1(#view{view_cache={_ViewCache}, total_rows=TotalRows,offset=Offset, rows=Rows, meta=Meta}) ->
-    Rows1 = [begin
-        {Row1} = Row,
-        Id = proplists:get_value(<<"id">>, Row1),
-        Key = proplists:get_value(<<"key">>, Row1),
-        Value = proplists:get_value(<<"value">>, Row1),
-        case proplists:get_value(<<"doc">>, Row1) of
-            undefined ->
-                case Value of 
-                    [] -> Id;
-                    _ -> {Id, Key, Value}
-                end;
-            Doc ->
-                {Id, Key, Value, Doc}
-        end
-    end || Row <- Rows],
-    {TotalRows, Offset, Meta, Rows1};
-parse_view1(#view{view_cache=ViewCache, total_rows=_TotalRows,offset=_Offset, rows=_Rows, meta=_Meta}) ->
-    ViewCache.
+view_name(VName) ->
+    couchbeam_util:to_list(VName).
