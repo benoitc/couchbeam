@@ -64,7 +64,11 @@ start_view(Db, ViewName) ->
 %% spec close(ViewPid:pid) -> void()
 %% @doc close view pid
 close(ViewPid) ->
-    couchbeam_util:shutdown_sync(ViewPid).
+    try
+        gen_server:call(ViewPid, close)
+    catch
+        exit:_ -> ok
+    end.
 
 %% spec count(ViewPid:pid()) -> Integer
 %% @doc get number of results in the view
@@ -238,7 +242,9 @@ handle_call({fetch, Options}, _From, #view{db=Db, view_uri=Uri}=View) ->
                         Payload,[])
             end,
             {reply, Results, View}
-    end.
+    end;
+handle_call(close, _From, View) ->
+    {stop, normal, State}.
 
 handle_cast(_Msg,  State) ->
     {no_reply, State}.
