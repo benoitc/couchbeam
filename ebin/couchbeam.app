@@ -16,6 +16,6 @@
                         couchbeam_util,
                         couchbeam_sup]},
               {registered,[couchbeam_sup]},
-              {applications,[kernel, stdlib]},
+              {applications,[kernel, stdlib, lhttpc]},
 			  {env, []},
 			  {mod, {couchbeam, []}}]}.
