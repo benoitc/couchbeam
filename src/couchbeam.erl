@@ -22,9 +22,74 @@
 
 -behaviour(application).
 
+-include("couchbeam.hrl").
+
 -export([start/0, version/0]).
 -export([json_encode/1,json_decode/1]).
 -export([start/2, stop/1]).
+-export([transact/1, transact/2, transact/3, transact/4]).
+
+%% --------------------------------------------------------------------
+%% transact functions
+%% --------------------------------------------------------------------
+
+%% @spec transact(Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the ConnctionPid
+%% as argument. In this case default params are used.
+transact(F) ->
+    case couchbeam_server:start_connection_link() of
+        {error, Error} -> {error, Error};
+        Conn -> transact(Conn, F)
+    end.
+
+
+%% @spec transact(Params, Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the ConnctionPid
+%% as argumentt. Params is a #couchdb_params{} record
+transact(Params, F) when is_record(Params, couchdb_params) ->
+    case couchbeam_server:start_connection_link(Params) of
+        {error, Error} -> {error, Error};
+        Conn -> F(Conn)
+    end;
+
+%% @spec transact(ConnectionPid, Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the ConnctionPid
+%% as argumentt.
+transact(Conn, F) when is_pid(Conn) ->
+    F(Conn);
+
+%% @spec transact(iName, Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the ConnctionPid
+%% as argumentt.The name of the connection is passed and we look in
+%% supervised process to find the connection Pid
+transact(Name, F) ->
+    Children = supervisor:which_children(couchbeam_sup),
+    case proplists:lookup(Name, Children) of
+        none -> {error, not_started};
+        {_, Conn, _, _} -> F(Conn)
+    end.
+
+%% @spec transact(Connection, DbName, Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the Database Pid
+%% as argumentt.
+transact(Connection, DbName, F) ->
+    transact(Connection, fun(Conn) ->
+        case couchbeam_server:open_db(Conn, DbName) of
+            {error, Error} -> {error, Error};
+            Db -> F(Db)
+        end
+    end).
+    
+%% @spec transact(Connection, DbName, Options, Fun) -> {error, Reason} | Result
+%% @doc This function s the functional object Fun with the Database Pid
+%% as argumentt.
+transact(Connection, DbName, Options, F) ->
+    transact(Connection, fun(Conn) ->
+        case couchbeam_server:open_db(Conn, DbName, Options) of
+            {error, Error} -> {error, Error};
+            Db -> F(Db)
+        end
+    end).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.

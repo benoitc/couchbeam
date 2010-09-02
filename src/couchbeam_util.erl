@@ -66,7 +66,8 @@
 
 -export([generate_uuids/1, new_uuid/0, to_hex/1, to_digit/1, 
          join/2, revjoin/3, url_encode/1, quote_plus/1, split/2, 
-         guess_mime/1, val/1, encodeBase64/1, to_list/1]).
+         guess_mime/1, val/1, encodeBase64/1, to_list/1,
+         to_binary/1, to_integer/1, to_atom/1]).
 
 -export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
@@ -319,9 +320,41 @@ encodeBase64(<<>>, Acc) ->
 enc(C) ->
     65 + C + 6*?st(C,26) - 75*?st(C,52) -15*?st(C,62) + 3*?st(C,63).
 
+to_binary(V) when is_binary(V) ->
+    V;
+to_binary(V) when is_list(V) ->
+    try
+        list_to_binary(V)
+    catch
+        _ ->
+            list_to_binary(io_lib:format("~p", [V]))
+    end;
+to_binary(V) when is_atom(V) ->
+    list_to_binary(atom_to_list(V));
+to_binary(V) ->
+    list_to_binary(io_lib:format("~p", [V])).
+
+to_integer(V) when is_integer(V) ->
+    V;
+to_integer(V) when is_list(V) ->
+    erlang:list_to_integer(V);
+to_integer(V) when is_binary(V) ->
+    erlang:list_to_integer(binary_to_list(V)).
+
 to_list(V) when is_list(V) ->
     V;
 to_list(V) when is_binary(V) ->
     binary_to_list(V);
-to_list(V)  ->
-    atom_to_list(V).
+to_list(V) when is_atom(V) ->
+    atom_to_list(V);
+to_list(V) ->
+    lists:flatten(io_lib:format("~p", [V])).
+
+to_atom(V) when is_atom(V) ->
+    V;
+to_atom(V) when is_list(V) ->
+    list_to_atom(V);
+to_atom(V) when is_binary(V) ->
+    binary_to_list(list_to_atom(V));
+to_atom(V) ->
+    list_to_atom(lists:flatten(io_lib:format("~p", [V]))).

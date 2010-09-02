@@ -58,7 +58,7 @@ start_connection_internal(CouchdbParams,ProcLink) ->
     
 start_internal(#server{name=Name}=InitialState, _Link = true) ->
     Conn = {
-        Name,
+        couchbeam_util:to_atom(Name),
         {gen_server, start_link,
             [?MODULE, [InitialState], []]},
         permanent,
@@ -80,7 +80,9 @@ start_internal(#server{name=Name}=InitialState, _Link = true) ->
             Pid
         end;
     {error, {already_started, Pid}} ->
-        Pid
+        Pid;
+    {error, Error} ->
+        {error, Error}
     end;
 start_internal(InitialState, _Link = false) ->
     {ok, Pid} = gen_server:start(couchbeam_server, InitialState, []),
