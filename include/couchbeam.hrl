@@ -29,7 +29,8 @@
     password    = nil :: string(),
     name        = default :: term(),
     timeout     = infinity :: integer() | infinity,
-    max_dbs_open = 100
+    max_dbs_open = 100 :: integer(),
+		headers     = [] :: headers()
 }).
 
 -record(server, {

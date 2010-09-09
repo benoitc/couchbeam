@@ -69,9 +69,9 @@ request(State, Method, Path, Headers, Params, Body, Options) ->
     end.
     
 
-do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout},
+do_request(#couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout, headers=DefaultHeaders},
         Method, Path, Headers, {BodyFun, InitialBody}, Options) ->
-    case lhttpc:request(Host, Port, Ssl, Path, Method, Headers, InitialBody, Timeout, Options) of
+    case lhttpc:request(Host, Port, Ssl, Path, Method, Headers ++ DefaultHeaders, InitialBody, Timeout, Options) of
         {ok, {{StatusCode, ReasonPhrase}, ResponseHeaders, ResponseBody}} ->
             State = #response{method    = Method,
                               status    = StatusCode,
