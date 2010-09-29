@@ -309,7 +309,7 @@ try_close_lru(StartTime) ->
     true ->
         [{_, DbName}] = ets:lookup(couchbeam_dbs_by_lru, LruTime),
         [{_, {MainPid, LruTime}}] = ets:lookup(couchbeam_dbs_by_name, DbName),
-        case couch_db:is_idle(MainPid) of
+        case couchbeam_db:is_idle(MainPid) of
         true ->
             ok = shutdown_idle_db(DbName, MainPid, LruTime);
         false ->
@@ -331,15 +331,14 @@ get_lru(LruTime) ->
     [{LruTime, DbName}] = ets:lookup(couchbeam_dbs_by_lru, LruTime),
 
     [{_, {MainPid, _, _}}] = ets:lookup(couchbeam_dbs_by_name, DbName),
-    case couch_db:is_idle(MainPid) of
+    case couchbeam_db:is_idle(MainPid) of
     true ->
         NextLru = ets:next(couchbeam_dbs_by_lru, LruTime),
         ok = shutdown_idle_db(DbName, MainPid, LruTime),
         get_lru(NextLru);
     false ->
-        get_lru(ets:next(couchbeam_dbs_by_lru, LruTime))
+        ets:next(couchbeam_dbs_by_lru, LruTime)
     end.
-
 
 shutdown_idle_db(DbName, MainPid, LruTime) ->
     couchbeam_util:shutdown_sync(MainPid),
