@@ -355,6 +355,6 @@ to_atom(V) when is_atom(V) ->
 to_atom(V) when is_list(V) ->
     list_to_atom(V);
 to_atom(V) when is_binary(V) ->
-    binary_to_list(list_to_atom(V));
+    list_to_atom(binary_to_list(V));
 to_atom(V) ->
     list_to_atom(lists:flatten(io_lib:format("~p", [V]))).
