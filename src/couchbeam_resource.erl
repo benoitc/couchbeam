@@ -114,7 +114,7 @@ make_response(#response{method=Method, status=Status, reason=Reason, body=Body})
                         true ->
                             {ok, Body};
                         false ->
-                            try couchbeam:json_decode(binary_to_list(Body)) of
+                            try couchbeam_util:json_decode(binary_to_list(Body)) of
                                 Resp1 -> 
                                     case Resp1 of
                                         {[{<<"ok">>, true}]} -> ok;
@@ -158,7 +158,7 @@ encode_query_value(K,V) ->
     V1.
 
 encode_value(V) ->
-    V1 = couchbeam:json_encode(V),
+    V1 = couchbeam_util:json_encode(V),
     couchbeam_util:quote_plus(binary_to_list(iolist_to_binary(V1))).
     
     

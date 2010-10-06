@@ -11,8 +11,6 @@
                         couchbeam_view_sup,
                         couchbeam_view1,
                         couchbeam_uuids, 
-                        couchbeam_mochijson2,
-                        couchbeam_mochinum,
                         couchbeam_util,
                         couchbeam_sup]},
               {registered,[couchbeam_sup]},

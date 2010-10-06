@@ -296,7 +296,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
         Id1 -> encode_docid(Id1)
     end,
     Path = Base ++ "/" ++ DocId,
-    Body = couchbeam:json_encode(Doc),
+    Body = couchbeam_util:json_encode(Doc),
     Resp = case couchbeam_resource:put(C, Path, [], Params, Body, []) of
         {ok, {Props1}} ->
             NewRev = proplists:get_value(<<"rev">>, Props1),
@@ -315,7 +315,7 @@ handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
         true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
         false -> {[{<<"docs">>, Docs1}]}
     end,
-    Body = couchbeam:json_encode(JsonObj),
+    Body = couchbeam_util:json_encode(JsonObj),
     Path = Base ++ "/_bulk_docs",
     Res = case couchbeam_resource:post(C, Path, [], [], Body, []) of
         {ok, Results} ->
@@ -487,7 +487,7 @@ send_changes({ok, Bin}, ConsumerPid, Pid) ->
 decode_lines([], Acc) ->
     lists:flatten(lists:reverse(Acc));
 decode_lines([Line|Rest], Acc) ->
-    Line1 = couchbeam:json_decode(list_to_binary(Line)),
+    Line1 = couchbeam_util:json_decode(list_to_binary(Line)),
     decode_lines(Rest, [Line1, Acc]).
 
 maybe_docid(#db{server=ServerState}, {DocProps}) ->

@@ -25,7 +25,6 @@
 -include("couchbeam.hrl").
 
 -export([start/0, version/0]).
--export([json_encode/1,json_decode/1]).
 -export([start/2, stop/1]).
 -export([transact/1, transact/2, transact/3, transact/4]).
 
@@ -96,15 +95,6 @@ transact(Connection, DbName, Options, F) ->
 %% --------------------------------------------------------------------
 
     
-%% @spec json_encode(V::json_term()) -> iolist()
-%% @doc Encode to json
-json_encode(V) ->
-    couchbeam_mochijson2:encode(V).
-    
-%% @spec json_decode(V::iolist()) -> json_term()
-%% @doc decode from json string
-json_decode(V) ->
-    couchbeam_mochijson2:decode(V).    
     
 %% @spec () -> ok
 %% @doc Start applications which exmpp depends on then start exmpp.

@@ -69,6 +69,8 @@
          guess_mime/1, val/1, encodeBase64/1, to_list/1,
          to_binary/1, to_integer/1, to_atom/1]).
 
+-export([json_encode/1, json_decode/1]).
+
 -export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
 -define(FULLSTOP, 46). % $\.
@@ -81,6 +83,24 @@
                      (C =:= ?FULLSTOP orelse C =:= $- orelse C =:= $~ orelse
                       C =:= $_))).
 
+
+
+
+json_encode(V) ->
+    Handler =
+    fun({L}) when is_list(L) ->
+        {struct,L};
+    (Bad) ->
+        exit({json_encode, {bad_term, Bad}})
+    end,
+    (mochijson2:encoder([{handler, Handler}]))(V).
+
+json_decode(V) ->
+    try (mochijson2:decoder([{object_hook, fun({struct,L}) -> {L} end}]))(V)
+    catch
+        _Type:_Error ->
+            throw({invalid_json,V})
+    end.
 
 shutdown_sync(Pid) when not is_pid(Pid)->
     ok;

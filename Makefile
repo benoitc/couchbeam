@@ -2,11 +2,13 @@ ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
 
+.PHONY: rel deps docs
+
 all: deps docs
-	./rebar compile
+	@./rebar compile
 
 deps:
-	./rebar get-deps
+	@./rebar get-deps
 
 docs:
 	@mkdir -p doc/api
@@ -24,3 +26,7 @@ clean:
 	./rebar clean
 	@rm -f t/*.beam
 	@rm -rf docs/api
+
+distclean: clean
+	@./rebar delete-deps
+

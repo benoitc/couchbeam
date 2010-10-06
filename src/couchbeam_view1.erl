@@ -151,7 +151,7 @@ fetch_view(C, Params, Base) ->
             couchbeam_resource:get(C, Base, [], Params, []);
         Keys ->
             Params1 = proplists:delete("keys", Params),
-            Body = couchbeam:json_encode({[{<<"keys">>, Keys}]}),
+            Body = couchbeam_util:json_encode({[{<<"keys">>, Keys}]}),
             couchbeam_resource:post(C, Base, [], Params1, Body, [])
     end.
     

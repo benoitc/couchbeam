@@ -236,7 +236,7 @@ handle_call({fetch, Options}, _From, #view{db=Db, view_uri=Uri}=View) ->
                     couchbeam_resource:get(C, Uri, [], Options1, []);
                 Keys ->
                     Options2 = proplists:delete("keys", Options1),
-                    Payload = couchbeam:json_encode({[{<<"keys">>,
+                    Payload = couchbeam_util:json_encode({[{<<"keys">>,
                                     Keys}]}),
                     couchbeam_resource:post(C, Uri, [], Options2,
                         Payload,[])
