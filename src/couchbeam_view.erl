@@ -208,7 +208,7 @@ foreach(ViewPid, Fun, Options) ->
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
 
-init([#db{base=Base}=Db, ViewName]) ->
+init([#db1{base=Base}=Db, ViewName]) ->
     Uri = case ViewName of
         "_all_docs" ->
             io_lib:format("~s/_all_docs", [Base]);
@@ -230,7 +230,7 @@ handle_call({fetch, Options}, _From, #view{db=Db, view_uri=Uri}=View) ->
         fail ->
             {reply, {error, invalid_view_options}, View};
         Options1 ->
-            #db{couchdb=C}=Db,
+            #db1{couchdb=C}=Db,
             Results = case proplists:get_value("keys", Options1) of
                 undefined ->
                     couchbeam_resource:get(C, Uri, [], Options1, []);
@@ -286,7 +286,7 @@ parse_view_options([{K,V}|Rest], Acc) when is_atom(K) ->
 parse_view_options(_,_) ->
     fail.
 
-make_view_id(#db{name=DbName}, VName) ->
+make_view_id(#db1{name=DbName}, VName) ->
     Md5 = crypto:md5(DbName ++ VName),
     couchbeam_util:to_hex(Md5). 
 

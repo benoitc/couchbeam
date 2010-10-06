@@ -50,13 +50,13 @@ start_connection_internal(CouchdbParams,ProcLink) ->
         _ -> Prefix
     end,
     CouchdbParams1 = CouchdbParams#couchdb_params{prefix=Prefix1},
-    InitialState = #server{couchdb = CouchdbParams1,
+    InitialState = #server1{couchdb = CouchdbParams1,
                            name = Name,
                            prefix  = Prefix1,
                            max_dbs_open=MaxDbsOpen},
     start_internal(InitialState, ProcLink).
     
-start_internal(#server{name=Name}=InitialState, _Link = true) ->
+start_internal(#server1{name=Name}=InitialState, _Link = true) ->
     Conn = {
         couchbeam_util:to_atom(Name),
         {gen_server, start_link,
@@ -147,7 +147,7 @@ open_or_create_db(ConnectionPid, DbName, Options) ->
 close_db(ConnectionPid, DbName) ->
     gen_server:call(ConnectionPid, {close_db, db_name(DbName)}, infinity).
     
-check_dbname(#server{dbname_regexp=RegExp}, DbName) ->
+check_dbname(#server1{dbname_regexp=RegExp}, DbName) ->
     case re:run(DbName, RegExp, [{capture, none}]) of
     nomatch ->
         {error, illegal_database_name};
@@ -160,7 +160,7 @@ check_dbname(#server{dbname_regexp=RegExp}, DbName) ->
 %%---------------------------------------------------------------------------
 %% @private
   
-init([#server{couchdb=C, prefix=P} = InitialState]) ->
+init([#server1{couchdb=C, prefix=P} = InitialState]) ->
     ets:new(couchbeam_dbs_by_name, [set, private, named_table]),
     ets:new(couchbeam_dbs_by_pid, [set, private, named_table]),
     ets:new(couchbeam_dbs_by_lru, [ordered_set, private, named_table]),
@@ -168,21 +168,21 @@ init([#server{couchdb=C, prefix=P} = InitialState]) ->
     {ok, UuidsPid} = gen_server:start_link(couchbeam_uuids, {C, P}, []),
     {ok, RegExp} = re:compile("^[a-z][a-z0-9\\_\\$()\\+\\-\\/]*$"),
 
-    State = InitialState#server{
+    State = InitialState#server1{
         uuids_pid= UuidsPid,
         dbname_regexp = RegExp
     },
     process_flag(trap_exit, true),
     {ok, State}.
     
-handle_call(info, _From, #server{prefix=Base, couchdb=C}=State) ->
+handle_call(info, _From, #server1{prefix=Base, couchdb=C}=State) ->
     {ok, {Infos}} = couchbeam_resource:get(C, Base, [], [], []),
     {reply, Infos, State};
     
 handle_call(close, _, State) ->
     {stop, normal, State};
     
-handle_call(all_dbs, _From, #server{prefix=Base, couchdb=C}=State) ->
+handle_call(all_dbs, _From, #server1{prefix=Base, couchdb=C}=State) ->
     {ok, AllDbs} = couchbeam_resource:get(C, Base ++ "_all_dbs", [], [], []),
     {reply, AllDbs, State};
 
@@ -201,7 +201,7 @@ handle_call({open_db, DbName, Options}, _From, Server) ->
     end;
     
 handle_call({create_db, DbName, Options}, _From, Server) ->
-    #server{prefix=Base, couchdb=C} = Server, 
+    #server1{prefix=Base, couchdb=C} = Server, 
     case check_dbname(Server, DbName) of
         ok ->
             case ets:lookup(couchbeam_dbs_by_name, DbName) of
@@ -221,7 +221,7 @@ handle_call({create_db, DbName, Options}, _From, Server) ->
     end;
 
 handle_call({delete_db, DbName}, _From, Server) ->
-    #server{prefix=Base,couchdb=C} = Server,       
+    #server1{prefix=Base,couchdb=C} = Server,       
     case ets:lookup(couchbeam_dbs_by_name, DbName) of
     [] ->
         couchbeam_resource:delete(C, Base ++ DbName, [], [], []),
@@ -233,8 +233,8 @@ handle_call({delete_db, DbName}, _From, Server) ->
         true = ets:delete(couchbeam_dbs_by_pid, Pid),
         true = ets:delete(couchbeam_dbs_by_lru, LruTime),
         couchbeam_resource:delete(C, Base ++ DbName, [], [], []),
-        DbsOpen = Server#server.dbs_open - 1,
-        {reply, ok, Server#server{dbs_open=DbsOpen}} 
+        DbsOpen = Server#server1.dbs_open - 1,
+        {reply, ok, Server#server1{dbs_open=DbsOpen}} 
     end;
    
 handle_call({close_db, DbName}, _From, Server) ->
@@ -271,8 +271,8 @@ handle_info({'DOWN', _MonRef, _, Pid, _}, Server) ->
             ets:delete(couchbeam_dbs_by_lru, LruTime)
         end
     end,
-    DbsOpen = Server#server.dbs_open - 1,
-    {noreply, Server#server{dbs_open=DbsOpen}};
+    DbsOpen = Server#server1.dbs_open - 1,
+    {noreply, Server#server1{dbs_open=DbsOpen}};
 
 handle_info(Error, _Server) ->
     io:format("Unexpected message, restarting couchbeam_server: ~p", [Error]),
@@ -289,14 +289,14 @@ code_change(_OldVsn, State, _Extra) ->
     
       
 %% @private
-maybe_close_lru(#server{dbs_open=DbsOpen,
+maybe_close_lru(#server1{dbs_open=DbsOpen,
         max_dbs_open=MaxDbsOpen}=Server) when DbsOpen < MaxDbsOpen ->
     {ok, Server};
-maybe_close_lru(#server{dbs_open=DbsOpen}=Server) ->
+maybe_close_lru(#server1{dbs_open=DbsOpen}=Server) ->
     % must free up the lru db.
     case try_close_lru(now()) of
     ok ->
-        {ok, Server#server{dbs_open=DbsOpen - 1}};
+        {ok, Server#server1{dbs_open=DbsOpen - 1}};
     Error -> Error
     end.
 
@@ -348,7 +348,7 @@ shutdown_idle_db(DbName, MainPid, LruTime) ->
     ok.
 
 do_open_db(DbName, Server, _Options) ->
-    #server{prefix=Base, couchdb=C} = Server,
+    #server1{prefix=Base, couchdb=C} = Server,
     case couchbeam_resource:get(C, Base, [], [], []) of
         {ok, _} -> 
             case maybe_close_lru(Server) of
@@ -361,8 +361,8 @@ do_open_db(DbName, Server, _Options) ->
                             LruTime, Ref}}),
                 true = ets:insert(couchbeam_dbs_by_pid, {DbPid, DbName}),
                 true = ets:insert(couchbeam_dbs_by_lru, {LruTime, DbName}),
-                DbsOpen = Server2#server.dbs_open + 1,
-                {reply, DbPid, Server2#server{dbs_open=DbsOpen}};
+                DbsOpen = Server2#server1.dbs_open + 1,
+                {reply, DbPid, Server2#server1{dbs_open=DbsOpen}};
             CloseError ->
                 {reply, CloseError, Server}
             end;

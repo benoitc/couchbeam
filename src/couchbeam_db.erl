@@ -260,25 +260,25 @@ encode_docid1(DocId) ->
 %%---------------------------------------------------------------------------
 %% @private
 
-init({DbName, #server{couchdb=C, prefix=Prefix} = Server, ServerPid}) ->
-    State = #db{name    = DbName,
+init({DbName, #server1{couchdb=C, prefix=Prefix} = Server, ServerPid}) ->
+    State = #db1{name    = DbName,
                 server  = Server,
                 server_pid = ServerPid,
                 couchdb = C,
                 base    = Prefix ++ DbName},
     {ok, State}.
   
-handle_call(close, _From, #db{server_pid=ServerPid,name=Name}=State) ->
+handle_call(close, _From, #db1{server_pid=ServerPid,name=Name}=State) ->
     {reply, couchbeam_server:close_db(ServerPid, Name), State};
 
-handle_call(info, _From, #db{couchdb=C, base=Base} = State) ->
+handle_call(info, _From, #db1{couchdb=C, base=Base} = State) ->
     Infos = case couchbeam_resource:get(C, Base, [], [], []) of
         {ok, {Infos1}} -> Infos1;
         {error, Reason} -> Reason
     end,
     {reply, Infos, State};
     
-handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, base=Base} = State) ->
+handle_call({open_doc, DocId, Params}, _From, #db1{couchdb=C, base=Base} = State) ->
     Path = Base ++ "/" ++ DocId,
     Doc = case couchbeam_resource:get(C, Path, [], Params, []) of
         {ok, Doc1} -> Doc1;
@@ -286,12 +286,12 @@ handle_call({open_doc, DocId, Params}, _From, #db{couchdb=C, base=Base} = State)
     end,
     {reply, Doc, State};
     
-handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C, 
+handle_call({save_doc, Doc, Params}, _From, #db1{server=ServerState, couchdb=C, 
                                                 base=Base} = State) ->
     {Props} = Doc,
     DocId = case proplists:get_value(<<"_id">>, Props) of
         undefined ->
-            #server{uuids_pid=UuidsPid} = ServerState,
+            #server1{uuids_pid=UuidsPid} = ServerState,
             couchbeam_uuids:next_uuid(UuidsPid);
         Id1 -> encode_docid(Id1)
     end,
@@ -309,7 +309,7 @@ handle_call({save_doc, Doc, Params}, _From, #db{server=ServerState, couchdb=C,
     end,
     {reply, Resp, State};
             
-handle_call({save_docs, Docs, Opts}, _From, #db{couchdb=C,base=Base} = State) ->
+handle_call({save_docs, Docs, Opts}, _From, #db1{couchdb=C,base=Base} = State) ->
     Docs1 = [maybe_docid(State, Doc) || Doc <- Docs],
     JsonObj = case proplists:get_value(all_or_nothing, Opts, false) of
         true -> {[{<< "all_or_nothing">>, true}, {<<"docs">>, Docs1}]};
@@ -332,7 +332,7 @@ handle_call({query_view, Vname, Params}, _From, State) ->
     {ok, ViewPid} = gen_server:start_link(couchbeam_view1, {Vname, Params, State}, []),
     {reply, ViewPid, State};
      
-handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, base=Base}=State) ->
+handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db1{couchdb=C, base=Base}=State) ->
     Path = io_lib:format("~s/~s/~s", [Base, DocId, AName]),
     Options = case Streaming of     
         true ->
@@ -344,7 +344,7 @@ handle_call({fetch_attachment, DocId, AName, Streaming}, _From, #db{couchdb=C, b
     {reply, {C, Path, Options}, State};
 
 handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From, 
-            #db{couchdb=C, base=Base}=State) ->
+            #db1{couchdb=C, base=Base}=State) ->
     {DocId, Rev, IsJson} = case Doc of
         {Id, Rev1} -> {Id, Rev1, false};
         _ ->
@@ -367,7 +367,7 @@ handle_call({put_attachment, Doc, Content, AName, Length, ContentType}, _From,
     end,
     {reply, Resp, State};
     
-handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=State) ->
+handle_call({delete_attachment, Doc, AName}, _From, #db1{couchdb=C, base=Base}=State) ->
     {DocId, Rev, IsJson} = case Doc of
         {Id, Rev1} -> {Id, Rev1, false};
         _ ->
@@ -389,7 +389,7 @@ handle_call({delete_attachment, Doc, AName}, _From, #db{couchdb=C, base=Base}=St
     end,
     {reply, Resp, State};
     
-handle_call({subscribe_changes, Consumer, Options}, _From, #db{base=Base} = State) ->
+handle_call({subscribe_changes, Consumer, Options}, _From, #db1{base=Base} = State) ->
     {Timeout, Options1} = get_option(timeout, Options),
     {HeartBeat, Options2} = get_option(heartbeat, Options1),
     
@@ -425,7 +425,7 @@ handle_info({'EXIT', _Pid, _Reason}, State) ->
     {stop, State};
     
 handle_info(Msg, State) ->
-    io:format("Bad message received for db ~s: ~p", [State#db.name, Msg]),
+    io:format("Bad message received for db ~s: ~p", [State#db1.name, Msg]),
     exit({error, Msg}).
 
 terminate(_Reason, _State) ->
@@ -449,7 +449,7 @@ subscribe_changes(#change{consumer_pid=ConsumerPid}=ChangeState) ->
     end.
 
 do_subscribe(#change{db=DbState, path=Path, consumer_pid=ConsumerPid}) ->
-    #db{couchdb=CouchdbState} = DbState,
+    #db1{couchdb=CouchdbState} = DbState,
     #couchdb_params{host=Host, port=Port, ssl=Ssl, timeout=Timeout}=CouchdbState,
     Headers = couchbeam_resource:make_auth(CouchdbState, [{"Accept", "application/json"}]),
     Options = [{partial_download, [{window_size, infinity}]}],
@@ -490,8 +490,8 @@ decode_lines([Line|Rest], Acc) ->
     Line1 = couchbeam_util:json_decode(list_to_binary(Line)),
     decode_lines(Rest, [Line1, Acc]).
 
-maybe_docid(#db{server=ServerState}, {DocProps}) ->
-    #server{uuids_pid=UuidsPid} = ServerState,
+maybe_docid(#db1{server=ServerState}, {DocProps}) ->
+    #server1{uuids_pid=UuidsPid} = ServerState,
     case proplists:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = couchbeam_uuids:next_uuid(UuidsPid),

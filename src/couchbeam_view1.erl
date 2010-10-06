@@ -70,7 +70,7 @@ close_view(ViewPid) ->
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
 %% @private                 
-init({Vname, Params, #db{server=ServerState, couchdb=CouchdbParams, base=BaseDB}=DbState}) -> 
+init({Vname, Params, #db1{server=ServerState, couchdb=CouchdbParams, base=BaseDB}=DbState}) -> 
     Base = case Vname of
         '_all_docs' ->
             io_lib:format("~s/_all_docs", [BaseDB]);

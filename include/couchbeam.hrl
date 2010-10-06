@@ -20,6 +20,36 @@
 %% Uncomment if it's not compiling.
 %% -type boolean() :: bool().
 
+-record(options, {
+    username = nil :: string(),
+    password = nil :: string(),
+    headers = [] :: iolist(),
+    auth :: iolist()
+}).
+
+-record(server, {
+    host :: string(),
+    port :: integer(),
+    ssl :: boolean(),
+    prefix :: string(),
+    options :: iolist(),
+    id :: string()
+}).
+
+-type server() :: #server{}.
+
+
+-record(db, {
+    server :: server(),
+    dbname :: string()
+}).
+
+
+-record(server_uuids, {
+    host_port,
+    uuids
+}).
+
 -record(couchdb_params, {
     host        = "127.0.0.1" :: string(),
     port        = 5984 :: integer(),
@@ -32,7 +62,9 @@
     max_dbs_open = 100
 }).
 
--record(server, {
+
+
+-record(server1, {
     couchdb = #couchdb_params{},
     name,
     prefix,
@@ -43,13 +75,20 @@
 }).
 
 
--record(db, {
+-record(db1, {
     name,
     server,
     server_pid,
     couchdb = #couchdb_params{},
     base
 }).
+
+-record(uuids, {
+    couchdb=#couchdb_params{},
+    base,
+    tid=undefined
+}).
+
 
 -record(old_view, {
     server,
@@ -76,12 +115,6 @@
     db,
     path,
     consumer_pid
-}).
-
--record(uuids, {
-    couchdb=#couchdb_params{},
-    base,
-    tid=undefined
 }).
 
 -record(couchbeam_manager, {
