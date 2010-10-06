@@ -35,7 +35,6 @@
     ssl :: boolean(),
     prefix :: string(),
     options :: options(),
-    id :: string()
 }).
 
 -type server() :: #server{}.

@@ -40,8 +40,8 @@
 -export([server_url/1, uuids_url/1, make_url/3]).
 
 %% API urls
--export([server_connection/0, server_connection/2, server_connection/3,
-        server_connection/5, server_connection/6, server_info/1,
+-export([server_connection/0, server_connection/2, server_connection/4,
+        server_connection/5, server_info/1,
         get_uuid/1, get_uuids/2,
         create_db/2, create_db/3, open_db/2, open_db/3,
         open_or_create_db/2, open_or_create_db/3, db_infos/1]).
@@ -80,29 +80,26 @@ version() ->
 %% --------------------------------------------------------------------
 server_connection() ->
     #server{host="127.0.0.1", port=5984, ssl=false, prefix="",
-        id="default", options=[]}.
+        options=[]}.
 
 server_connection(Host, Port) ->
-    server_connection(Host, Port, {Host, Port}).
-
-server_connection(Host, Port, Id) ->
-    server_connection(Host, Port, Id, "", []).
+    server_connection(Host, Port, "", []).
 
 
-server_connection(Host, Port, Id, Prefix, Options) when is_integer(Port), Port =:=443 ->
-    server_connection(Host, Port, Id, Prefix, Options, true);
-server_connection(Host, Port, Id, Prefix, Options) ->
-    server_connection(Host, Port, Id, Prefix, Options, false).
+server_connection(Host, Port, Prefix, Options) when is_integer(Port), Port =:=443 ->
+    server_connection(Host, Port, Prefix, Options, true);
+server_connection(Host, Port, Prefix, Options) ->
+    server_connection(Host, Port, Prefix, Options, false).
 
 
 
-server_connection(Host, Port, Id, Prefix, Options, Ssl) when is_binary(Port) ->
-    server_connection(Host, binary_to_list(Port), Id, Prefix, Options, Ssl);
-server_connection(Host, Port, Id, Prefix, Options, Ssl) when is_list(Port) ->
-    server_connection(Host, list_to_integer(Port), Id, Prefix, Options, Ssl); 
-server_connection(Host, Port, Id, Prefix, Options, Ssl) ->
+server_connection(Host, Port, Prefix, Options, Ssl) when is_binary(Port) ->
+    server_connection(Host, binary_to_list(Port), Prefix, Options, Ssl);
+server_connection(Host, Port, Prefix, Options, Ssl) when is_list(Port) ->
+    server_connection(Host, list_to_integer(Port), Prefix, Options, Ssl); 
+server_connection(Host, Port, Prefix, Options, Ssl) ->
     #server{host=Host, port=Port, ssl=Ssl, prefix=Prefix,
-        options=Options, id=Id}.
+        options=Options}.
 
 
 server_info(Server) ->
