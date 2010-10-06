@@ -41,7 +41,8 @@
 
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/3,
-        server_connection/5, server_connection/6, server_info/1]).
+        server_connection/5, server_connection/6, server_info/1,
+        get_uuid/1, get_uuids/2]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -62,7 +63,7 @@ start() ->
 
 %% @doc Stop the couchbeam process. Useful when testing using the shell.
 stop() ->
-    gen_server:call(couchbeam, stop).
+    catch gen_server:call(couchbeam, stop).
 
  
 %% @spec () -> Version
@@ -111,6 +112,13 @@ server_info(Server) ->
         Error -> Error
     end.
 
+get_uuid(Server) ->
+    get_uuids(Server, 1).
+
+get_uuids(Server, Count) ->
+    gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
+
+
 %% --------------------------------------------------------------------
 %% Utilities functins.
 %% --------------------------------------------------------------------
@@ -130,7 +138,7 @@ server_url({Host, Port}, true) ->
     ["https://",Host,":",integer_to_list(Port)].
 
 uuids_url(Server) ->
-    binary_to_list(iolist_to_binary([server_url(Server), "_uuids"])).
+    binary_to_list(iolist_to_binary([server_url(Server), "/", "_uuids"])).
 
 make_url(Server=#server{prefix=Prefix}, Path, Query) ->
     Query1 = encode_query(Query),
@@ -205,7 +213,7 @@ request_stream(Pid, Method, Url, Headers, Body) ->
 init(_) ->
     process_flag(trap_exit, true),
     ets:new(couchbeam_servers, [named_table, ordered_set, public]),
-    ets:new(couchbeam_uuids, [named_table, ordered_set, public]),
+    ets:new(couchbeam_uuids, [named_table, public, {keypos, 2}]),
     {ok, #state{}}.
 
 handle_call({get_uuids, #server{host=Host, port=Port}=Server, Count}, _From, State) ->
@@ -230,22 +238,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-do_get_uuids(_Server, Count, Acc, _) when size(Acc) >= Count ->
-    Acc;
-do_get_uuids(Server=#server{host=Host, port=Port}, Count, Acc, []) ->
+do_get_uuids(_Server, Count, Acc, _) when length(Acc) >= Count ->
+    {ok, Acc};
+do_get_uuids(Server, Count, Acc, []) ->
     {ok, ServerUuids} = get_new_uuids(Server),
-    do_get_uuids(Server, Count, Acc, ServerUuids);
-do_get_uuids(Server, Count, Acc, [#server_uuids{host_port=HostPort, uuids=Uuids}=ServerUuids]) ->
+    do_get_uuids(Server, Count, Acc, [ServerUuids]);
+do_get_uuids(Server, Count, Acc, [#server_uuids{uuids=Uuids}]) ->
     case Uuids of 
         [] ->
             {ok, ServerUuids} = get_new_uuids(Server),
-            do_get_uuids(Server, Count, Acc, ServerUuids);
+            do_get_uuids(Server, Count, Acc, [ServerUuids]);
         _ ->
             {Acc1, Uuids1} = get_uuids(Acc, Uuids, Count),
-            ServerUuids = #server_uuids{host_port=HostPort,
+            #server{host=Host, port=Port} = Server,
+            ServerUuids = #server_uuids{host_port={Host,Port},
                 uuids=Uuids1},
             ets:insert(couchbeam_uuids, ServerUuids),
-            do_get_uuids(Server, Count, Acc1, ServerUuids)
+            do_get_uuids(Server, Count, Acc1, [ServerUuids])
     end.
 
 
@@ -257,9 +266,10 @@ get_uuids(Acc, [Uuid|Rest], Count) ->
 
 
 get_new_uuids(Server=#server{host=Host, port=Port}) ->
-    case request(get, uuids_url(Server), ["200"]) of
+    Url = make_url(Server, "_uuids", [{"count", "1000"}]),  
+    case request(get, Url, ["200"]) of
         {ok, _Status, _Headers, Body} ->
-            {[{<<"uuids">>, Uuids}]} = couchbeam_util:decode(Body),
+            {[{<<"uuids">>, Uuids}]} = couchbeam_util:json_decode(Body),
             ServerUuids = #server_uuids{host_port={Host,
                         Port}, uuids=Uuids},
             ets:insert(couchbeam_uuids, ServerUuids),

@@ -27,12 +27,14 @@
     auth :: iolist()
 }).
 
+-type options() :: #options{}.
+
 -record(server, {
     host :: string(),
     port :: integer(),
     ssl :: boolean(),
     prefix :: string(),
-    options :: iolist(),
+    options :: options(),
     id :: string()
 }).
 
