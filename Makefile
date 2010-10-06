@@ -2,7 +2,7 @@ ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
 
-.PHONY: rel deps docs
+.PHONY: rel deps
 
 all: deps docs
 	@./rebar compile
