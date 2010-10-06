@@ -43,7 +43,8 @@
 
 -record(db, {
     server :: server(),
-    dbname :: string()
+    name :: string(),
+    options :: options()
 }).
 
 

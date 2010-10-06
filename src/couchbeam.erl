@@ -42,7 +42,9 @@
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/3,
         server_connection/5, server_connection/6, server_info/1,
-        get_uuid/1, get_uuids/2]).
+        get_uuid/1, get_uuids/2,
+        create_db/2, create_db/3, open_db/2, open_db/3,
+        open_or_create_db/2, open_or_create_db/3, db_infos/1]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -118,6 +120,52 @@ get_uuid(Server) ->
 get_uuids(Server, Count) ->
     gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
 
+create_db(Server, DbName) ->
+    create_db(Server, DbName, []).
+
+create_db(Server, DbName, Options) ->
+    Url = make_url(Server, DbName, []),
+    case request(put, Url, ["201"]) of
+        {ok, _Status, _Headers, _Body} ->
+            {ok, #db{server=Server, name=DbName, options=Options}};
+        {error, {ok, "412", _, _}} ->
+            {error, db_exists};
+       Error ->
+          Error
+    end. 
+    
+open_db(Server, DbName) ->
+    open_db(Server, DbName, []).
+
+open_db(Server, DbName, Options) ->
+    {ok, #db{server=Server, name=DbName, options=Options}}.
+    
+
+open_or_create_db(Server, DbName) ->
+    open_or_create_db(Server, DbName, []).
+
+open_or_create_db(Server, DbName, Options) ->
+    Url = make_url(Server, DbName, []),
+    case request(get, Url, ["200"]) of
+        {ok, _, _, _} ->
+            open_db(Server, DbName, Options);
+        {error, {ok, "404", _, _}} ->
+            create_db(Server, DbName, Options);
+        Error ->
+            Error
+    end.
+
+db_infos(#db{server=Server, name=DbName}) ->
+    Url = make_url(Server, DbName, []),
+    case request(get, Url, ["200"]) of
+        {ok, _Status, _Headers, Body} ->
+            Infos = couchbeam_util:json_decode(Body),
+            {ok, Infos}; 
+        {error, {ok, "404", _, _}} ->
+            {error, db_not_found};
+       Error ->
+          Error
+    end.
 
 %% --------------------------------------------------------------------
 %% Utilities functins.
