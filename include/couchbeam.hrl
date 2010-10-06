@@ -34,11 +34,10 @@
     port :: integer(),
     ssl :: boolean(),
     prefix :: string(),
-    options :: options(),
+    options :: options()
 }).
 
 -type server() :: #server{}.
-
 
 -record(db, {
     server :: server(),
@@ -46,6 +45,7 @@
     options :: options()
 }).
 
+-type db() :: #db{}.
 
 -record(server_uuids, {
     host_port,

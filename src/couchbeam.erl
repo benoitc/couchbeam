@@ -43,8 +43,8 @@
 -export([server_connection/0, server_connection/2, server_connection/4,
         server_connection/5, server_info/1,
         get_uuid/1, get_uuids/2,
-        create_db/2, create_db/3, open_db/2, open_db/3,
-        open_or_create_db/2, open_or_create_db/3, db_infos/1]).
+        create_db/2, create_db/3, create_db/4, open_db/2, open_db/3,
+        open_or_create_db/2, open_or_create_db/3,  open_or_create_db/4, db_infos/1]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -54,7 +54,8 @@
 %% Function: start_link/0
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-%% @doc Starts the couchbeam process linked to the calling process. Usually invoked by the supervisor couchbeam_sup
+%% @doc Starts the couchbeam process linked to the calling process. Usually 
+%% invoked by the supervisor couchbeam_sup
 %% @spec start_link() -> {ok, pid()}
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -78,21 +79,35 @@ version() ->
 %% --------------------------------------------------------------------
 %% API functins.
 %% --------------------------------------------------------------------
+
+%% @doc Create a server for connectiong to a CouchDB node
+%% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
     #server{host="127.0.0.1", port=5984, ssl=false, prefix="",
         options=[]}.
 
+%% @doc Create a server for connectiong to a CouchDB node
+%% @equiv server_connection(Host, Port, "", [])
+
 server_connection(Host, Port) ->
     server_connection(Host, Port, "", []).
 
-
+%% @doc Create a server for connectiong to a CouchDB node
+%% @equiv server_connection(Host, Port, "", [], Ssl)
 server_connection(Host, Port, Prefix, Options) when is_integer(Port), Port =:=443 ->
     server_connection(Host, Port, Prefix, Options, true);
 server_connection(Host, Port, Prefix, Options) ->
     server_connection(Host, Port, Prefix, Options, false).
 
 
-
+%% @doc Create a server for connectiong to a CouchDB node
+%% 
+%%      Connections are made to:
+%%      ```http://Host:PortPrefix'''
+%%
+%%      If ssl is set https is used.
+%%
+%% @spec server_connection(string(), integer(), string(), options(), boolean()) -> server() 
 server_connection(Host, Port, Prefix, Options, Ssl) when is_binary(Port) ->
     server_connection(Host, binary_to_list(Port), Prefix, Options, Ssl);
 server_connection(Host, Port, Prefix, Options, Ssl) when is_list(Port) ->
@@ -101,7 +116,8 @@ server_connection(Host, Port, Prefix, Options, Ssl) ->
     #server{host=Host, port=Port, ssl=Ssl, prefix=Prefix,
         options=Options}.
 
-
+%% @doc Get Information from the server
+%% @spec server_info(server()) -> iolist()
 server_info(Server) ->
     Url = binary_to_list(iolist_to_binary(server_url(Server))),
     case request(get, Url, ["200"]) of
@@ -111,17 +127,36 @@ server_info(Server) ->
         Error -> Error
     end.
 
+%% @doc Get one uuid from the server
+%% @spec get_uuid(server()) -> lists()
 get_uuid(Server) ->
     get_uuids(Server, 1).
 
+%% @doc Get a list of uuids from the server
+%% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
     gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
 
+%% @doc Create a database and a client for connectiong to it.
+%% @equiv create_db(Server, DbName, [], [])
 create_db(Server, DbName) ->
     create_db(Server, DbName, []).
 
+%% @doc Create a database and a client for connectiong to it.
+%% @equiv create_db(Server, DbName, Options, [])
 create_db(Server, DbName, Options) ->
-    Url = make_url(Server, DbName, []),
+    create_db(Server, DbName, Options).
+
+%% @doc Create a database and a client for connectiong to it.
+%% 
+%%      Connections are made to:
+%%      ```http://Host:PortPrefix/DbName'''
+%%
+%%      If ssl is set https is used.
+%%
+%% @spec create_db(sserver(), string(), options(), list()) -> db() 
+create_db(Server, DbName, Options, Params) ->
+    Url = make_url(Server, DbName, Params),
     case request(put, Url, ["201"]) of
         {ok, _Status, _Headers, _Body} ->
             {ok, #db{server=Server, name=DbName, options=Options}};
@@ -130,28 +165,46 @@ create_db(Server, DbName, Options) ->
        Error ->
           Error
     end. 
-    
+
+%% @doc Create a client for connection to a database
+%% @equiv open_db(Server, DbName, [])
 open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
+%% @doc Create a client for connection to a database
+%% @spec open_db(server(), string(), list()) -> db() 
 open_db(Server, DbName, Options) ->
     {ok, #db{server=Server, name=DbName, options=Options}}.
     
 
+%% @doc Create a client for connecting to a database and create the
+%%      database if needed.
+%% @equiv open_or_create_db(Server, DbName, [], [])
 open_or_create_db(Server, DbName) ->
-    open_or_create_db(Server, DbName, []).
+    open_or_create_db(Server, DbName, [], []).
 
-open_or_create_db(Server, DbName, Options) ->
+%% @doc Create a client for connecting to a database and create the
+%%      database if needed.
+%% @equiv open_or_create_db(Server, DbName, Options, [])
+open_or_create_db(Server, DbName, Options) ->    
+    open_or_create_db(Server, DbName, Options, []).
+
+%% @doc Create a client for connecting to a database and create the
+%%      database if needed.
+%% @spec open_or_create_db(server(), string(), list(), list()) -> db()
+open_or_create_db(Server, DbName, Options, Params) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"]) of
         {ok, _, _, _} ->
             open_db(Server, DbName, Options);
         {error, {ok, "404", _, _}} ->
-            create_db(Server, DbName, Options);
+            create_db(Server, DbName, Options, Params);
         Error ->
             Error
     end.
 
+%% @doc get database info
+%% @spec db_infos(db()) -> iolist()
 db_infos(#db{server=Server, name=DbName}) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"]) of
