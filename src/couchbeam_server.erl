@@ -85,7 +85,7 @@ start_internal(#server{name=Name}=InitialState, _Link = true) ->
         {error, Error}
     end;
 start_internal(InitialState, _Link = false) ->
-    {ok, Pid} = gen_server:start(couchbeam_server, InitialState, []),
+    {ok, Pid} = gen_server:start(couchbeam_server, [InitialState], []),
     Pid.
 
 
