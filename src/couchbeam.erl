@@ -343,7 +343,6 @@ request_stream(Pid, Method, Url, Headers, Body) ->
 
 init(_) ->
     process_flag(trap_exit, true),
-    ets:new(couchbeam_servers, [named_table, ordered_set, public]),
     ets:new(couchbeam_uuids, [named_table, public, {keypos, 2}]),
     {ok, #state{}}.
 
