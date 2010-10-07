@@ -42,7 +42,7 @@
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
         server_connection/5, server_info/1,
-        get_uuid/1, get_uuids/2,
+        get_uuid/1, get_uuids/2, all_dbs/1,
         create_db/2, create_db/3, create_db/4, open_db/2, open_db/3,
         open_or_create_db/2, open_or_create_db/3,  open_or_create_db/4,
         delete_db/1, delete_db/2, db_infos/1]).
@@ -132,6 +132,18 @@ server_info(Server) ->
 %% @spec get_uuid(server()) -> lists()
 get_uuid(Server) ->
     get_uuids(Server, 1).
+
+%% @doc get list of databases on a CouchDB node 
+%% @spec all_dbs(server()) -> iolist()
+all_dbs(Server) ->
+    Url = make_url(Server, "_all_dbs", []),
+    case request(get, Url, ["200"]) of
+        {ok, _, _, Body} ->
+            AllDbs = couchbeam_util:json_decode(Body),
+            {ok, AllDbs};
+        Error ->
+            Error
+    end.
 
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
@@ -233,6 +245,8 @@ db_infos(#db{server=Server, name=DbName}) ->
        Error ->
           Error
     end.
+
+
 
 %% --------------------------------------------------------------------
 %% Utilities functins.
