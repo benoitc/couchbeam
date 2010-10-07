@@ -20,15 +20,14 @@
 
 -export([start_link/0, init/1]).
 
+-define(SERVER, ?MODULE).
+
+
 start_link() ->
-    supervisor:start_link({local,?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+init([]) ->
+    AChild = {couchbeam,{couchbeam,start_link,[]},
+	      permanent,2000,worker, [couchbeam]},
     
-init(_) ->
-    {ok, {{one_for_one, 10, 3600}, [ 
-            {couchbeam_view_supervisor,
-                {couchbeam_view_sup, start_link, []},
-                permanent,
-                infinity,
-                supervisor,
-                [couchbeam_view_sup]}
-    ]}}.
+    {ok, {{one_for_one, 3, 10}, [AChild]}}.

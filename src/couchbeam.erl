@@ -48,7 +48,11 @@
         open_db/2, open_db/3,
         open_or_create_db/2, open_or_create_db/3, open_or_create_db/4,
         delete_db/1, delete_db/2, 
-        db_info/1]).
+        db_info/1,
+        save_doc/2, save_doc/3,
+        open_doc/2, open_doc/3,
+        delete_doc/2, delete_doc/3,
+        save_docs/2, save_docs/3, delete_docs/2, delete_docs/3]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -64,11 +68,11 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-%% @doc Stop the couchbeam process. Useful when testing using the shell. 
+%% @doc Start the couchbeam process. Useful when testing using the shell. 
 start() ->
     gen_server:start({local, ?MODULE}, ?MODULE, [], []).
 
-%% @doc Stop couchbeam
+%% @doc Stop the couchbeam process. Useful when testing using the shell. 
 stop() ->
     catch gen_server:call(couchbeam, stop).
 
@@ -258,11 +262,116 @@ db_info(#db{server=Server, name=DbName}) ->
           Error
     end.
 
+open_doc(Db, DocId) ->
+    open_doc(Db, DocId, []).
+open_doc(#db{server=Server}=Db, DocId, Params) ->
+    Url = make_url(Server, doc_url(Db, DocId), Params),
+    case db_request(get, Url, ["200", "201"]) of
+        {ok, _, _, Body} ->
+            {ok, couchbeam_util:json_decode(Body)};
+        Error ->
+            Error
+    end.
+
+save_doc(Db, Doc) ->
+    save_doc(Db, Doc, []).
+save_doc(#db{server=Server}=Db, {Props}=Doc, Options) ->
+    DocId = case proplists:get_value(<<"_id">>, Props) of
+        undefined ->
+            [Id] = get_uuid(Server),
+            Id;
+        DocId1 ->
+            couchbeam_util:encode_docid(DocId1)
+    end,
+    Url = make_url(Server, doc_url(Db, DocId), Options),
+    Body = couchbeam_util:json_encode(Doc),
+    Headers = [{"Content-Type", "application/json"}],
+    case db_request(put, Url, ["201", "202"], Headers, Body) of
+        {ok, _, _, RespBody} ->
+            {JsonProp} = couchbeam_util:json_decode(RespBody),
+            NewRev = proplists:get_value(<<"_rev">>, JsonProp),
+            Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev, 
+                couchbeam_doc:set_value(<<"_id">>, DocId, Doc)),
+            Doc1;
+        Error -> 
+            Error
+    end.
+
+delete_doc(Db, Doc) ->
+    delete_doc(Db, Doc, []).
+
+delete_doc(Db, Doc, Options) ->
+    delete_docs(Db, [Doc], Options).
+
+delete_docs(Db, Docs) ->
+    delete_docs(Db, Docs, []).
+delete_docs(Db, Docs, Options) ->
+    Docs1 = lists:map(fun({DocProps})->
+        {[{<<"_deleted">>, true}|DocProps]}
+        end, Docs),
+    save_docs(Db, Docs1, Options).
+
+save_docs(Db, Docs) ->
+    save_docs(Db, Docs, []).
+
+save_docs(#db{server=Server}=Db, Docs, Options) ->
+    Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
+    {Options1, Body} = case proplists:get_value("all_or_nothing", 
+            Options, false) of
+        true ->
+            Body1 = couchbeam:json_encode({[
+                {<<"all_or_nothing">>, true},
+                {<<"docs">>, Docs1}
+            ]}),
+
+            {proplists:delete("all_or_nothing", Options), Body1};
+        _ ->
+            Body1 = couchbeam_util:json_encode({[{<<"docs">>, Docs1}]}),
+            {Options, Body1}
+        end,
+    Url = make_url(Server, [db_url(Db), "/", "_bulk_docs"], Options1),
+    Headers = [{"Content-Type", "application/json"}], 
+    case db_request(post, Url, ["201"], Headers, Body) of
+        {ok, _, _, RespBody} ->
+            {ok, couchbeam_util:json_decode(RespBody)};
+        Error -> 
+            Error
+        end.
+
+all_docs(Db) ->
+    all_docs(Db, []).
+all_docs(#db{server=Server, name=DbName}, Options) ->
+    {Method, Options1, Body} = case proplists:get_value("keys", Options) of
+        undefined ->
+            {get, Options, []};
+        Keys ->
+            Body1 = couchbeam_util:json_encode({[{<<"keys">>, Keys}]}),
+            {post, proplists:delete("keys", Options), Body1}
+        end,
+
+    Url = make_url(Server, [DbName, "/", "_all_docs"], Options1),
+    case request(Method, Url, ["200"], [], Body) of
+        {ok, _, _, RespBody} ->
+            {ok, couchbeam_util:json_decode(RespBody)};
+        Error ->
+            Error
+    end.
+
+
 %% --------------------------------------------------------------------
 %% Utilities functins.
 %% --------------------------------------------------------------------
 
+%% add missing docid to a list of documents if needed
+maybe_docid(Server, {DocProps}) ->
 
+    case proplists:get_value(<<"_id">>, DocProps) of
+        undefined ->
+            DocId = [get_uuid(Server)],
+            {[{<<"_id">>, list_to_binary(DocId)}|DocProps]};
+        _DocId ->
+            {DocProps}
+    end.
 
 %% @doc Assemble the server URL for the given client
 %% @spec server_url({Host, Port}) -> iolist()
@@ -278,6 +387,12 @@ server_url({Host, Port}, true) ->
 
 uuids_url(Server) ->
     binary_to_list(iolist_to_binary([server_url(Server), "/", "_uuids"])).
+
+db_url(#db{name=DbName}) ->
+    ["/", DbName].
+
+doc_url(Db, DocId) ->
+    [db_url(Db), "/", DocId].
 
 make_url(Server=#server{prefix=Prefix}, Path, Query) ->
     Query1 = encode_query(Query),
@@ -313,6 +428,24 @@ encode_query_value(K, V) ->
         _ -> V
     end.
 
+
+db_request(Method, Url, Expect) ->
+    db_request(Method, Url, Expect, [], []).
+db_request(Method, Url, Expect, Headers) ->
+    db_request(Method, Url, Expect, Headers, []).
+db_request(Method, Url, Expect, Headers, Body) ->
+    case request(Method, Url, Expect, Headers, Body) of
+        Resp = {ok, _, _, _} ->
+            Resp;
+        {error, {ok, "404", _, _}} ->
+            {error, not_found};
+        {error, {ok, "409", _, _}} ->
+            {error, conflict};
+        {error, {ok, "412", _, _}} ->
+            {error, precondition_failed};
+        Error -> 
+            Error
+    end.
 
 %% @doc send an ibrowse request
 request(Method, Url, Expect) ->
@@ -390,7 +523,7 @@ do_get_uuids(Server, Count, Acc, [#server_uuids{uuids=Uuids}]) ->
             {ok, ServerUuids} = get_new_uuids(Server),
             do_get_uuids(Server, Count, Acc, [ServerUuids]);
         _ ->
-            {Acc1, Uuids1} = get_uuids(Acc, Uuids, Count),
+            {Acc1, Uuids1} = do_get_uuids1(Acc, Uuids, Count),
             #server{host=Host, port=Port} = Server,
             ServerUuids = #server_uuids{host_port={Host,Port},
                 uuids=Uuids1},
@@ -400,10 +533,10 @@ do_get_uuids(Server, Count, Acc, [#server_uuids{uuids=Uuids}]) ->
 
 
 
-get_uuids(Acc, Uuids, 0) ->
+do_get_uuids1(Acc, Uuids, 0) ->
     {Acc, Uuids};
-get_uuids(Acc, [Uuid|Rest], Count) ->
-    get_uuids([Uuid|Acc], Rest, Count-1).
+do_get_uuids1(Acc, [Uuid|Rest], Count) ->
+    do_get_uuids1([Uuid|Acc], Rest, Count-1).
 
 
 get_new_uuids(Server=#server{host=Host, port=Port}) ->

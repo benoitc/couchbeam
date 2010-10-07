@@ -70,6 +70,7 @@
          to_binary/1, to_integer/1, to_atom/1]).
 
 -export([json_encode/1, json_decode/1]).
+-export([encode_docid/1]).
 
 -export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
@@ -84,6 +85,7 @@
                       C =:= $_))).
 
 
+-define(ENCODE_DOCID, true).
 
 
 json_encode(V) ->
@@ -100,6 +102,24 @@ json_decode(V) ->
     catch
         _Type:_Error ->
             throw({invalid_json,V})
+    end.
+
+
+encode_docid(DocId) when is_binary(DocId) ->
+    encode_docid(binary_to_list(DocId));
+encode_docid(DocId)->
+    case ?ENCODE_DOCID of
+        true -> encode_docid1(DocId);
+        false -> DocId
+    end.
+    
+encode_docid1(DocId) ->
+    case DocId of
+        "_design/" ++ Rest ->
+            Rest1 = encode_docid(Rest),
+            "_design/" ++ Rest1;
+        _ ->
+            couchbeam_util:url_encode(DocId)
     end.
 
 shutdown_sync(Pid) when not is_pid(Pid)->

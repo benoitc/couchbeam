@@ -18,7 +18,7 @@ main(_) ->
     ok.
 
 start_app() ->
-    test_util:start_client(),
+    couchbeam:start(),
     Server = couchbeam:server_connection(),
     catch couchbeam:delete_db(Server, "couchbeam_testdb"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb2"),

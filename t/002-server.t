@@ -4,7 +4,7 @@
 
 main(_) ->
     etap:plan(1),
-    test_util:start_client(),
+    couchbeam:start(),
     case (catch test()) of
         ok ->
             etap:end_tests();
