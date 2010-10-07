@@ -4,7 +4,7 @@
 
 main(_) ->
     etap:plan(1),
-    start_app(),
+    test_util:start_client(),
     case (catch test()) of
         ok ->
             etap:end_tests();
@@ -14,13 +14,9 @@ main(_) ->
     end,
     ok.
     
-start_app() ->
-    couchbeam:start(),
-    ok.
 
 test() ->
-    Connection = couchbeam_server:start_connection_link(),
-    
-    Data = couchbeam_server:info(Connection),
+    Server = couchbeam:server_connection(), 
+    {ok, {Data}} = couchbeam:server_info(Server),
     etap:is(proplists:get_value(<<"couchdb">>, Data), <<"Welcome">>, "message ok"),
     ok.

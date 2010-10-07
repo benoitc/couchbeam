@@ -12,12 +12,8 @@
 %%          {error, Reason}   
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-    case couchbeam_sup:start_link() of
-	{ok, Pid} -> 
-	    {ok, Pid};
-	Error ->
-	    Error
-    end.
+    couchbeam_deps:ensure(),
+    couchbeam_sup:start_link().
 
 %%--------------------------------------------------------------------
 %% Func: stop/1

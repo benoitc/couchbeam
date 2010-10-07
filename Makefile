@@ -4,18 +4,26 @@ APP          := couchbeam
 
 .PHONY: rel deps
 
-all: deps docs
+all: deps
 	@./rebar compile
 
 deps:
 	@./rebar get-deps
 
-docs:
-	@mkdir -p doc/api
-	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
+rel: deps
+	@./rebar compile generate
+
+relforce: deps
+	@./rebar compile generate force=1
+
+
+
+doc:
+	@./rebar doc force=1
 
 test: all
 	@$(ERLC) -o t/ t/etap.erl
+	@$(ERLC) -o t/ t/test_util.erl
 	prove -v t/*.t
 
 cover: all
@@ -23,10 +31,14 @@ cover: all
 	@$(ERL) -detached -noshell -eval 'etap_report:create()' -s init stop
 
 clean: 
-	./rebar clean
+	@./rebar clean
 	@rm -f t/*.beam
-	@rm -rf docs/api
+	@rm -rf doc
 
-distclean: clean
+relclean:
+	rm -rf rel/couchbeam
+
+
+distclean: clean relclean
 	@./rebar delete-deps
 

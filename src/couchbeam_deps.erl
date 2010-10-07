@@ -1,22 +1,26 @@
-% Copyright 2009 Benoit Chesneau <benoitc@e-engura.org>
-% Licensed under the Apache License, Version 2.0 (the "License"); you may not
-% use this file except in compliance with the License. You may obtain a copy of
-% the License at
-%
-%   http://www.apache.org/licenses/LICENSE-2.0
-%
-% Unless required by applicable law or agreed to in writing, software
-% distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-% WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-% License for the specific language governing permissions and limitations under
-% the License.
+%% @author Justin Sheehy <justin@basho.com>
+%% @author Andy Gross <andy@basho.com>
+%% @copyright 2007-2008 Basho Technologies
+%%
+%%    Licensed under the Apache License, Version 2.0 (the "License");
+%%    you may not use this file except in compliance with the License.
+%%    You may obtain a copy of the License at
+%%
+%%        http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%    Unless required by applicable law or agreed to in writing, software
+%%    distributed under the License is distributed on an "AS IS" BASIS,
+%%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%    See the License for the specific language governing permissions and
+%%    limitations under the License.
 
 %% @doc Ensure that the relatively-installed dependencies are on the code
 %%      loading path, and locate resources relative
 %%      to this application's path.
 
 -module(couchbeam_deps).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Justin Sheehy <justin@basho.com>').
+-author('Andy Gross <andy@basho.com>').
 
 -export([ensure/0, ensure/1]).
 -export([get_base_dir/0, get_base_dir/1]).
@@ -26,24 +30,18 @@
 %% @spec deps_on_path() -> [ProjNameAndVers]
 %% @doc List of project dependencies on the path.
 deps_on_path() ->
-    F = fun (X, Acc) ->
-                ProjDir = filename:dirname(X),
-                case {filename:basename(X),
-                      filename:basename(filename:dirname(ProjDir))} of
-                    {"ebin", "deps"} ->
-                        [filename:basename(ProjDir) | Acc];
-                    _ ->
-                        Acc
-                end
-        end,
-    ordsets:from_list(lists:foldl(F, [], code:get_path())).
+    ordsets:from_list([filename:basename(filename:dirname(X)) || X <- code:get_path()]).
     
 %% @spec new_siblings(Module) -> [Dir]
 %% @doc Find new siblings paths relative to Module that aren't already on the
 %%      code path.
 new_siblings(Module) ->
     Existing = deps_on_path(),
-    SiblingEbin = filelib:wildcard(local_path(["deps", "*", "ebin"], Module)),
+    SiblingEbin = [ X || X <- filelib:wildcard(local_path(["deps", "*", "ebin"], Module)),
+                         filename:basename(filename:dirname(X)) /=  %% don't include self
+                             filename:basename(filename:dirname(
+                                                 filename:dirname(
+                                                   filename:dirname(X)))) ],
     Siblings = [filename:dirname(X) || X <- SiblingEbin,
                            ordsets:is_element(
                              filename:basename(filename:dirname(X)),

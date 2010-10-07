@@ -42,10 +42,13 @@
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
         server_connection/5, server_info/1,
-        get_uuid/1, get_uuids/2, all_dbs/1,
-        create_db/2, create_db/3, create_db/4, open_db/2, open_db/3,
-        open_or_create_db/2, open_or_create_db/3,  open_or_create_db/4,
-        delete_db/1, delete_db/2, db_infos/1]).
+        get_uuid/1, get_uuids/2, 
+        all_dbs/1, db_exists/2,
+        create_db/2, create_db/3, create_db/4, 
+        open_db/2, open_db/3,
+        open_or_create_db/2, open_or_create_db/3, open_or_create_db/4,
+        delete_db/1, delete_db/2, 
+        db_info/1]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -61,11 +64,11 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-%% @doc Starts the couchbeam process without linking. Useful when testing using the shell
+%% @doc Stop the couchbeam process. Useful when testing using the shell. 
 start() ->
     gen_server:start({local, ?MODULE}, ?MODULE, [], []).
 
-%% @doc Stop the couchbeam process. Useful when testing using the shell.
+%% @doc Stop couchbeam
 stop() ->
     catch gen_server:call(couchbeam, stop).
 
@@ -133,6 +136,11 @@ server_info(Server) ->
 get_uuid(Server) ->
     get_uuids(Server, 1).
 
+%% @doc Get a list of uuids from the server
+%% @spec get_uuids(server(), integer()) -> lists()
+get_uuids(Server, Count) ->
+    gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
+ 
 %% @doc get list of databases on a CouchDB node 
 %% @spec all_dbs(server()) -> iolist()
 all_dbs(Server) ->
@@ -145,10 +153,14 @@ all_dbs(Server) ->
             Error
     end.
 
-%% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
-get_uuids(Server, Count) ->
-    gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
+%% @doc test if db with dbname exists on the CouchDB node
+%% @spec db_exists(server(), string()) -> boolean()
+db_exists(Server, DbName) ->
+    Url = make_url(Server, DbName, []),
+    case request(head, Url, ["200"]) of
+        {ok, _, _, _} -> true;
+        _Error -> false
+    end.
 
 %% @doc Create a database and a client for connectiong to it.
 %% @equiv create_db(Server, DbName, [], [])
@@ -233,8 +245,8 @@ delete_db(Server, DbName) ->
     end.
 
 %% @doc get database info
-%% @spec db_infos(db()) -> iolist()
-db_infos(#db{server=Server, name=DbName}) ->
+%% @spec db_info(db()) -> iolist()
+db_info(#db{server=Server, name=DbName}) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"]) of
         {ok, _Status, _Headers, Body} ->
@@ -245,8 +257,6 @@ db_infos(#db{server=Server, name=DbName}) ->
        Error ->
           Error
     end.
-
-
 
 %% --------------------------------------------------------------------
 %% Utilities functins.
@@ -310,7 +320,8 @@ request(Method, Url, Expect) ->
 request(Method, Url, Expect, Headers) ->
     request(Method, Url, Expect, Headers, []).
 request(Method, Url, Expect, Headers, Body) ->
-    case ibrowse:send_req(Url, Headers, Method, Body, 
+    Accept = {"Accept", "application/json, */*;q=0.9"},
+    case ibrowse:send_req(Url, [Accept|Headers], Method, Body, 
             [{response_format, binary}]) of
         Resp={ok, Status, _, _} ->
             case lists:member(Status, Expect) of

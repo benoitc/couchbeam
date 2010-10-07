@@ -1,0 +1,10 @@
+%% This is generated from src/mochiweb.app.src
+{application, couchbeam,
+ [{description, "Erlang CouchDB kit"},
+  {vsn, "0.5.0"},
+  {modules, []},
+  {registered, []},
+  {mod, {mochiweb_app, []}},
+  {env, []},
+  {applications, [kernel, stdlib]},
+  {included_applications, [crypto, sasl,  ibrowse]}]}.
