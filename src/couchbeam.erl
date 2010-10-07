@@ -44,7 +44,8 @@
         server_connection/5, server_info/1,
         get_uuid/1, get_uuids/2,
         create_db/2, create_db/3, create_db/4, open_db/2, open_db/3,
-        open_or_create_db/2, open_or_create_db/3,  open_or_create_db/4, db_infos/1]).
+        open_or_create_db/2, open_or_create_db/3,  open_or_create_db/4,
+        delete_db/1, delete_db/2, db_infos/1]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -140,12 +141,12 @@ get_uuids(Server, Count) ->
 %% @doc Create a database and a client for connectiong to it.
 %% @equiv create_db(Server, DbName, [], [])
 create_db(Server, DbName) ->
-    create_db(Server, DbName, []).
+    create_db(Server, DbName, [], []).
 
 %% @doc Create a database and a client for connectiong to it.
 %% @equiv create_db(Server, DbName, Options, [])
 create_db(Server, DbName, Options) ->
-    create_db(Server, DbName, Options).
+    create_db(Server, DbName, Options, []).
 
 %% @doc Create a database and a client for connectiong to it.
 %% 
@@ -203,6 +204,22 @@ open_or_create_db(Server, DbName, Options, Params) ->
             Error
     end.
 
+%% @doc delete database 
+%% @equiv delete_db(Server, DbName)
+delete_db(#db{server=Server, name=DbName}) ->
+    delete_db(Server, DbName).
+
+%% @doc delete database 
+%% @spec delete_db(server(), DbName) -> iolist()
+delete_db(Server, DbName) ->
+    Url = make_url(Server, DbName, []),
+    case request(delete, Url, ["200"]) of
+        {ok, _, _, Body} ->
+            {ok, couchbeam_util:json_decode(Body)};
+        Error ->
+            Error
+    end.
+
 %% @doc get database info
 %% @spec db_infos(db()) -> iolist()
 db_infos(#db{server=Server, name=DbName}) ->
@@ -249,6 +266,8 @@ make_url(Server=#server{prefix=Prefix}, Path, Query) ->
             ])).
 
 %% @doc Encode needed value of Query proplists in json
+encode_query([]) ->
+    [];
 encode_query(Query) when is_list(Query) ->
     lists:foldl(fun({K, V}, Acc) ->
         V1 = encode_query_value(K, V), 
