@@ -68,13 +68,37 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+start_apps([]) ->
+    ok;
+start_apps([App|Rest]) ->
+    case application:start(App) of
+    ok ->
+       start_apps(Rest);
+    {error, {already_started, App}} ->
+       start_apps(Rest);
+    {error, _Reason} when App =:= public_key ->
+       % ignore on R12B5
+       start_apps(Rest);
+    {error, _Reason} ->
+       {error, {app_would_not_start, App}}
+    end.
+
+
 %% @doc Start the couchbeam process. Useful when testing using the shell. 
 start() ->
-    gen_server:start({local, ?MODULE}, ?MODULE, [], []).
+    couchbeam_deps:ensure(),
+    case start_apps([crypto, public_key, sasl, ssl, ibrowse]) of
+        ok ->
+            couchbeam_sup:start_link();
+        Error ->
+            Error
+    end.
 
 %% @doc Stop the couchbeam process. Useful when testing using the shell. 
 stop() ->
-    catch gen_server:call(couchbeam, stop).
+    application:stop(couchbeam),
+    application:stop(ibrowse),
+    application:stop(crypto).
 
  
 %% @spec () -> Version
@@ -265,7 +289,8 @@ db_info(#db{server=Server, name=DbName}) ->
 open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
 open_doc(#db{server=Server}=Db, DocId, Params) ->
-    Url = make_url(Server, doc_url(Db, DocId), Params),
+    DocId1 = couchbeam_util:encode_docid(DocId), 
+    Url = make_url(Server, doc_url(Db, DocId1), Params),
     case db_request(get, Url, ["200", "201"]) of
         {ok, _, _, Body} ->
             {ok, couchbeam_util:json_decode(Body)};
@@ -289,10 +314,11 @@ save_doc(#db{server=Server}=Db, {Props}=Doc, Options) ->
     case db_request(put, Url, ["201", "202"], Headers, Body) of
         {ok, _, _, RespBody} ->
             {JsonProp} = couchbeam_util:json_decode(RespBody),
-            NewRev = proplists:get_value(<<"_rev">>, JsonProp),
+            NewRev = proplists:get_value(<<"rev">>, JsonProp),
+            NewDocId = proplists:get_value(<<"id">>, JsonProp),
             Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev, 
-                couchbeam_doc:set_value(<<"_id">>, DocId, Doc)),
-            Doc1;
+                couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
+            {ok, Doc1};
         Error -> 
             Error
     end.
@@ -389,7 +415,7 @@ uuids_url(Server) ->
     binary_to_list(iolist_to_binary([server_url(Server), "/", "_uuids"])).
 
 db_url(#db{name=DbName}) ->
-    ["/", DbName].
+    [DbName].
 
 doc_url(Db, DocId) ->
     [db_url(Db), "/", DocId].

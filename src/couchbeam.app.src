@@ -7,4 +7,5 @@
   {mod, {mochiweb_app, []}},
   {env, []},
   {applications, [kernel, stdlib]},
-  {included_applications, [crypto, sasl,  ibrowse]}]}.
+  {included_applications, [crypto, sasl,  ibrowse]},
+  {mod, { couchbeam_app, []}}]}.

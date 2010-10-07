@@ -33,14 +33,14 @@ test() ->
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
     
-    Doc = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
+    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
     etap:ok(case Doc of
         {_} -> true;
         _ -> false
     end, "save doc ok"),
     etap:ok(case couchbeam:save_doc(Db, 
             {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}) of
-        {ok, {Props}} -> 
+        {ok, {Props}} ->
             case proplists:get_value(<<"_id">>, Props) of
                 <<"test">> -> true;
                 _ -> false 
@@ -50,23 +50,23 @@ test() ->
     {error, Error} = couchbeam:save_doc(Db, 
             {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
     etap:is(Error, conflict, "conflict raised"),
-    {Doc1} = couchbeam:open_doc(Db, "test"),
+    {ok, {Doc1}} = couchbeam:open_doc(Db, "test"),
     etap:is(proplists:get_value(<<"test">>, Doc1), <<"blah">>, "fetch doc ok"),
     couchbeam:save_doc(Db, 
         {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
     
-    Doc2 = couchbeam:open_doc(Db, "test2"),
+    {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
     etap:ok(case Doc2 of
         {_} -> true;
         _ -> false
         end, "test2 has been created"),
     etap:ok(case couchbeam:delete_doc(Db, Doc2) of
-        {_} -> true;
+        {ok, _} -> true;
         _ -> false
         end, "doc2 has been deleted"),
-    etap:is(couchbeam:open_doc(Db, "test2"), not_found, "test2 not found"),
-    
+    etap:is(couchbeam:open_doc(Db, "test2"), {error, not_found}, "test2 not found"),
        Doc4 = {[{<<"a">>, 1}]},
+
     etap:is(couchbeam_doc:get_value(<<"a">>, Doc4), 1, "get value ok"),
     etap:is(couchbeam_doc:get_value("a", Doc4), 1, "get value from string ok"),
     etap:is(couchbeam_doc:get_value("b", Doc4), undefined, "get undefined value ok"),
@@ -85,8 +85,8 @@ test() ->
     etap:is(couchbeam_doc:get_value("d", Doc81), 1, "set value ok"),
     
     Doc9 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
-    Doc10 = couchbeam:save_doc(Db, Doc9),
-    Doc101 = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
+    {ok, Doc10} = couchbeam:save_doc(Db, Doc9),
+    {ok, Doc101} = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
     etap:ok(case Doc10 of
         {_} -> true;
         _ -> false
@@ -97,13 +97,14 @@ test() ->
     etap:not_ok(couchbeam_doc:is_saved(Doc11), "document isn't saved ok"),
     etap:is(couchbeam_doc:get_id(Doc11), undefined, "document id is undefined ok"),
     etap:is(couchbeam_doc:get_rev(Doc11), undefined, "document rev is undefined ok"),
-    Doc12 = couchbeam_db:save_doc(Db, Doc11),
+
+    {ok, Doc12} = couchbeam:save_doc(Db, Doc11),
     etap:ok(couchbeam_doc:is_saved(Doc12), "document saved ok"),
     etap:isnt(couchbeam_doc:get_id(Doc12), undefined, "document id  defined ok"),
     etap:isnt(couchbeam_doc:get_rev(Doc12), undefined, "document rev is defined ok"),
     
-    Doc13 = couchbeam:save_doc(Db, {[]}),
-    Doc14 = couchbeam:save_doc(Db, {[]}),
+    {ok, Doc13} = couchbeam:save_doc(Db, {[]}),
+    {ok, Doc14} = couchbeam:save_doc(Db, {[]}),
     couchbeam:delete_docs(Db, [Doc13, Doc14]),
     
     etap:is(couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc13)), 
