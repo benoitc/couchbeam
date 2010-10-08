@@ -19,7 +19,6 @@ doc:
 
 test: compile	
 	@$(ERLC) -o t/ t/etap.erl
-	@$(ERLC) -o t/ t/test_util.erl
 	prove t/*.t
 
 cover: all
