@@ -57,7 +57,8 @@
         delete_doc/2, delete_doc/3,
         save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
         all_docs/1, all_docs/2, view/2, view/3,
-        ensure_full_commit/1, ensure_full_commit/2]).
+        ensure_full_commit/1, ensure_full_commit/2,
+        compact/1, compact/2]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -437,6 +438,28 @@ ensure_full_commit(#db{server=Server}=Db, Options) ->
         Error ->
             Error
     end.
+
+compact(#db{server=Server}=Db) ->
+    Url = make_url(Server, [db_url(Db), "/_compact"], []),
+    Headers = [{"Content-Type", "application/json"}],
+    case db_request(post, Url, ["202"], Headers) of
+        {ok, _, _, _} ->
+            ok;
+        Error -> 
+            Error
+    end.
+
+compact(#db{server=Server}=Db, DesignName) ->
+    Url = make_url(Server, [db_url(Db), "/_compact/", DesignName], []),
+    Headers = [{"Content-Type", "application/json"}],
+    case db_request(post, Url, ["202"], Headers) of
+        {ok, _, _, _} ->
+            ok;
+        Error -> 
+            Error
+    end.
+
+
 
 %% --------------------------------------------------------------------
 %% Utilities functins.
