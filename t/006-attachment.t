@@ -1,7 +1,9 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 %%! -pa ./ebin -pa ./t
-
+%%
+%% This file is part of couchbeam released under the MIT license. 
+%% See the NOTICE for more information.
 
 -include_lib("kernel/include/file.hrl").
 
@@ -82,8 +84,7 @@ test() ->
    
     {ok, FileInfo} = file:read_file_info("t/1M"),
     FileSize = FileInfo#file_info.size,
-    io:format("FileSize ~p~n", [FileSize]),
-    {ok, Fd} = file:open("deps/lhttpc/test/1M", [read]),
+    {ok, Fd} = file:open("t/1M", [read]),
     {ok, Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), 
         "1M", fun() ->
             case file:read(Fd, 4096) of

@@ -1,3 +1,9 @@
+%%% -*- erlang -*-
+%%%
+%%% This file is part of couchbeam released under the MIT license. 
+%%% See the NOTICE for more information.
+
+
 %% @doc This module contains utilities to manage attachments
 
 -module(couchbeam_attachments).
@@ -68,7 +74,7 @@ attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef) ->
 %%      AName::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
-    ContentType = couchbeam_util:guess_mime(AName),
+    ContentType = mochiweb_util:guess_mime(AName),
     add_inline(Doc, Content, AName, ContentType).
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
@@ -76,7 +82,7 @@ add_inline(Doc, Content, AName) ->
 %% @doc add attachment  to a doc and encode it with ContentType fixed.    
 add_inline(Doc, Content, AName, ContentType) ->
     {Props} = Doc,
-    Data = couchbeam_util:encodeBase64(Content),
+    Data = base64:encode(Content),
     Attachment = {list_to_binary(AName), {[{<<"content-type">>, 
         list_to_binary(ContentType)}, {<<"data">>, Data}]}},
     

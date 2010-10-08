@@ -1,4 +1,8 @@
-%% This is generated from src/mochiweb.app.src
+%%% -*- erlang -*-
+%%%
+%%% This file is part of couchbeam released under the MIT license. 
+%%% See the NOTICE for more information.
+
 {application, couchbeam,
  [{description, "Erlang CouchDB kit"},
   {vsn, "0.5.0"},
