@@ -492,8 +492,6 @@ put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Op
         Error ->
             Error
     end.
-
-    
     
 %% @doc delete a document attachment
 %% @equiv delete_attachment(Db, Doc, Name, [])
