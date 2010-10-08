@@ -12,7 +12,7 @@ Full documentation of the project is on this [url](http://benoitc.github.com/cou
 
 ##requirements
 
-* Erlang/OTP R12-B or newer (compiler to build, kernel,stdlib,ssl,crypto to run)
+* Erlang/OTP R13/R14 or newer (compiler to build, kernel,stdlib,ssl,crypto to run)
 * GNU Make (might actually build with some other make as well)
 
 ##installation
