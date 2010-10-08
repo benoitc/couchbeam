@@ -633,7 +633,7 @@ changes(Db) ->
 %%                  {since, integer()|string()} |
 %%                  {heartbeat, string()|boolean()}
 changes(#db{server=Server}=Db, Options) ->
-    Url = make_url(Server, [db_url(Db), "/_changes/"], Options),
+    Url = make_url(Server, [db_url(Db), "/_changes"], Options),
     case db_request(get, Url, ["200"]) of
         {ok, _, _, Body} ->
             {ok, couchbeam_util:json_decode(Body)};
