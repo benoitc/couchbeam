@@ -66,7 +66,9 @@
         delete_attachment/4, put_attachment/4, put_attachment/5, 
         all_docs/1, all_docs/2, view/2, view/3,
         ensure_full_commit/1, ensure_full_commit/2,
-        compact/1, compact/2]).
+        compact/1, compact/2,
+        changes/1, changes/2, changes_wait/2, changes_wait/3,
+        changes_wait_once/1, changes_wait_once/2]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -380,12 +382,12 @@ save_docs(#db{server=Server}=Db, Docs, Options) ->
         end.
 
 %% @doc fetch a document attachment
-%% @equiv fetch_attachment(Db, DocId, Name, [], ?DEFAULT_TUMEOUT)
+%% @equiv fetch_attachment(Db, DocId, Name, [], DEFAULT_TIMEOUT)
 fetch_attachment(Db, DocId, Name) ->
     fetch_attachment(Db, DocId, Name, [], ?DEFAULT_TIMEOUT).
 
 %% @doc fetch a document attachment
-%% @equiv fetch_attachment(Db, DocId, Name, Options, ?DEFAULT_TUMEOUT)
+%% @equiv fetch_attachment(Db, DocId, Name, Options, DEFAULT_TIMEOUT)
 fetch_attachment(Db, DocId, Name, Options) ->
     fetch_attachment(Db, DocId, Name, Options, ?DEFAULT_TIMEOUT).
 
@@ -398,13 +400,13 @@ fetch_attachment(Db, DocId, Name, Options, Timeout) ->
     couchbeam_attachments:wait_for_attachment(ReqId, Timeout).
 
 %% @doc stream fetch attachment to a Pid.
-%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, [], ?DEFAULT_TIMEOUT)
+%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, [], DEFAULT_TIMEOUT)
 stream_fetch_attachment(Db, DocId, Name, ClientPid) ->
     stream_fetch_attachment(Db, DocId, Name, ClientPid, [], ?DEFAULT_TIMEOUT).
 
 
 %% @doc stream fetch attachment to a Pid.
-%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, Options, ?DEFAULT_TIMEOUT)
+%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, Options, DEFAULT_TIMEOUT)
 stream_fetch_attachment(Db, DocId, Name, ClientPid, Options) ->
      stream_fetch_attachment(Db, DocId, Name, ClientPid, Options, ?DEFAULT_TIMEOUT).
 
@@ -419,8 +421,8 @@ stream_fetch_attachment(Db, DocId, Name, ClientPid, Options) ->
 %%          <dt>{error, term()}</dt>
 %%              <dd>n error occurred</dd>
 %%      </dl>
-%% @spec stream_fetch_attachment(db(), string(), string(), 
-%%                               list(), integer())
+%% @spec stream_fetch_attachment(Db::db(), DocId::string(), Name::string(), 
+%%                               ClientPid::pid(), Options::list(), Timeout::integer())
 %%          -> {ok, reference()}|{error, term()}
 stream_fetch_attachment(#db{server=Server}=Db, DocId, Name, ClientPid, 
         Options, Timeout) ->
@@ -614,6 +616,71 @@ compact(#db{server=Server}=Db, DesignName) ->
     end.
 
 
+%% @doc get all changes. Do not use this function for longpolling,
+%%      instead use  ```changes_wait_once''' or continuous, use 
+%%      ```wait_once'''
+%% @equiv changes(Db, [])
+changes(Db) ->
+    changes(Db, []).
+
+%% @doc get all changes. Do not use this function for longpolling,
+%%      instead use  ```changes_wait_once''' or continuous, use 
+%%      ```wait_once'''
+%% @spec changes(Db::db(), Options::changesoptions()) -> term()
+%%       changesoptions() = [changeoption()]
+%%       changeoption() = {include_docs, string()} |
+%%                  {filter, string()} |
+%%                  {since, integer()|string()} |
+%%                  {heartbeat, string()|boolean()}
+changes(#db{server=Server}=Db, Options) ->
+    Url = make_url(Server, [db_url(Db), "/_changes/"], Options),
+    case db_request(get, Url, ["200"]) of
+        {ok, _, _, Body} ->
+            {ok, couchbeam_util:json_decode(Body)};
+        Error ->
+            Error
+    end.
+
+%% @doc wait for longpoll changes 
+%% @equiv changes_wait_once(Db, [])
+changes_wait_once(Db) ->
+    changes_wait_once(Db, []).
+
+%% @doc wait for longpoll changes 
+changes_wait_once(Db, Options) ->
+    Options1 = [{"feed", "longpoll"}|Options],
+    changes(Db, Options1). 
+
+%% @doc wait for continuous changes 
+%% @equiv changes_wait(Db, ClientPid, [])
+changes_wait(Db, ClientPid) ->
+    changes_wait(Db, ClientPid, []).
+
+%% @doc wait for continuous changes to a Pid. Messages sent to the Pid
+%%      will be of the form `{reference(), message()}',
+%%      where `message()' is one of:
+%%      <dl>
+%%          <dt>done</dt>
+%%              <dd>You got all the changes</dd>
+%%          <dt>{change, term()}</dt>
+%%              <dd>Change row</dd>
+%%          <dt>{last_seq, binary()}</dt>
+%%              <dd>last sequence</dd>
+%%          <dt>{error, term()}</dt>
+%%              <dd>n error occurred</dd>
+%%      </dl> 
+%% @spec changes_wait(Db::db(), Pid::pid(), Options::changeoptions()) -> term() 
+changes_wait(#db{server=Server}=Db, ClientPid, Options) ->
+    Options1 = [{"feed", "continuous"}|Options],
+    Url = make_url(Server, [db_url(Db), "/_changes"], Options1),
+    StartRef = make_ref(),
+    Pid = spawn(couchbeam_changes, continuous_acceptor, [ClientPid, StartRef]),
+    case request_stream({Pid, once}, get, Url) of
+        {ok, ReqId}    ->
+            Pid ! {ibrowse_req_id, StartRef, ReqId},
+            {ok, StartRef};
+        {error, Error} -> {error, Error}
+    end. 
 
 %% --------------------------------------------------------------------
 %% Utilities functins.

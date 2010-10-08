@@ -1,34 +1,27 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ./ebin -pa deps/lhttpc/ebin
+%%! -pa ./ebin 
 
 -module(changes).
 
 main(_) ->
     couchbeam:start(),
-    Conn = couchbeam_server:start_connection_link(),
-    Db = couchbeam_server:open_db(Conn, "couchdbproxy"),
-    Pid = spawn(fun() -> get_changes() end),
-    couchbeam_db:subscribe(Db, Pid, [{heartbeat, "true"}]),
-    receive
-        die -> ok
-    end.
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:open_or_create_db(Server, "testdb"),
+    {ok, ReqId} = couchbeam:changes_wait(Db, self(), [{heartbeat, "true"}]),
+    io:format("StartRef ~p~n", [ReqId]),
+    get_changes(ReqId).
     
     
-get_changes() ->
+get_changes(ReqId) ->
     receive
-        body_done ->
+        {ReqId, done} ->
             ok;
-        {body_pid, _} ->
-            get_changes(); 
-        {body_done, Body} ->
-            io:format("body ~p ~n", Body);
-        {change, Change} ->
-            io:format("change ~p ~n", Change),
-            get_changes();    
-        E->
-            io:format("error ? ~p ~n", [E]),
-            get_changes()
+        {ReqId, {change, Change}} ->
+            io:format("change ~p ~n", [Change]),
+            get_changes(ReqId);    
+        {ReqId, {error, E}}->
+            io:format("error ? ~p ~n", [E])
     end.
     
 

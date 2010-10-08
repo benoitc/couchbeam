@@ -16,10 +16,10 @@ rel: deps
 relforce: deps
 	@./rebar compile generate force=1
 
-
-
 doc:
-	@./rebar doc force=1
+	@mkdir -p doc/api
+	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
+	
 
 test: all
 	@$(ERLC) -o t/ t/etap.erl
