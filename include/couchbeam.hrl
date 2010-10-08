@@ -21,23 +21,15 @@
 -type headers() :: [header()].
 %% In R13B bool() is now called boolean()
 %% Uncomment if it's not compiling.
-%% -type boolean() :: bool().
+%% -type boolean() :: bool()
 
--record(options, {
-    username = nil :: string(),
-    password = nil :: string(),
-    headers = [] :: iolist(),
-    auth :: iolist()
-}).
-
--type options() :: #options{}.
 
 -record(server, {
     host :: string(),
     port :: integer(),
     ssl :: boolean(),
     prefix :: string(),
-    options :: options()
+    options = [] :: list()
 }).
 
 -type server() :: #server{}.
@@ -46,7 +38,7 @@
 -record(db, {
     server :: server(),
     name :: string(),
-    options :: options()
+    options = [] :: list()
 }).
 
 -type db() :: #db{}.
