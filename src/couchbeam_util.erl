@@ -71,6 +71,7 @@
 
 -export([json_encode/1, json_decode/1]).
 -export([encode_docid/1]).
+-export([parse_options/1, parse_options/2]).
 
 -export([shutdown_sync/1]).
 -define(PERCENT, 37).  % $\%
@@ -121,6 +122,26 @@ encode_docid1(DocId) ->
         _ ->
             couchbeam_util:url_encode(DocId)
     end.
+
+
+%% @doc make view options a list
+
+parse_options(Options) ->
+    parse_options(Options, []).
+
+parse_options([], Acc) ->
+    Acc;
+parse_options([V|Rest], Acc) when is_atom(V) ->
+    parse_options(Rest, [{atom_to_list(V), true}|Acc]);
+parse_options([{K,V}|Rest], Acc) when is_list(K) ->    
+    parse_options(Rest, [{K,V}|Acc]);
+parse_options([{K,V}|Rest], Acc) when is_binary(K) ->
+    parse_options(Rest, [{binary_to_list(K),V}|Acc]);
+parse_options([{K,V}|Rest], Acc) when is_atom(K) ->   
+    parse_options(Rest, [{atom_to_list(K),V}|Acc]);
+parse_options(_,_) ->
+    fail.
+
 
 shutdown_sync(Pid) when not is_pid(Pid)->
     ok;

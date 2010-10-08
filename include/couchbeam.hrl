@@ -39,6 +39,7 @@
 
 -type server() :: #server{}.
 
+% record to keep database information
 -record(db, {
     server :: server(),
     name :: string(),
@@ -51,6 +52,19 @@
     host_port,
     uuids
 }).
+
+-record(view, {
+    db :: db(),
+    name :: string(),
+    options :: iolist(),
+    method :: atom(),
+    body :: iolist(),
+    headers :: list(),
+    url_parts :: list(),
+    url :: string()
+}).
+
+-type view() :: #view{}.
 
 -record(couchdb_params, {
     host        = "127.0.0.1" :: string(),
@@ -92,26 +106,6 @@
 }).
 
 
--record(old_view, {
-    server,
-    db,
-    couchdb = #couchdb_params{},
-    base,
-    name,
-    params=[],
-    fetched=false,
-    total_rows=0,
-    offset=0,
-    rows=[],
-    meta=[],
-    view_cache
-}).
-
--record(view, {
-    db,
-    view_name,
-    view_uri
-}).
 
 -record(change, {
     db,
@@ -125,4 +119,4 @@
     refs=dict:new()
 }).
     
--define(USER_AGENT, "couchbeam/0.4.3").
+-define(USER_AGENT, "couchbeam/0.5.0").

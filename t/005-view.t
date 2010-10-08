@@ -18,23 +18,23 @@ main(_) ->
 
 start_app() ->
     couchbeam:start(),
-    Conn = couchbeam_server:start_connection_link(),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
+    Server = couchbeam:server_connection(),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    Conn = couchbeam_server:start_connection_link(),
+    Server = couchbeam:server_connection(),
 
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
     
 
 test() ->
-    Conn = couchbeam_server:start_connection_link(),
+    Server = couchbeam:server_connection(),
 
-    Db = couchbeam_server:create_db(Conn, "couchbeam_testdb"),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
     DesignDoc = {[
         {<<"_id">>, <<"_design/couchbeam">>},
@@ -56,8 +56,10 @@ test() ->
         {<<"type">>, <<"test">>}
     ]},
 
-    couchbeam_db:save_docs(Db, [DesignDoc, Doc, Doc]),
-    AllDocs = couchbeam_db:all_docs(Db),
+    couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
+    couchbeam:ensure_full_commit(Db),
+
+    {ok, AllDocs} = couchbeam:all_docs(Db),
 
     {ok, {Rst}} = couchbeam_view:fetch(AllDocs),
 
@@ -68,7 +70,7 @@ test() ->
     etap:is(length(Rows), 3, "number of rows ok"),
 
 
-    View = couchbeam_db:view(Db, "couchbeam/test"),
+    {ok, View} = couchbeam:view(Db, "couchbeam/test"),
 
     {ok, {Rst2}} = couchbeam_view:fetch(View),
     TotalRows2 = proplists:get_value(<<"total_rows">>, Rst2),
@@ -77,7 +79,10 @@ test() ->
     Rows2 = proplists:get_value(<<"rows">>, Rst2),
     etap:is(length(Rows2), 2, "number of rows ok"),
 
-    {FirstRow} = couchbeam_view:first(View, [{"include_docs",true}]),
+    {ok, View1} = couchbeam:view(Db, "couchbeam/test",
+        [{"include_docs",true}]),
+
+    {ok, {FirstRow}} = couchbeam_view:first(View1),
     {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
     
     etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>, "first with
@@ -94,9 +99,6 @@ include docs ok"),
     end,
     couchbeam_view:foreach(View, Fun1),
     etap:is(ets:info(Tid, size), 2, "foreach ok"),
-
-    couchbeam_view:close(View),
-    couchbeam_view:close(AllDocs),
     ok.
 
 

@@ -37,7 +37,10 @@
          terminate/2, code_change/3]).
 
 %% utilities urls 
--export([server_url/1, uuids_url/1, make_url/3]).
+-export([server_url/1, uuids_url/1, db_url/1, doc_url/2, make_url/3]).
+-export([request/3, request/4, request/5,
+         request_stream/3, request_stream/4, request_stream/5,
+         db_request/3, db_request/4, db_request/5]).
 
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
@@ -52,7 +55,9 @@
         save_doc/2, save_doc/3,
         open_doc/2, open_doc/3,
         delete_doc/2, delete_doc/3,
-        save_docs/2, save_docs/3, delete_docs/2, delete_docs/3]).
+        save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
+        all_docs/1, all_docs/2, view/2, view/3,
+        ensure_full_commit/1, ensure_full_commit/2]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -342,20 +347,21 @@ save_docs(Db, Docs) ->
 
 save_docs(#db{server=Server}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
-    {Options1, Body} = case proplists:get_value("all_or_nothing", 
-            Options, false) of
+    Options1 = couchbeam_util:parse_options(Options),
+    {Options2, Body} = case proplists:get_value("all_or_nothing", 
+            Options1, false) of
         true ->
             Body1 = couchbeam:json_encode({[
                 {<<"all_or_nothing">>, true},
                 {<<"docs">>, Docs1}
             ]}),
 
-            {proplists:delete("all_or_nothing", Options), Body1};
+            {proplists:delete("all_or_nothing", Options1), Body1};
         _ ->
             Body1 = couchbeam_util:json_encode({[{<<"docs">>, Docs1}]}),
-            {Options, Body1}
+            {Options1, Body1}
         end,
-    Url = make_url(Server, [db_url(Db), "/", "_bulk_docs"], Options1),
+    Url = make_url(Server, [db_url(Db), "/", "_bulk_docs"], Options2),
     Headers = [{"Content-Type", "application/json"}], 
     case db_request(post, Url, ["201"], Headers, Body) of
         {ok, _, _, RespBody} ->
@@ -366,23 +372,71 @@ save_docs(#db{server=Server}=Db, Docs, Options) ->
 
 all_docs(Db) ->
     all_docs(Db, []).
-all_docs(#db{server=Server, name=DbName}, Options) ->
-    {Method, Options1, Body} = case proplists:get_value("keys", Options) of
-        undefined ->
-            {get, Options, []};
-        Keys ->
-            Body1 = couchbeam_util:json_encode({[{<<"keys">>, Keys}]}),
-            {post, proplists:delete("keys", Options), Body1}
-        end,
+all_docs(Db, Options) ->
+    view(Db, "_all_docs", Options).
 
-    Url = make_url(Server, [DbName, "/", "_all_docs"], Options1),
-    case request(Method, Url, ["200"], [], Body) of
-        {ok, _, _, RespBody} ->
-            {ok, couchbeam_util:json_decode(RespBody)};
+view(Db, ViewName) ->
+    view(Db, ViewName, []).
+
+view(#db{server=Server}=Db, ViewName, Options) ->
+    ViewName1 = couchbeam_util:to_list(ViewName),
+    Options1 = couchbeam_util:parse_options(Options),
+    Url = case ViewName1 of
+        {DName, VName} ->
+            [db_url(Db), "/_design/", DName, "/_view/", VName];
+        "_all_docs" ->
+            [db_url(Db), "/_all_docs"];
+        _Else ->
+            case string:tokens(ViewName1, "/") of
+            [DName, VName] ->
+                [db_url(Db), "/_design/", DName, "/_view/", VName];
+            _ ->
+                undefined
+            end
+    end,
+    case Url of
+    undefined ->
+        {error, invalid_view_name};
+    _ ->
+        {Method, Options2, Body} = case proplists:get_value("keys",
+                Options1) of
+            undefined ->
+                {get, Options1, []};
+            Keys ->
+                Body1 = couchbeam_util:json_encode({[{<<"keys">>, Keys}]}),
+                {post, proplists:delete("keys", Options1), Body1}
+            end,
+        Headers = case Method of
+            post -> [{"Content-Type", "application/json"}];
+            _ -> []
+        end,
+        NewView = #view{
+            db = Db,
+            name = ViewName,
+            options = Options2,
+            method = Method,
+            body = Body,
+            headers = Headers,
+            url_parts = Url,
+            url = make_url(Server, Url, Options2)
+        },
+        {ok, NewView}
+    end.
+
+
+ensure_full_commit(Db) ->
+    ensure_full_commit(Db, []).
+
+ensure_full_commit(#db{server=Server}=Db, Options) ->
+    Url = make_url(Server, [db_url(Db), "/_ensure_full_commit"], Options),
+    Headers = [{"Content-Type", "application/json"}],
+    case db_request(post, Url, ["201"], Headers) of
+        {ok, _, _, Body} ->
+            {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(Body),
+            {ok, R};
         Error ->
             Error
     end.
-
 
 %% --------------------------------------------------------------------
 %% Utilities functins.
@@ -390,7 +444,6 @@ all_docs(#db{server=Server, name=DbName}, Options) ->
 
 %% add missing docid to a list of documents if needed
 maybe_docid(Server, {DocProps}) ->
-
     case proplists:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = [get_uuid(Server)],
