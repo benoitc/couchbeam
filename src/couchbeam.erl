@@ -26,6 +26,10 @@
 
 -record(state, {}).
 
+-define(ATOM_HEADERS, [
+    {content_type, "Content-Type"},
+    {content_length, "Content-Length"}
+]).
 
 
 % generic functions
@@ -56,6 +60,10 @@
         open_doc/2, open_doc/3,
         delete_doc/2, delete_doc/3,
         save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
+        fetch_attachment/3, fetch_attachment/4, fetch_attachment/5,
+        stream_fetch_attachment/4, stream_fetch_attachment/5,
+        stream_fetch_attachment/6, delete_attachment/3,
+        delete_attachment/4, put_attachment/4, put_attachment/5, 
         all_docs/1, all_docs/2, view/2, view/3,
         ensure_full_commit/1, ensure_full_commit/2,
         compact/1, compact/2]).
@@ -371,6 +379,152 @@ save_docs(#db{server=Server}=Db, Docs, Options) ->
             Error
         end.
 
+%% @doc fetch a document attachment
+%% @equiv fetch_attachment(Db, DocId, Name, [], ?DEFAULT_TUMEOUT)
+fetch_attachment(Db, DocId, Name) ->
+    fetch_attachment(Db, DocId, Name, [], ?DEFAULT_TIMEOUT).
+
+%% @doc fetch a document attachment
+%% @equiv fetch_attachment(Db, DocId, Name, Options, ?DEFAULT_TUMEOUT)
+fetch_attachment(Db, DocId, Name, Options) ->
+    fetch_attachment(Db, DocId, Name, Options, ?DEFAULT_TIMEOUT).
+
+%% @doc fetch a document attachment
+%% @spec fetch_attachment(db(), string(), string(), 
+%%                        list(), infinity|integer()) -> binary()
+fetch_attachment(Db, DocId, Name, Options, Timeout) ->
+    {ok, ReqId} = stream_fetch_attachment(Db, DocId, Name, self(), Options,
+        Timeout),
+    couchbeam_attachments:wait_for_attachment(ReqId, Timeout).
+
+%% @doc stream fetch attachment to a Pid.
+%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, [], ?DEFAULT_TIMEOUT)
+stream_fetch_attachment(Db, DocId, Name, ClientPid) ->
+    stream_fetch_attachment(Db, DocId, Name, ClientPid, [], ?DEFAULT_TIMEOUT).
+
+
+%% @doc stream fetch attachment to a Pid.
+%% @equiv stream_fetch_attachment(Db, DocId, Name, ClientPid, Options, ?DEFAULT_TIMEOUT)
+stream_fetch_attachment(Db, DocId, Name, ClientPid, Options) ->
+     stream_fetch_attachment(Db, DocId, Name, ClientPid, Options, ?DEFAULT_TIMEOUT).
+
+%% @doc stream fetch attachment to a Pid. Messages sent to the Pid
+%%      will be of the form `{reference(), message()}',
+%%      where `message()' is one of:
+%%      <dl>
+%%          <dt>done</dt>
+%%              <dd>You got all the attachment</dd>
+%%          <dt>{ok, binary()}</dt>
+%%              <dd>Part of the attachment</dd>
+%%          <dt>{error, term()}</dt>
+%%              <dd>n error occurred</dd>
+%%      </dl>
+%% @spec stream_fetch_attachment(db(), string(), string(), 
+%%                               list(), integer())
+%%          -> {ok, reference()}|{error, term()}
+stream_fetch_attachment(#db{server=Server}=Db, DocId, Name, ClientPid, 
+        Options, Timeout) ->
+    Options1 = couchbeam_util:parse_options(Options),
+    %% custom headers. Allows us to manage Range.
+    {Options2, Headers} = case proplists:get_value("headers", Options1) of
+        undefined ->
+            {Options1, []};
+        Headers1 ->
+            {proplists:delete("headers", Options1), Headers1}
+    end,
+    DocId1 = couchbeam_util:encode_docid(DocId),
+    Url = make_url(Server, [db_url(Db), "/", DocId1, "/", Name], Options2),
+    StartRef = make_ref(),
+    Pid = spawn(couchbeam_attachments, attachment_acceptor, [ClientPid,
+            StartRef, Timeout]),
+    case request_stream(Pid, get, Url, Headers) of
+        {ok, ReqId}    ->
+            Pid ! {ibrowse_req_id, StartRef, ReqId},
+            {ok, StartRef};
+        {error, Error} -> {error, Error}
+    end.
+
+%% @doc put an attachment 
+%% @equiv put_attachment(Db, DocId, Name, Body, [])
+put_attachment(Db, DocId, Name, Body)->
+    put_attachment(Db, DocId, Name, Body, []).
+
+%% @doc put an attachment
+%% @spec put_attachment(Db::db(), DocId::string(), Name::string(),
+%%                      Body::body(), Option::optionList()) -> iolist()
+%%       optionList() = [option()]
+%%       option() = {rev, string()} |
+%%                  {content_type, string()} |
+%%                  {content_length, string()}
+%%       body() = [] | string() | binary() | fun_arity_0() | {fun_arity_1(), initial_state()}
+%%       initial_state() = term()
+put_attachment(#db{server=Server}=Db, DocId, Name, Body, Options) ->
+    QueryArgs = case proplists:get_value(rev, Options) of
+        undefined -> [];
+        Rev -> [{"rev", couchbeam_util:to_list(Rev)}]
+    end,
+    
+    Headers = proplists:get_value(headers, Options, []),
+
+    FinalHeaders = lists:foldl(fun(Hdr, Acc) ->
+            case proplists:get_value(Hdr, Options) of
+                undefined -> Acc;
+                Value -> 
+                    Hdr1 = proplists:get_value(Hdr, ?ATOM_HEADERS),
+                    [{Hdr1, Value}|Acc]
+            end
+    end, Headers, [content_type, content_length]),
+
+    Url = make_url(Server, [db_url(Db), "/",
+            couchbeam_util:encode_docid(DocId), "/", Name], QueryArgs),
+
+    case db_request(put, Url, ["201"], FinalHeaders, Body) of
+        {ok, _, _, RespBody} ->
+            {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(RespBody),
+            {ok, {R}};
+        Error ->
+            Error
+    end.
+
+    
+    
+%% @doc delete a document attachment
+%% @equiv delete_attachment(Db, Doc, Name, [])
+delete_attachment(Db, Doc, Name) ->
+    delete_attachment(Db, Doc, Name, []).
+
+%% @doc delete a document attachment
+%% @spec(db(), string()|list(), string(), list() -> term()
+delete_attachment(#db{server=Server}=Db, DocOrDocId, Name, Options) ->
+    Options1 = couchbeam_util:parse_options(Options),
+    {Rev, DocId} = case DocOrDocId of
+        {Props} ->
+            Rev1 = proplists:get_value(<<"_rev">>, Props),
+            DocId1 = proplists:get_value(<<"_id">>, Props),
+            {Rev1, DocId1};
+        DocId1 ->
+            Rev1 = proplists:get_value("rev", Options1),
+            {Rev1, DocId1}
+    end,
+    case Rev of
+        undefined ->
+           {error, rev_undefined};
+        _ ->
+            Options2 = case proplists:get_value("rev", Options1) of
+                undefined ->
+                    [{"rev", Rev}|Options1];
+                _ ->
+                    Options1
+            end,
+            Url = make_url(Server, [db_url(Db), "/", DocId, "/", Name], Options2),
+            case db_request(delete, Url, ["200"]) of
+            {ok, _, _, _Body} ->
+                ok; 
+            Error ->
+                Error
+            end
+    end.
+                    
 all_docs(Db) ->
     all_docs(Db, []).
 all_docs(Db, Options) ->

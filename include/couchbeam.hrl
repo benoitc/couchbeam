@@ -14,6 +14,9 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
+
+-define(DEFAULT_TIMEOUT, 60000).
+
 -type header() :: {string() | atom(), string()}.
 -type headers() :: [header()].
 %% In R13B bool() is now called boolean()

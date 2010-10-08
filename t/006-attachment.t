@@ -6,7 +6,7 @@
 -include_lib("kernel/include/file.hrl").
 
 main(_) ->
-    etap:plan(14),
+    etap:plan(12),
     start_app(),
     case (catch test()) of
         ok ->
@@ -21,93 +21,90 @@ main(_) ->
 
 start_app() ->
     couchbeam:start(),
-    Conn = couchbeam_server:start_connection_link(),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
+    Server = couchbeam:server_connection(),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
     
 stop_test() ->
-    Conn = couchbeam_server:start_connection_link(),
-    
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb"),
-    catch couchbeam_server:delete_db(Conn, "couchbeam_testdb2"),
+    Server = couchbeam:server_connection(),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
     
-
-get_streamed_attachment({ok, {http_eob, _Trailers}}, _Pid, Acc) ->
-    iolist_to_binary(lists:reverse(Acc));
-get_streamed_attachment({ok, Bin}, Pid, Acc) ->
-    NextState = couchbeam_resource:get_body_part(Pid),
-    get_streamed_attachment(NextState, Pid, [binary_to_list(Bin)|Acc]).
-
 test() ->
-    Conn = couchbeam_server:start_connection_link(),
+    Server = couchbeam:server_connection(),
     
-    Db = couchbeam_server:create_db(Conn, "couchbeam_testdb"),
-    etap:is(is_pid(Db), true, "db created ok"),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
     Doc = {[
         {<<"_id">>, <<"test">>}
     ]},
-    Doc1 = couchbeam_db:save_doc(Db, Doc),
+    {ok, Doc1} = couchbeam:save_doc(Db, Doc),
     RevDoc1 = couchbeam_doc:get_value(<<"_rev">>, Doc1),
-    Doc11 = couchbeam_db:put_attachment(Db, Doc1, "test", "test", length("test")),
-    RevDoc11 = couchbeam_doc:get_value(<<"_rev">>, Doc11),
+    io:format("rev ~p~n", [RevDoc1]),
+    {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test", 
+            [{rev, RevDoc1}]),
+
+    RevDoc11 = proplists:get_value(<<"rev">>, Res),
     etap:is(RevDoc1 =:= RevDoc11, false, "put attachment ok"),
-    Attachment = couchbeam_db:fetch_attachment(Db, "test", "test"),
+
+
+    {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test"),
     etap:is(Attachment, <<"test">>, "fetch attachment ok"),
-    Doc2 = couchbeam_db:open_doc(Db, "test"),
+
+    {ok, Doc2} = couchbeam:open_doc(Db, "test"),
     RevDoc2 = couchbeam_doc:get_value(<<"_rev">>, Doc2),
-    Doc21 = couchbeam_db:delete_attachment(Db, Doc2, "test"),
-    RevDoc21 = couchbeam_doc:get_value(<<"_rev">>, Doc21),
-    etap:is(RevDoc2 =:= RevDoc21, false, "delete attachment ok"),
+
+    etap:is(couchbeam:delete_attachment(Db, Doc2, "test"), ok, "delete attachment ok"),
+
     Doc3 = {[
         {<<"_id">>, <<"test2">>}
     ]},
-    Doc4 = couchbeam_doc:add_attachment(Doc3, "test", "test.txt"),
-    Doc5 = couchbeam_doc:add_attachment(Doc4, "test2", "test2.txt"),
-    couchbeam_db:save_doc(Db, Doc5),
-    Attachment1 = couchbeam_db:fetch_attachment(Db, "test2", "test.txt"),
-    Attachment2 = couchbeam_db:fetch_attachment(Db, "test2", "test2.txt"),
+    Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
+    Doc5 = couchbeam_attachments:add_inline(Doc4, "test2", "test2.txt"),
+    {ok, _} = couchbeam:save_doc(Db, Doc5),
+    {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
+    {ok, Attachment2} = couchbeam:fetch_attachment(Db, "test2", "test2.txt"),
     etap:is(Attachment1, <<"test">>, "fetch attachment ok"),
     etap:is(Attachment2, <<"test2">>, "fetch attachment ok"),
-    Doc6 = couchbeam_db:open_doc(Db, "test2"),
-    Doc7 = couchbeam_doc:delete_inline_attachment(Doc6, "test2.txt"),
-    couchbeam_db:save_doc(Db, Doc7),
-    Attachment3 = couchbeam_db:fetch_attachment(Db, "test2", "test2.txt"),
-    etap:is(Attachment3, not_found, "inline attachment deleted"),
-    Attachment4 = couchbeam_db:fetch_attachment(Db, "test2", "test.txt"),
+
+    {ok, Doc6} = couchbeam:open_doc(Db, "test2"),
+    Doc7 = couchbeam_attachments:delete_inline(Doc6, "test2.txt"),
+    {ok, _} = couchbeam:save_doc(Db, Doc7),
+    etap:is(couchbeam:fetch_attachment(Db, "test2", "test2.txt"), 
+            {error, not_found}, "inline attachment deleted"),
+
+    {ok, Attachment4} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
     etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
     
-    Doc8 = couchbeam_db:save_doc(Db, {[]}),
-    {ok, FileInfo} = file:read_file_info("deps/lhttpc/test/1M"),
+    {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
+
+   
+    {ok, FileInfo} = file:read_file_info("t/1M"),
     FileSize = FileInfo#file_info.size,
+    io:format("FileSize ~p~n", [FileSize]),
     {ok, Fd} = file:open("deps/lhttpc/test/1M", [read]),
-    Doc801 = couchbeam_db:put_attachment(Db, Doc8, fun() ->
-        case file:read(Fd, 4096) of
-            {ok, Data} ->  {ok, iolist_to_binary(Data)};
-            _ -> eof
-        end
-    end, "1M", FileSize),
+    {ok, Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), 
+        "1M", fun() ->
+            case file:read(Fd, 4096) of
+                {ok, Data} ->  {ok, iolist_to_binary(Data)};
+                _ -> eof
+            end
+        end, [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
     file:close(Fd),
-    Doc9 = couchbeam_db:open_doc(Db, couchbeam_doc:get_id(Doc801)),
+
+    {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
     Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
     etap:isnt(Attachements, undefined, "attachment stream ok"),
     Attachment5 = couchbeam_doc:get_value(<<"1M">>, Attachements),
     etap:isnt(Attachment5, undefined, "attachment 1M uploaded ok"),
     etap:is(couchbeam_doc:get_value(<<"length">>, Attachment5), FileSize, "attachment 1M size ok"),
     
-    Pid = couchbeam_db:fetch_attachment(Db, couchbeam_doc:get_id(Doc801), "1M", true),
-    etap:ok(is_pid(Pid), "get attachment pid ok"),
-    InitialState = couchbeam_resource:get_body_part(Pid),
-    Bin = get_streamed_attachment(InitialState, Pid, []),
+    {ok, Bin} = couchbeam:fetch_attachment(Db, couchbeam_doc:get_id(Doc8), "1M"),
     etap:is(iolist_size(Bin), FileSize, "fetch streammed attachment ok"),
     
-    Doc10 = {[
-           {<<"_id">>, <<"test/2">>}
-       ]},
-       
-    Doc101 = couchbeam_db:save_doc(Db, Doc10),
-    Doc102= couchbeam_db:put_attachment(Db, Doc101, "test", "test", length("test")),
-    Attachment10 = couchbeam_db:fetch_attachment(Db, "test/2", "test"),
+
+    {ok, Res3}= couchbeam:put_attachment(Db, "test/2", "test", "test"),
+    {ok, Attachment10} = couchbeam:fetch_attachment(Db, "test/2", "test"),
     etap:is(Attachment10, <<"test">>, "fetch attachment with encoded id ok"),   
     ok.

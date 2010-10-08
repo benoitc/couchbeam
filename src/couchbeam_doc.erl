@@ -19,9 +19,7 @@
 -include("couchbeam.hrl").
 
 -export([set_value/3, get_value/2, get_value/3, 
-         delete_value/2, extend/2, extend/3,
-         add_attachment/3, add_attachment/4, 
-         delete_inline_attachment/2]).
+         delete_value/2, extend/2, extend/3]).
 -export([get_id/1, get_rev/1, get_idrev/1, is_saved/1]).        
 
 %% @spec get_id(Doc::json_obj()) -> binary()
@@ -105,54 +103,6 @@ extend([Prop|R], JsonObj)->
 extend({Key, Value}, JsonObj) ->
     set_value(Key, Value, JsonObj).
 
-%% @spec add_attachment(Doc::json_obj(),Content::attachment_content(), 
-%%      AName::string()) -> json_obj()
-%% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
-add_attachment(Doc, Content, AName) ->
-    ContentType = couchbeam_util:guess_mime(AName),
-    add_attachment(Doc, Content, AName, ContentType).
-
-%% @spec add_attachment(Doc::json_obj(), Content::attachment_content(),
-%%      AName::string(), ContentType::string()) -> json_obj()
-%% @doc add attachment  to a doc and encode it with ContentType fixed.    
-add_attachment(Doc, Content, AName, ContentType) ->
-    {Props} = Doc,
-    Data = couchbeam_util:encodeBase64(Content),
-    Attachment = {list_to_binary(AName), {[{<<"content-type">>, 
-        list_to_binary(ContentType)}, {<<"data">>, Data}]}},
-    
-    Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
-        undefined -> 
-            [Attachment];
-        {Attachments} ->
-            case set_attachment(Attachments, [], Attachment) of
-                notfound ->
-                    [Attachment|Attachments];
-                A ->
-                    A
-                end
-        end,
-    set_value(<<"_attachments">>, {Attachments1}, Doc).
-    
-%% @spec delete_inline_attachment(Doc::json_obj(), AName::string()) -> json_obj()
-%% @doc delete an attachment record in doc. This is different from delete_attachment
-%%      change is only applied in Doc object. Save_doc should be save to save changes.
-delete_inline_attachment(Doc, AName) when is_list(AName) ->
-    delete_inline_attachment(Doc, list_to_binary(AName));
-delete_inline_attachment(Doc, AName) when is_binary(AName) ->
-    {Props} = Doc,
-    case proplists:get_value(<<"_attachments">>, Props) of
-        undefined ->
-            Doc;
-        {Attachments} ->
-            case proplists:get_value(AName, Attachments) of
-                undefined ->
-                    Doc;
-                _ ->
-                    Attachments1 = proplists:delete(AName, Attachments),
-                    set_value(<<"_attachments">>, {Attachments1}, Doc)
-                end
-        end.
  
 
 %% @private
