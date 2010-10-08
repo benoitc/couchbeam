@@ -2,26 +2,22 @@ ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
 
-.PHONY: rel deps
+.PHONY: deps doc
 
-all: deps
+all: deps compile
+
+compile:
 	@./rebar compile
 
 deps:
 	@./rebar get-deps
-
-rel: deps
-	@./rebar compile generate
-
-relforce: deps
-	@./rebar compile generate force=1
 
 doc:
 	@mkdir -p doc/api
 	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
 	
 
-test: all
+test: compile	
 	@$(ERLC) -o t/ t/etap.erl
 	@$(ERLC) -o t/ t/test_util.erl
 	prove t/*.t
@@ -35,10 +31,9 @@ clean:
 	@rm -f t/*.beam
 	@rm -rf doc
 
-relclean:
-	rm -rf rel/couchbeam
-
-
-distclean: clean relclean
+distclean: clean
 	@./rebar delete-deps
+
+dialyzer: compile
+	@dialyzer -Wno_return -c ebin
 

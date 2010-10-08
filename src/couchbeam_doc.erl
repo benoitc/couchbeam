@@ -103,8 +103,6 @@ extend([Prop|R], JsonObj)->
 extend({Key, Value}, JsonObj) ->
     set_value(Key, Value, JsonObj).
 
- 
-
 %% @private
 set_value1([], _Key, _Value, Acc) ->
     {lists:reverse(Acc)};
