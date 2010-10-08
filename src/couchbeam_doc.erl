@@ -116,23 +116,4 @@ set_value1([{K, V}|T], Key, Value, Acc) ->
             [{K, V}|Acc]
         end,
     set_value1(T, Key, Value, Acc1).
-    
-%% @private
-set_attachment(Attachments, NewAttachments, Attachment) ->
-    set_attachment(Attachments, NewAttachments, Attachment, false).
-set_attachment([], Attachments, _Attachment, Found) ->
-    case Found of
-        true ->
-            Attachments;
-        false ->
-            notfound
-        end;
-set_attachment([{Name, V}|T], Attachments, Attachment, Found) ->
-    {AName, _} = Attachment,
-    {Attachment1, Found1} = if
-        Name =:= AName, Found =:= false ->
-            {Attachment, true};
-        true ->
-            {{Name, V}, Found}
-        end,
-    set_attachment(T, [Attachment1|Attachments], Attachment, Found1).
+
