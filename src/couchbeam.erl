@@ -147,11 +147,20 @@ server_connection(Host, Port) ->
 %%          {proxy_user, string()}             |
 %%          {proxy_password, string()}         |
 %%          {basic_auth, {username(), password()}} |
-%%          {cookie, string()}
+%%          {cookie, string()}                 |
+%%          {oauth, oauthOptions()}
 %%
 %% username() = string()
 %% password() = string()
 %% SSLOpt = term()
+%% oauthOptions() = [oauth()]
+%% oauth() = 
+%%          {consumer_key, string()} |
+%%          {token, string()} |
+%%          {token_secret, string()} |
+%%          {consumer_secret, string() |
+%%          {signature_method, string()}
+%%
 server_connection(Host, Port, Prefix, Options) when is_binary(Port) ->
     server_connection(Host, binary_to_list(Port), Prefix, Options);
 server_connection(Host, Port, Prefix, Options) when is_list(Port) ->
@@ -342,7 +351,7 @@ save_doc(Db, Doc) ->
 %%
 %% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
 save_doc(#db{server=Server, options=IbrowseOpts}=Db, {Props}=Doc, Options) ->
-    DocId = case proplists:get_value(<<"_id">>, Props) of
+    DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
         undefined ->
             [Id] = get_uuid(Server),
             Id;
@@ -355,8 +364,8 @@ save_doc(#db{server=Server, options=IbrowseOpts}=Db, {Props}=Doc, Options) ->
     case db_request(put, Url, ["201", "202"], IbrowseOpts, Headers, Body) of
         {ok, _, _, RespBody} ->
             {JsonProp} = couchbeam_util:json_decode(RespBody),
-            NewRev = proplists:get_value(<<"rev">>, JsonProp),
-            NewDocId = proplists:get_value(<<"id">>, JsonProp),
+            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
+            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
             Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev, 
                 couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
             {ok, Doc1};
@@ -397,7 +406,7 @@ save_docs(Db, Docs) ->
 save_docs(#db{server=Server, options=IbrowseOpts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
-    {Options2, Body} = case proplists:get_value("all_or_nothing", 
+    {Options2, Body} = case couchbeam_util:get_value("all_or_nothing", 
             Options1, false) of
         true ->
             Body1 = couchbeam:json_encode({[
@@ -466,7 +475,7 @@ stream_fetch_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name,
         Options, Timeout) ->
     Options1 = couchbeam_util:parse_options(Options),
     %% custom headers. Allows us to manage Range.
-    {Options2, Headers} = case proplists:get_value("headers", Options1) of
+    {Options2, Headers} = case couchbeam_util:get_value("headers", Options1) of
         undefined ->
             {Options1, []};
         Headers1 ->
@@ -499,18 +508,18 @@ put_attachment(Db, DocId, Name, Body)->
 %%       body() = [] | string() | binary() | fun_arity_0() | {fun_arity_1(), initial_state()}
 %%       initial_state() = term()
 put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Options) ->
-    QueryArgs = case proplists:get_value(rev, Options) of
+    QueryArgs = case couchbeam_util:get_value(rev, Options) of
         undefined -> [];
         Rev -> [{"rev", couchbeam_util:to_list(Rev)}]
     end,
     
-    Headers = proplists:get_value(headers, Options, []),
+    Headers = couchbeam_util:get_value(headers, Options, []),
 
     FinalHeaders = lists:foldl(fun(Hdr, Acc) ->
-            case proplists:get_value(Hdr, Options) of
+            case couchbeam_util:get_value(Hdr, Options) of
                 undefined -> Acc;
                 Value -> 
-                    Hdr1 = proplists:get_value(Hdr, ?ATOM_HEADERS),
+                    Hdr1 = couchbeam_util:get_value(Hdr, ?ATOM_HEADERS),
                     [{Hdr1, Value}|Acc]
             end
     end, Headers, [content_type, content_length]),
@@ -537,18 +546,18 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
         {Props} ->
-            Rev1 = proplists:get_value(<<"_rev">>, Props),
-            DocId1 = proplists:get_value(<<"_id">>, Props),
+            Rev1 = couchbeam_util:get_value(<<"_rev">>, Props),
+            DocId1 = couchbeam_util:get_value(<<"_id">>, Props),
             {Rev1, DocId1};
         DocId1 ->
-            Rev1 = proplists:get_value("rev", Options1),
+            Rev1 = couchbeam_util:get_value("rev", Options1),
             {Rev1, DocId1}
     end,
     case Rev of
         undefined ->
            {error, rev_undefined};
         _ ->
-            Options2 = case proplists:get_value("rev", Options1) of
+            Options2 = case couchbeam_util:get_value("rev", Options1) of
                 undefined ->
                     [{"rev", Rev}|Options1];
                 _ ->
@@ -627,7 +636,7 @@ view(#db{server=Server}=Db, ViewName, Options) ->
     undefined ->
         {error, invalid_view_name};
     _ ->
-        {Method, Options2, Body} = case proplists:get_value("keys",
+        {Method, Options2, Body} = case couchbeam_util:get_value("keys",
                 Options1) of
             undefined ->
                 {get, Options1, []};
@@ -773,7 +782,7 @@ changes_wait(#db{server=Server, options=IbrowseOpts}=Db, ClientPid, Options) ->
 
 %% add missing docid to a list of documents if needed
 maybe_docid(Server, {DocProps}) ->
-    case proplists:get_value(<<"_id">>, DocProps) of
+    case couchbeam_util:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = [get_uuid(Server)],
             {[{<<"_id">>, list_to_binary(DocId)}|DocProps]};
@@ -784,7 +793,7 @@ maybe_docid(Server, {DocProps}) ->
 %% @doc Assemble the server URL for the given client
 %% @spec server_url({Host, Port}) -> iolist()
 server_url(#server{host=Host, port=Port, options=Options}) ->
-    Ssl = proplists:get_value(is_ssl, Options, false),
+    Ssl = couchbeam_util:get_value(is_ssl, Options, false),
     server_url({Host, Port}, Ssl).
 
 %% @doc Assemble the server URL for the given client
@@ -838,7 +847,9 @@ request(Method, Url, Expect, Options, Headers) ->
     request(Method, Url, Expect, Options, Headers, []).
 request(Method, Url, Expect, Options, Headers, Body) ->
     Accept = {"Accept", "application/json, */*;q=0.9"},
-    case ibrowse:send_req(Url, [Accept|Headers], Method, Body, 
+    Headers1 = maybe_oauth_header(Method, Url, Headers, Options),
+
+    case ibrowse:send_req(Url, [Accept|Headers1], Method, Body, 
             [{response_format, binary}|Options]) of
         Resp={ok, Status, _, _} ->
             case lists:member(Status, Expect) of
@@ -854,7 +865,8 @@ request_stream(Pid, Method, Url, Options) ->
 request_stream(Pid, Method, Url, Options, Headers) ->
     request_stream(Pid, Method, Url, Options, Headers, []).
 request_stream(Pid, Method, Url, Options, Headers, Body) ->
-    case ibrowse:send_req(Url, Headers, Method, Body,
+    Headers1 = maybe_oauth_header(Method, Url, Headers, Options),
+    case ibrowse:send_req(Url, Headers1, Method, Body,
                           [{stream_to, Pid},
                            {response_format, binary}|Options]) of
         {ibrowse_req_id, ReqId} ->
@@ -863,6 +875,14 @@ request_stream(Pid, Method, Url, Options, Headers, Body) ->
             Error
     end.
 
+maybe_oauth_header(Method, Url, Headers, Options) ->
+    case couchbeam_util:get_value(oauth, Options) of
+        undefined -> 
+            Headers;
+        OauthProps ->
+            Hdr = couchbeam_util:oauth_header(Url, Method, OauthProps),
+            [Hdr|Headers]
+    end.
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
