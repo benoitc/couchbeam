@@ -158,7 +158,7 @@ server_connection(Host, Port) ->
 %%          {consumer_key, string()} |
 %%          {token, string()} |
 %%          {token_secret, string()} |
-%%          {consumer_secret, string() |
+%%          {consumer_secret, string()} |
 %%          {signature_method, string()}
 %%
 server_connection(Host, Port, Prefix, Options) when is_binary(Port) ->
