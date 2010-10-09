@@ -566,15 +566,51 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
                 Error
             end
     end.
-                    
+
+%% @doc get all documents from a CouchDB database.
+%% @equiv all_docs(Db, [])
 all_docs(Db) ->
     all_docs(Db, []).
+
+%% @doc get all documents from a CouchDB database. It return a 
+%% #view{} record that you can use with couchbeam_view functions:
+%% <ul>
+%%      <li>{@link couchbeam_view:count/1. couchbeam_view:count/1}</li>
+%%      <li>{@link couchbeam_view:fetch/1. couchbeam_view:fetch/1}</li>
+%%      <li>{@link couchbeam_view:first/1. couchbeam_view:first/1}</li>
+%%      <li>{@link couchbeam_view:fold/1. couchbeam_view:fold/1}</li>
+%%      <li>{@link couchbeam_view:foreach/1. couchbeam_view:foreach/1}</li>
+%% </ul>
+%%
+%% @spec all_docs(Db::db(), Options::list()) 
+%%              -> {ok, View::view()}|{error, term()}
 all_docs(Db, Options) ->
     view(Db, "_all_docs", Options).
 
+%% @doc  get view results from database
+%% @equiv view(Db, ViewName, [])
 view(Db, ViewName) ->
     view(Db, ViewName, []).
 
+%% @doc get view results from database. viewname is generally
+%% a tupple like {DesignName::string(), ViewName::string()} or string 
+%% like "designname/viewname". It return a #view{} record  that you can use 
+%% with couchbeam_view functions:
+%%
+%% <ul>
+%%      <li>{@link couchbeam_view:count/1. couchbeam_view:count/1}</li>
+%%      <li>{@link couchbeam_view:fetch/1. couchbeam_view:fetch/1}</li>
+%%      <li>{@link couchbeam_view:first/1. couchbeam_view:first/1}</li>
+%%      <li>{@link couchbeam_view:fold/1. couchbeam_view:fold/1}</li>
+%%      <li>{@link couchbeam_view:foreach/1. couchbeam_view:foreach/1}</li>
+%% </ul>
+%%
+%% Options are CouchDB view parameters
+%%
+%% See [http://wiki.apache.org/couchdb/HTTP_view_API] for more informations. 
+%%
+%% @spec view(Db::db(), ViewName::string(), Options::list()) 
+%%          -> {ok, View::view()}|{error, term()}
 view(#db{server=Server}=Db, ViewName, Options) ->
     ViewName1 = couchbeam_util:to_list(ViewName),
     Options1 = couchbeam_util:parse_options(Options),
@@ -620,10 +656,14 @@ view(#db{server=Server}=Db, ViewName, Options) ->
         {ok, NewView}
     end.
 
-
+%% @doc commit all docs in memory
+%% @equiv ensure_full_commit(Db, [])
 ensure_full_commit(Db) ->
     ensure_full_commit(Db, []).
 
+%% @doc commit all docs in memory
+%% @spec ensure_full_commit(Db::db(), Options::list())
+%%                      -> {ok, term()}|{error, term()}
 ensure_full_commit(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
     Url = make_url(Server, [db_url(Db), "/_ensure_full_commit"], Options),
     Headers = [{"Content-Type", "application/json"}],
@@ -635,6 +675,10 @@ ensure_full_commit(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
             Error
     end.
 
+%% @doc Compaction compresses the database file by removing unused 
+%% sections created during updates.
+%% See [http://wiki.apache.org/couchdb/Compaction] for more informations
+%% @spec compact(Db::db()) -> ok|{error, term()}
 compact(#db{server=Server, options=IbrowseOpts}=Db) ->
     Url = make_url(Server, [db_url(Db), "/_compact"], []),
     Headers = [{"Content-Type", "application/json"}],
@@ -644,7 +688,10 @@ compact(#db{server=Server, options=IbrowseOpts}=Db) ->
         Error -> 
             Error
     end.
-
+%% @doc Like compact/1 but this compacts the view index from the 
+%% current version of the design document.
+%% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
+%% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
 compact(#db{server=Server, options=IbrowseOpts}=Db, DesignName) ->
     Url = make_url(Server, [db_url(Db), "/_compact/", DesignName], []),
     Headers = [{"Content-Type", "application/json"}],
@@ -657,8 +704,8 @@ compact(#db{server=Server, options=IbrowseOpts}=Db, DesignName) ->
 
 
 %% @doc get all changes. Do not use this function for longpolling,
-%%      instead use  ```changes_wait_once''' or continuous, use 
-%%      ```wait_once'''
+%% instead use  ```changes_wait_once''' or continuous, use 
+%% ```wait_once'''
 %% @equiv changes(Db, [])
 changes(Db) ->
     changes(Db, []).
@@ -666,6 +713,8 @@ changes(Db) ->
 %% @doc get all changes. Do not use this function for longpolling,
 %%      instead use  ```changes_wait_once''' or continuous, use 
 %%      ```wait_once'''
+%% See [http://wiki.apache.org/couchdb/HTTP_database_API#Changes] for more informations.
+%%
 %% @spec changes(Db::db(), Options::changesoptions()) -> term()
 %%       changesoptions() = [changeoption()]
 %%       changeoption() = {include_docs, string()} |

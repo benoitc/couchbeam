@@ -28,7 +28,7 @@ cover: all
 clean: 
 	@./rebar clean
 	@rm -f t/*.beam
-	@rm -rf doc
+	@rm -rf doc/api
 
 distclean: clean
 	@./rebar delete-deps
