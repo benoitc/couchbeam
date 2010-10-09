@@ -34,7 +34,7 @@
 
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
-        server_connection/5, server_info/1,
+        server_info/1,
         get_uuid/1, get_uuids/2, 
         all_dbs/1, db_exists/2,
         create_db/2, create_db/3, create_db/4, 
@@ -117,22 +117,13 @@ version() ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
-    #server{host="127.0.0.1", port=5984, ssl=false, prefix="",
-        options=[]}.
+    #server{host="127.0.0.1", port=5984, prefix="", options=[]}.
 
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection(Host, Port, "", [])
 
 server_connection(Host, Port) ->
     server_connection(Host, Port, "", []).
-
-%% @doc Create a server for connectiong to a CouchDB node
-%% @equiv server_connection(Host, Port, "", [], Ssl)
-server_connection(Host, Port, Prefix, Options) when is_integer(Port), Port =:=443 ->
-    server_connection(Host, Port, Prefix, Options, true);
-server_connection(Host, Port, Prefix, Options) ->
-    server_connection(Host, Port, Prefix, Options, false).
-
 
 %% @doc Create a server for connectiong to a CouchDB node
 %% 
@@ -147,7 +138,8 @@ server_connection(Host, Port, Prefix, Options) ->
 %%                        Prefix::string(), Options::optionList(),
 %%                        Ssl::boolean()) -> Server::server()
 %% optionList() = [option()]
-%% option() = 
+%% option() =
+%%          {is_ssl, boolean()}                |
 %%          {ssl_options, [SSLOpt]}            |
 %%          {pool_name, atom()}                |
 %%          {proxy_host, string()}             |
@@ -160,13 +152,15 @@ server_connection(Host, Port, Prefix, Options) ->
 %% username() = string()
 %% password() = string()
 %% SSLOpt = term()
-server_connection(Host, Port, Prefix, Options, Ssl) when is_binary(Port) ->
-    server_connection(Host, binary_to_list(Port), Prefix, Options, Ssl);
-server_connection(Host, Port, Prefix, Options, Ssl) when is_list(Port) ->
-    server_connection(Host, list_to_integer(Port), Prefix, Options, Ssl); 
-server_connection(Host, Port, Prefix, Options, Ssl) ->
-    #server{host=Host, port=Port, ssl=Ssl, prefix=Prefix,
-        options=Options}.
+server_connection(Host, Port, Prefix, Options) when is_binary(Port) ->
+    server_connection(Host, binary_to_list(Port), Prefix, Options);
+server_connection(Host, Port, Prefix, Options) when is_list(Port) ->
+    server_connection(Host, list_to_integer(Port), Prefix, Options); 
+server_connection(Host, Port, Prefix, Options) when is_integer(Port), Port =:=443 ->
+    Options1 = [{is_ssl, true}|Options],
+    #server{host=Host, port=Port, prefix=Prefix, options=Options1};
+server_connection(Host, Port, Prefix, Options) ->
+    #server{host=Host, port=Port, prefix=Prefix, options=Options}.
 
 %% @doc Get Information from the server
 %% @spec server_info(server()) -> {ok, iolist()}
@@ -789,7 +783,8 @@ maybe_docid(Server, {DocProps}) ->
 
 %% @doc Assemble the server URL for the given client
 %% @spec server_url({Host, Port}) -> iolist()
-server_url(#server{host=Host, port=Port, ssl=Ssl}) ->
+server_url(#server{host=Host, port=Port, options=Options}) ->
+    Ssl = proplists:get_value(is_ssl, Options, false),
     server_url({Host, Port}, Ssl).
 
 %% @doc Assemble the server URL for the given client

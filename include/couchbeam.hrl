@@ -27,7 +27,6 @@
 -record(server, {
     host :: string(),
     port :: integer(),
-    ssl :: boolean(),
     prefix :: string(),
     options = [] :: list()
 }).
