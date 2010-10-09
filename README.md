@@ -21,4 +21,4 @@ To bulid the application simply run 'make'. This should build .beam, .app
 files and documentation.
 
 To run tests run 'make test'.
-To generate doc, run 'make docs'.
+To generate doc, run 'make doc'.
