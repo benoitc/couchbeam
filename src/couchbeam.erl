@@ -435,7 +435,7 @@ fetch_attachment(Db, DocId, Name, Options) ->
 
 %% @doc fetch a document attachment
 %% @spec fetch_attachment(db(), string(), string(), 
-%%                        list(), infinity|integer()) -> binary()
+%%                        list(), infinity|integer()) -> {ok, binary()}
 fetch_attachment(Db, DocId, Name, Options, Timeout) ->
     {ok, ReqId} = stream_fetch_attachment(Db, DocId, Name, self(), Options,
         Timeout),
@@ -495,7 +495,7 @@ put_attachment(Db, DocId, Name, Body)->
 
 %% @doc put an attachment
 %% @spec put_attachment(Db::db(), DocId::string(), Name::string(),
-%%                      Body::body(), Option::optionList()) -> iolist()
+%%                      Body::body(), Option::optionList()) -> {ok, iolist()}
 %%       optionList() = [option()]
 %%       option() = {rev, string()} |
 %%                  {content_type, string()} |
@@ -536,7 +536,7 @@ delete_attachment(Db, Doc, Name) ->
     delete_attachment(Db, Doc, Name, []).
 
 %% @doc delete a document attachment
-%% @spec(db(), string()|list(), string(), list() -> term()
+%% @spec(db(), string()|list(), string(), list() -> ok 
 delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, Options) ->
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
