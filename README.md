@@ -17,8 +17,8 @@ Full documentation of the project is on this [url](http://benoitc.github.com/cou
 
 ##installation
 
-To bulid the application simply run 'make'. This should build .beam, .app
-files and documentation.
+To build the application simply run 'make'. This should build .beam, .app
+files in ebin/ folder.
 
 To run tests run 'make test'.
 To generate doc, run 'make doc'.
