@@ -758,7 +758,7 @@ doc_url(Db, DocId) ->
     [db_url(Db), "/", DocId].
 
 make_url(Server=#server{prefix=Prefix}, Path, Query) ->
-    Query1 = encode_query(Query),
+    Query1 = couchbeam_util:encode_query(Query),
     binary_to_list(
         iolist_to_binary(
             [server_url(Server),
@@ -766,31 +766,6 @@ make_url(Server=#server{prefix=Prefix}, Path, Query) ->
              Path, "/",
              [ ["?", mochiweb_util:urlencode(Query1)] || Query1 =/= [] ]
             ])).
-
-%% @doc Encode needed value of Query proplists in json
-encode_query([]) ->
-    [];
-encode_query(Query) when is_list(Query) ->
-    lists:foldl(fun({K, V}, Acc) ->
-        V1 = encode_query_value(K, V), 
-        [{K, V1}|Acc]
-    end, [], Query);
-encode_query(Query) ->
-    Query.
-
-%% @doc Encode value in JSON if needed depending on the key 
-encode_query_value(K, V) when is_atom(K) ->
-    encode_query_value(atom_to_list(K), V);
-encode_query_value(K, V) when is_binary(K) ->
-    encode_query_value(binary_to_list(K), V);
-encode_query_value(K, V) ->
-    case K of
-        "key" -> couchbeam_util:json_encode(V);
-        "startkey" -> couchbeam_util:json_encode(V);
-        "endkey" -> couchbeam_util:json_encode(V);
-        _ -> V
-    end.
-
 
 db_request(Method, Url, Expect, Options) ->
     db_request(Method, Url, Expect, Options, [], []).

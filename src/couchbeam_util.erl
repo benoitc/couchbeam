@@ -9,6 +9,7 @@
 -export([encode_docid/1]).
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
+-export([encode_query/1, encode_query_value/2]).
 
 -define(ENCODE_DOCID, true).
 
@@ -45,6 +46,30 @@ encode_docid1(DocId) ->
             "_design/" ++ Rest1;
         _ ->
             ibrowse_lib:url_encode(DocId)
+    end.
+
+%% @doc Encode needed value of Query proplists in json
+encode_query([]) ->
+    [];
+encode_query(Query) when is_list(Query) ->
+    lists:foldl(fun({K, V}, Acc) ->
+        V1 = encode_query_value(K, V), 
+        [{K, V1}|Acc]
+    end, [], Query);
+encode_query(Query) ->
+    Query.
+
+%% @doc Encode value in JSON if needed depending on the key 
+encode_query_value(K, V) when is_atom(K) ->
+    encode_query_value(atom_to_list(K), V);
+encode_query_value(K, V) when is_binary(K) ->
+    encode_query_value(binary_to_list(K), V);
+encode_query_value(K, V) ->
+    case K of
+        "key" -> couchbeam_util:json_encode(V);
+        "startkey" -> couchbeam_util:json_encode(V);
+        "endkey" -> couchbeam_util:json_encode(V);
+        _ -> V
     end.
 
 
