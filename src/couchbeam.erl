@@ -135,8 +135,8 @@ server_connection(Host, Port) ->
 %%      For a description of SSL Options, look in the <a href="http://www.erlang.org/doc/apps/ssl/index.html">ssl</a> manpage. 
 %%
 %% @spec server_connection(Host::string(), Port::integer(),
-%%                        Prefix::string(), Options::optionList(),
-%%                        Ssl::boolean()) -> Server::server()
+%%                        Prefix::string(), Options::optionList()) 
+%%                        -> Server::server()
 %% optionList() = [option()]
 %% option() =
 %%          {is_ssl, boolean()}                |
