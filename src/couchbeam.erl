@@ -145,7 +145,7 @@ server_connection(Host, Port, Prefix, Options) ->
 %%
 %% @spec server_connection(Host::string(), Port::integer(),
 %%                        Prefix::string(), Options::optionList(),
-%%                        Ssl:boolean()) -> Server::server()
+%%                        Ssl::boolean()) -> Server::server()
 %% optionList() = [option()]
 %% option() = 
 %%          {ssl_options, [SSLOpt]}            |
@@ -155,7 +155,7 @@ server_connection(Host, Port, Prefix, Options) ->
 %%          {proxy_user, string()}             |
 %%          {proxy_password, string()}         |
 %%          {basic_auth, {username(), password()}} |
-%%          {cookie, string()}}
+%%          {cookie, string()}
 %%
 %% username() = string()
 %% password() = string()
@@ -169,7 +169,7 @@ server_connection(Host, Port, Prefix, Options, Ssl) ->
         options=Options}.
 
 %% @doc Get Information from the server
-%% @spec server_info(server()) -> iolist()
+%% @spec server_info(server()) -> {ok, iolist()}
 server_info(#server{options=IbrowseOpts}=Server) ->
     Url = binary_to_list(iolist_to_binary(server_url(Server))),
     case request(get, Url, ["200"], IbrowseOpts) of
@@ -190,7 +190,7 @@ get_uuids(Server, Count) ->
     gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
  
 %% @doc get list of databases on a CouchDB node 
-%% @spec all_dbs(server()) -> iolist()
+%% @spec all_dbs(server()) -> {ok, iolist()}
 all_dbs(#server{options=IbrowseOpts}=Server) ->
     Url = make_url(Server, "_all_dbs", []),
     case request(get, Url, ["200"], IbrowseOpts) of
@@ -228,7 +228,7 @@ create_db(Server, DbName, Options) ->
 %%      If ssl is set https is used.
 %%
 %% @spec create_db(Server::server(), DbName::string(),
-%%                 Options::optionList(), Params::list()) -> db() 
+%%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}} 
 create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Url = make_url(Server, DbName, Params),
     case request(put, Url, ["201"], IbrowseOpts) of
@@ -246,7 +246,7 @@ open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
 %% @doc Create a client for connection to a database
-%% @spec open_db(server(), string(), list()) -> db() 
+%% @spec open_db(server(), string(), list()) -> {ok, db()}
 open_db(Server, DbName, Options) ->
     {ok, #db{server=Server, name=DbName, options=Options}}.
     
@@ -265,7 +265,7 @@ open_or_create_db(Server, DbName, Options) ->
 
 %% @doc Create a client for connecting to a database and create the
 %%      database if needed.
-%% @spec open_or_create_db(server(), string(), list(), list()) -> db()
+%% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
 open_or_create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"], IbrowseOpts) of
@@ -283,7 +283,7 @@ delete_db(#db{server=Server, name=DbName}) ->
     delete_db(Server, DbName).
 
 %% @doc delete database 
-%% @spec delete_db(server(), DbName) -> iolist()
+%% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
 delete_db(#server{options=IbrowseOpts}=Server, DbName) ->
     Url = make_url(Server, DbName, []),
     case request(delete, Url, ["200"], IbrowseOpts) of
@@ -294,7 +294,7 @@ delete_db(#server{options=IbrowseOpts}=Server, DbName) ->
     end.
 
 %% @doc get database info
-%% @spec db_info(db()) -> iolist()
+%% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
 db_info(#db{server=Server, name=DbName, options=IbrowseOpts}) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"], IbrowseOpts) of
@@ -307,8 +307,15 @@ db_info(#db{server=Server, name=DbName, options=IbrowseOpts}) ->
           Error
     end.
 
+%% @doc open a document 
+%% @equiv open_doc(Db, DocId, []) 
 open_doc(Db, DocId) ->
     open_doc(Db, DocId, []).
+
+%% @doc open a document
+%% Params is a list of query argument. Have a look in CouchDb API
+%% @spec open_doc(Db::db(), DocId::string(), Params::list()) 
+%%          -> {ok, Doc}|{error, Error}
 open_doc(#db{server=Server, options=IbrowseOpts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId), 
     Url = make_url(Server, doc_url(Db, DocId1), Params),
@@ -319,8 +326,25 @@ open_doc(#db{server=Server, options=IbrowseOpts}=Db, DocId, Params) ->
             Error
     end.
 
+%% @doc save a document
+%% @equiv save_doc(Db, Doc, [])
 save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
+
+%% @doc save a document
+%% A document is a Json object like this one:
+%%      
+%%      ```{[
+%%          {<<"_id">>, <<"myid">>},
+%%          {<<"title">>, <<"test">>}
+%%      ]}'''
+%%
+%% Options are arguments passed to the request. This function return a
+%% new document with last revision and a docid. If _id isn't specified in
+%% document it will be created. Id is created by extracting an uuid from
+%% the couchdb node.
+%%
+%% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
 save_doc(#db{server=Server, options=IbrowseOpts}=Db, {Props}=Doc, Options) ->
     DocId = case proplists:get_value(<<"_id">>, Props) of
         undefined ->
@@ -344,23 +368,36 @@ save_doc(#db{server=Server, options=IbrowseOpts}=Db, {Props}=Doc, Options) ->
             Error
     end.
 
+%% @doc delete a document
+%% @equiv delete_doc(Db, Doc, [])
 delete_doc(Db, Doc) ->
     delete_doc(Db, Doc, []).
 
+%% @doc delete a document
+%% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
 delete_doc(Db, Doc, Options) ->
     delete_docs(Db, [Doc], Options).
 
+%% @doc delete a list of documents
+%% @equiv delete_docs(Db, Docs, [])
 delete_docs(Db, Docs) ->
     delete_docs(Db, Docs, []).
+
+%% @doc delete a list of documents
+%% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 delete_docs(Db, Docs, Options) ->
     Docs1 = lists:map(fun({DocProps})->
         {[{<<"_deleted">>, true}|DocProps]}
         end, Docs),
     save_docs(Db, Docs1, Options).
 
+%% @doc save a list of documents
+%% @equiv save_docs(Db, Docs, [])
 save_docs(Db, Docs) ->
     save_docs(Db, Docs, []).
 
+%% @doc save a list of documents
+%% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 save_docs(#db{server=Server, options=IbrowseOpts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
