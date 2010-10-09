@@ -294,6 +294,33 @@ Options = [{heartbeat, "true"}],
 ChangesFun(ReqId, ChangesFun).
 '''
 
+<h3>Authentication/ Connections options</h3>
+
+
+You can authentication to the database or CouchDB server by filling options to the Option
+list in {@link couchbeam:server_connection/4} for the server or in {@link couchbeam:create_db/3},  
+{@link couchbeam:open_db/3}, {@link couchbeam:wopen_or_create_db/3}
+functions. 
+
+To set basic_auth on a server:
+
+```
+
+```
+Host = "localhost",
+Port = 5984,
+Prefix = "",
+UserName = "guest", 
+Password = "test"
+Options = [{basic_auth, {UserName, Password}],
+S1 = couchbeam:server_connection(Host, Port, Prefix, Options).
+'''
+
+Couchbeam support SSL, OAuth, Basic Authentication, and Proxy. You can
+also set a cookie. For more informations about the options have a look
+in {@link couchbeam:server_connection/4} documentation.
+
+
 <h2>Get involved</h2>
 
 If you have any question don't hesitate to join us on <a
