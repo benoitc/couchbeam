@@ -76,7 +76,7 @@ encode_query_value(K, V) ->
 %% @doc merge 2 proplists. All the Key - Value pairs from both proplists
 %% are included in the new proplists. If a key occurs in both dictionaries 
 %% then Fun is called with the key and both values to return a new
-%% value. Thius a wreapper around dict:merge
+%% value. This a wreapper around dict:merge
 propmerge(F, L1, L2) ->
 	dict:to_list(dict:merge(F, dict:from_list(L1), dict:from_list(L2))).
 

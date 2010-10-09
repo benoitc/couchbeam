@@ -50,7 +50,7 @@ The basic pattern of use of couchbeam is:
 
 Couchbeam is an <a
 href="http://www.erlang.org/doc/design_principles/users_guide.html">OTP</a>
-application. You have to start it firsr before using all the functions.
+application. You have to start it first before using all the functions.
 couchbeam applications will manage for you connections to CouchDB via
 ibrowse and will maintain a collections of unique ids from CouchDB to
 reduce the number of HTTP connections.
