@@ -311,7 +311,7 @@ Host = "localhost",
 Port = 5984,
 Prefix = "",
 UserName = "guest", 
-Password = "test"
+Password = "test",
 Options = [{basic_auth, {UserName, Password}],
 S1 = couchbeam:server_connection(Host, Port, Prefix, Options).
 '''
