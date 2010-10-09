@@ -230,10 +230,11 @@ create_db(Server, DbName, Options) ->
 %% @spec create_db(Server::server(), DbName::string(),
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}} 
 create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
+    Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts), 
     Url = make_url(Server, DbName, Params),
     case request(put, Url, ["201"], IbrowseOpts) of
         {ok, _Status, _Headers, _Body} ->
-            {ok, #db{server=Server, name=DbName, options=Options}};
+            {ok, #db{server=Server, name=DbName, options=Options1}};
         {error, {ok, "412", _, _}} ->
             {error, db_exists};
        Error ->
@@ -247,8 +248,9 @@ open_db(Server, DbName) ->
 
 %% @doc Create a client for connection to a database
 %% @spec open_db(server(), string(), list()) -> {ok, db()}
-open_db(Server, DbName, Options) ->
-    {ok, #db{server=Server, name=DbName, options=Options}}.
+open_db(#server{options=IbrowseOpts}=Server, DbName, Options) ->
+    Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts),
+    {ok, #db{server=Server, name=DbName, options=Options1}}.
     
 
 %% @doc Create a client for connecting to a database and create the

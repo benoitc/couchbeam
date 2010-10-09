@@ -10,6 +10,7 @@
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
 -export([encode_query/1, encode_query_value/2]).
+-export([propmerge/3, propmerge1/2]).
 
 -define(ENCODE_DOCID, true).
 
@@ -72,9 +73,20 @@ encode_query_value(K, V) ->
         _ -> V
     end.
 
+%% @doc merge 2 proplists. All the Key - Value pairs from both proplists
+%% are included in the new proplists. If a key occurs in both dictionaries 
+%% then Fun is called with the key and both values to return a new
+%% value. Thius a wreapper around dict:merge
+propmerge(F, L1, L2) ->
+	dict:to_list(dict:merge(F, dict:from_list(L1), dict:from_list(L2))).
+
+%% @doc Update a proplist with values of the second. In case the same
+%% key is in 2 proplists, the value from the first are kept.
+propmerge1(L1, L2) ->
+    propmerge(fun(_, V1, _) -> V1 end, L1, L2).
+    
 
 %% @doc make view options a list
-
 parse_options(Options) ->
     parse_options(Options, []).
 
