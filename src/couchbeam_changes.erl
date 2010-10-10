@@ -69,7 +69,6 @@ continuous_acceptor(Pid, PidRef, IbrowseRef, State) ->
             if Status =/= "200" ->
                     Pid ! {PidRef, {error, {Status, Headers}}};
                 true ->
-                    io:format("got header~n"),
                     ibrowse:stream_next(IbrowseRef), 
                     continuous_acceptor(Pid, PidRef, IbrowseRef, State)
                     
