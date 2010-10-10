@@ -59,5 +59,18 @@
 }).
 
 -type view() :: #view{}.
+
+-record(gen_changes_state, {
+    req_id,
+    mod,
+    modstate,
+    seq,
+    db,
+    options,
+    partial_chunk = <<"">>,
+    row,
+    complete=false
+}).
     
 -define(USER_AGENT, "couchbeam/0.5.0").
+

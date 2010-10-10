@@ -54,13 +54,13 @@ encode_docid1(DocId) ->
 %% @doc Encode needed value of Query proplists in json
 encode_query([]) ->
     [];
-encode_query(Query) when is_list(Query) ->
+encode_query(QSL) when is_list(QSL) ->
     lists:foldl(fun({K, V}, Acc) ->
         V1 = encode_query_value(K, V), 
         [{K, V1}|Acc]
-    end, [], Query);
-encode_query(Query) ->
-    Query.
+    end, [], QSL);
+encode_query(QSL) ->
+    QSL.
 
 %% @doc Encode value in JSON if needed depending on the key 
 encode_query_value(K, V) when is_atom(K) ->

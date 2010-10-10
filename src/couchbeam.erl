@@ -31,6 +31,7 @@
 -export([request/4, request/5, request/6,
          request_stream/4, request_stream/5, request_stream/6,
          db_request/4, db_request/5, db_request/6]).
+-export([maybe_oauth_header/4]).
 
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
@@ -768,7 +769,7 @@ changes_wait(#db{server=Server, options=IbrowseOpts}=Db, ClientPid, Options) ->
     Options1 = [{"feed", "continuous"}|Options],
     Url = make_url(Server, [db_url(Db), "/_changes"], Options1),
     StartRef = make_ref(),
-    Pid = spawn(couchbeam_changes, continuous_acceptor, [ClientPid, StartRef]),
+    Pid = proc_lib:spawn_link(couchbeam_changes, continuous_acceptor, [ClientPid, StartRef]),
     case request_stream({Pid, once}, get, Url, IbrowseOpts) of
         {ok, ReqId}    ->
             Pid ! {ibrowse_req_id, StartRef, ReqId},
@@ -847,10 +848,10 @@ request(Method, Url, Expect, Options, Headers) ->
     request(Method, Url, Expect, Options, Headers, []).
 request(Method, Url, Expect, Options, Headers, Body) ->
     Accept = {"Accept", "application/json, */*;q=0.9"},
-    Headers1 = maybe_oauth_header(Method, Url, Headers, Options),
+    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
 
     case ibrowse:send_req(Url, [Accept|Headers1], Method, Body, 
-            [{response_format, binary}|Options]) of
+            [{response_format, binary}|Options1]) of
         Resp={ok, Status, _, _} ->
             case lists:member(Status, Expect) of
                 true -> Resp;
@@ -865,10 +866,14 @@ request_stream(Pid, Method, Url, Options) ->
 request_stream(Pid, Method, Url, Options, Headers) ->
     request_stream(Pid, Method, Url, Options, Headers, []).
 request_stream(Pid, Method, Url, Options, Headers, Body) ->
-    Headers1 = maybe_oauth_header(Method, Url, Headers, Options),
-    case ibrowse:send_req(Url, Headers1, Method, Body,
+    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
+    {ok, ReqPid} = ibrowse_http_client:start_link(Url),
+
+    case ibrowse:send_req_direct(ReqPid, Url, Headers1, Method, Body,
                           [{stream_to, Pid},
-                           {response_format, binary}|Options]) of
+                           {response_format, binary},
+                           {inactivity_timeout, infinity}|Options1],
+                           infinity) of
         {ibrowse_req_id, ReqId} ->
             {ok, ReqId};
         Error ->
@@ -878,10 +883,10 @@ request_stream(Pid, Method, Url, Options, Headers, Body) ->
 maybe_oauth_header(Method, Url, Headers, Options) ->
     case couchbeam_util:get_value(oauth, Options) of
         undefined -> 
-            Headers;
+            {Headers, Options};
         OauthProps ->
             Hdr = couchbeam_util:oauth_header(Url, Method, OauthProps),
-            [Hdr|Headers]
+            {[Hdr|Headers], proplists:delete(oauth, Options)}
     end.
 
 %%---------------------------------------------------------------------------

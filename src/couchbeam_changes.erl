@@ -8,9 +8,12 @@
 -include("couchbeam.hrl").
 -export([continuous_acceptor/2]).
 
+-export([decode_row/1]).
 -record(state, {
     partial_chunk = <<"">>
 }).
+
+-define(BUFFER_SIZE, 1000).
 
 %% @doc initiate continuous loop 
 continuous_acceptor(Pid, PidRef) ->
@@ -70,4 +73,6 @@ decode_row(<<",", Rest/binary>>) ->
     decode_row(Rest);
 decode_row(Row) ->
     couchbeam_util:json_decode(Row).
+
+
 

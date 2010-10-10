@@ -6,3 +6,4 @@ edoc-info
 deps/
 doc/api
 t/*.beam
+examples/*.beam
