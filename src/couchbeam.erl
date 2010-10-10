@@ -36,7 +36,8 @@
 %% API urls
 -export([server_connection/0, server_connection/2, server_connection/4,
         server_info/1,
-        get_uuid/1, get_uuids/2, 
+        get_uuid/1, get_uuids/2,
+        replicate/2, replicate/3, replicate/4,
         all_dbs/1, db_exists/2,
         create_db/2, create_db/3, create_db/4, 
         open_db/2, open_db/3,
@@ -192,6 +193,54 @@ get_uuid(Server) ->
 %% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
     gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
+
+%% @doc Handle replication. Pass an object containting all informations
+%% It allows to pass for example an authentication info
+%% ```
+%% RepObj = {[
+%% {<<"source">>, <<"sourcedb">>},
+%% {<<"target">>, <<"targetdb">>},
+%% {<<"create_target">>, true}
+%% ]}
+%% replicate(Server, RepObj).
+%% '''
+%% 
+%% @spec replicate(Server::server(), RepObj::{list()}) 
+%%          -> {ok, Result}|{error, Error}
+replicate(#server{options=IbrowseOpts}=Server, RepObj) ->
+    Url = make_url(Server, "_replicate", []),
+    Headers = [{"Content-Type", "application/json"}],
+    JsonObj = couchbeam_util:json_encode(RepObj),
+
+    case request_stream({self(), once}, post, Url, IbrowseOpts, Headers,
+            JsonObj) of
+        {ok, ReqId} ->
+            couchbeam_changes:wait_for_change(ReqId);
+        {error, Error} -> {error, Error}
+    end.
+   
+%% @doc Handle replication.
+%% @spec replicate(Server::server(), Source::string(), Target::target())
+%%          ->  {ok, Result}|{error, Error}
+replicate(Server, Source, Target) ->
+    replicate(Server, Source, Target, {[]}).
+
+%% @doc handle Replication. Allows to pass options with source and
+%% target.  Options is a Json object.
+%% ex:
+%% ```
+%% Options = {[{<<"create_target">>, true}]},
+%% couchbeam:replicate(S, "testdb", "testdb2", Options).
+%% '''
+replicate(Server, Source, Target, {Prop}) ->
+    RepProp = [
+        {<<"source">>, couchbeam_util:to_binary(Source)},
+        {<<"target">>, couchbeam_util:to_binary(Target)} |Prop
+    ],
+
+    replicate(Server, {RepProp}).
+
+             
  
 %% @doc get list of databases on a CouchDB node 
 %% @spec all_dbs(server()) -> {ok, iolist()}

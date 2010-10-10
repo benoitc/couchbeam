@@ -13,16 +13,19 @@
     partial_chunk = <<"">>
 }).
 
-
 wait_for_change(Reqid) ->
-    wait_for_change(Reqid, []).
+    wait_for_change(Reqid, 200, []).
 
-wait_for_change(Reqid, Acc) ->
+wait_for_change(Reqid, ReqStatus, Acc) ->
     receive
         {ibrowse_async_response_end, Reqid} ->
             Change = iolist_to_binary(lists:reverse(Acc)),
             try
-                {ok, couchbeam_util:json_decode(Change)}
+                if ReqStatus >= 400 ->
+                    {error, {ReqStatus, couchbeam_util:json_decode(Change)}};
+                true ->
+                    {ok, couchbeam_util:json_decode(Change)}
+                end
             catch
             throw:{invalid_json, Error} ->
                 {error, Error}
@@ -31,14 +34,11 @@ wait_for_change(Reqid, Acc) ->
             {error, Error};
         {ibrowse_async_response, Reqid, Chunk} ->
             ibrowse:stream_next(Reqid),
-            wait_for_change(Reqid, [Chunk|Acc]);
-        {ibrowse_async_headers, Reqid, Status, Headers} ->
-            if Status =/= "200" ->
-                    {error, {Status, Headers}};
-                true ->
-                    ibrowse:stream_next(Reqid), 
-                    wait_for_change(Reqid, Acc) 
-            end
+            wait_for_change(Reqid, ReqStatus, [Chunk|Acc]);
+        {ibrowse_async_headers, Reqid, Status, _Headers} ->
+
+            ibrowse:stream_next(Reqid), 
+            wait_for_change(Reqid, list_to_integer(Status), Acc) 
     end.
     
 
