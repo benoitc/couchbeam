@@ -6,14 +6,42 @@
 -module(couchbeam_changes).
 
 -include("couchbeam.hrl").
--export([continuous_acceptor/2]).
+-export([wait_for_change/1, continuous_acceptor/2]).
 
 -export([decode_row/1]).
 -record(state, {
     partial_chunk = <<"">>
 }).
 
--define(BUFFER_SIZE, 1000).
+
+wait_for_change(Reqid) ->
+    wait_for_change(Reqid, []).
+
+wait_for_change(Reqid, Acc) ->
+    receive
+        {ibrowse_async_response_end, Reqid} ->
+            Change = iolist_to_binary(lists:reverse(Acc)),
+            try
+                {ok, couchbeam_util:json_decode(Change)}
+            catch
+            throw:{invalid_json, Error} ->
+                {error, Error}
+            end;
+        {ibrowse_async_response, Reqid, {error,Error}} ->
+            {error, Error};
+        {ibrowse_async_response, Reqid, Chunk} ->
+            ibrowse:stream_next(Reqid),
+            wait_for_change(Reqid, [Chunk|Acc]);
+        {ibrowse_async_headers, Reqid, Status, Headers} ->
+            if Status =/= "200" ->
+                    {error, {Status, Headers}};
+                true ->
+                    ibrowse:stream_next(Reqid), 
+                    wait_for_change(Reqid, Acc) 
+            end
+    end.
+    
+
 
 %% @doc initiate continuous loop 
 continuous_acceptor(Pid, PidRef) ->

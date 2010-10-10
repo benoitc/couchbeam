@@ -729,11 +729,10 @@ changes(Db) ->
 %%                  {heartbeat, string()|boolean()}
 changes(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
     Url = make_url(Server, [db_url(Db), "/_changes"], Options),
-    case db_request(get, Url, ["200"], IbrowseOpts) of
-        {ok, _, _, Body} ->
-            {ok, couchbeam_util:json_decode(Body)};
-        Error ->
-            Error
+    case request_stream({self(), once}, get, Url, IbrowseOpts) of
+        {ok, ReqId} ->
+            couchbeam_changes:wait_for_change(ReqId);
+        {error, Error} -> {error, Error}
     end.
 
 %% @doc wait for longpoll changes 
