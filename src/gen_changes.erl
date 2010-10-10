@@ -3,6 +3,10 @@
 %%% This file is part of couchbeam released under the MIT license. 
 %%% See the NOTICE for more information.
 
+%% @doc gen_changes CouchDB continuous changes consumer behavior
+%% This behaviour allws you to create easily a server that consume 
+%% Couchdb continuous changes
+
 -module(gen_changes).
 
 -include("couchbeam.hrl").
@@ -44,7 +48,15 @@ call(Name, Request, Timeout) ->
 cast(Dest, Request) ->
     gen_server:cast(Dest, Request).
 
-
+%% @doc create a gen_changes process as part of a supervision tree. 
+%% The function should be called, directly or indirectly, by the supervisor.
+%% @spec start_link(Module, Db::db(), Options::changesoptions(),
+%%                  InitArgs::list()) -> term()
+%%       changesoptions() = [changeoption()]
+%%       changeoption() = {include_docs, string()} |
+%%                  {filter, string()} |
+%%                  {since, integer()|string()} |
+%%                  {heartbeat, string()|boolean()}
 start_link(Module, Db, Options, InitArgs) ->
     application:start(couchbeam),
     gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
