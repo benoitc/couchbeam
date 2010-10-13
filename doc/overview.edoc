@@ -95,7 +95,7 @@ To create a new one :
 
 ```
 Options = [],
-{ok, Db} = couchbeam:open_db(Server, "testdb", Options).
+{ok, Db} = couchbeam:create_db(Server, "testdb", Options).
 '''
 
 You can also use the shorcut {@link couchbeam:open_or_create_db/3.} that
