@@ -56,8 +56,12 @@ ibrowse and will maintain a collections of unique ids from CouchDB to
 reduce the number of HTTP connections.
 
 ```
+application:start(ibrowse),
 application:start(couchbeam).
 '''
+
+Note if you want to use <strong>ssl<strong>, you will need to start
+crypto, public_key, sasl and ssl applications too. 
 
 <h3>2. Create a connection to the server</h3>
 
