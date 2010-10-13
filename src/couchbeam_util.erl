@@ -69,11 +69,15 @@ encode_query_value(K, V) when is_binary(K) ->
     encode_query_value(binary_to_list(K), V);
 encode_query_value(K, V) ->
     case K of
-        "key" -> couchbeam_util:json_encode(V);
-        "startkey" -> couchbeam_util:json_encode(V);
-        "endkey" -> couchbeam_util:json_encode(V);
+        "key" -> encode_value(V);
+        "startkey" -> encode_value(V);
+        "endkey" -> encode_value(V);
         _ -> V
     end.
+
+encode_value(V) ->
+    V1 = json_encode(V),
+    binary_to_list(iolist_to_binary(V1)).
 
 % build oauth header
 oauth_header(Url, Action, OauthProps) ->
@@ -163,7 +167,7 @@ to_binary(V) when is_list(V) ->
 to_binary(V) when is_atom(V) ->
     list_to_binary(atom_to_list(V));
 to_binary(V) ->
-    list_to_binary(io_lib:format("~p", [V])).
+    V.
 
 to_integer(V) when is_integer(V) ->
     V;
@@ -179,7 +183,7 @@ to_list(V) when is_binary(V) ->
 to_list(V) when is_atom(V) ->
     atom_to_list(V);
 to_list(V) ->
-    lists:flatten(io_lib:format("~p", [V])).
+    V.
 
 to_atom(V) when is_atom(V) ->
     V;
