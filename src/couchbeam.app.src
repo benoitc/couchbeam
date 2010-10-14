@@ -8,8 +8,7 @@
   {vsn, "0.5.0"},
   {modules, []},
   {registered, []},
-  {mod, {mochiweb_app, []}},
-  {env, []},
   {applications, [kernel, stdlib]},
   {included_applications, [crypto, sasl,  ibrowse]},
+  {env, []},
   {mod, { couchbeam_app, []}}]}.
