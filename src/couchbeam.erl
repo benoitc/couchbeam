@@ -278,7 +278,9 @@ create_db(Server, DbName, Options) ->
 %%      Connections are made to:
 %%      ```http://Host:PortPrefix/DbName'''
 %%
-%%      If ssl is set https is used.
+%% If ssl is set https is used. See server_connections for options.
+%% Params is a list of optionnal query argument you want to pass to the
+%% db. Useful for bigcouch for example.
 %%
 %% @spec create_db(Server::server(), DbName::string(),
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}} 
@@ -300,7 +302,8 @@ open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
 %% @doc Create a client for connection to a database
-%% @spec open_db(server(), string(), list()) -> {ok, db()}
+%% @spec open_db(Server::server(), DbName::string(), Options::optionList()) 
+%%              -> {ok, db()}
 open_db(#server{options=IbrowseOpts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts),
     {ok, #db{server=Server, name=DbName, options=Options1}}.
