@@ -192,7 +192,7 @@ get_uuid(Server) ->
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
-    gen_server:call(couchbeam, {get_uuids, Server, Count}, infinity).
+    gen_server:call(?MODULE, {get_uuids, Server, Count}).
 
 %% @doc Handle replication. Pass an object containting all informations
 %% It allows to pass for example an authentication info
