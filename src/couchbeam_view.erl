@@ -13,10 +13,11 @@
 
 %% spec count(View :: view()) -> integer()
 %% @doc get number of results in the view
-count(#view{url=Url, options=Options, method=Method, body=Body,
+count(#view{db=Db,url=Url, options=Options, method=Method, body=Body,
         headers=Headers}) ->
-    
-    case couchbeam:db_request(Method, Url, ["200"], Headers, Body) of
+    #db{options=IbrowseOpts} = Db,
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+            Body) of
         {ok, _, _, RespBody} ->
             {Props} = couchbeam_util:json_decode(RespBody),
             case proplists:get_value("limit", Options) of
@@ -33,8 +34,10 @@ count(#view{url=Url, options=Options, method=Method, body=Body,
 
 %% @doc get all results in a view.
 %% @spec fetch(View :: view()) -> term()
-fetch(#view{url=Url, method=Method, body=Body, headers=Headers}) ->
-    case couchbeam:db_request(Method, Url, ["200"], Headers, Body) of
+fetch(#view{db=Db, url=Url, method=Method, body=Body, headers=Headers}) ->
+    #db{options=IbrowseOpts} = Db,
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+            Body) of
         {ok, _, _, RespBody} ->
             JsonBody = couchbeam_util:json_decode(RespBody),
             {ok, JsonBody};
@@ -62,9 +65,10 @@ first(View) ->
             Opts = proplists:delete("limit", Options),
             [{"limit", 1}|Opts]
     end,
-    #db{server=Server} = Db,
+    #db{server=Server, options=IbrowseOpts} = Db,
     Url = couchbeam:make_url(Server, UrlParts, Options1),
-    case couchbeam:db_request(Method, Url, ["200"], Headers, Body) of
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, 
+            Headers, Body) of
         {ok, _, _, RespBody} ->
             {Props} = couchbeam_util:json_decode(RespBody),
             case proplists:get_value(<<"rows">>, Props) of
@@ -87,12 +91,15 @@ first(View) ->
 %% The evaluation order is undefined.
 fold(View, Fun) ->
     #view{
+        db=Db,
         method=Method, 
         body=Body, 
         headers=Headers,
         url = Url
     } = View,
-    case couchbeam:db_request(Method, Url, ["200"], Headers, Body) of
+    #db{options=IbrowseOpts} = Db,
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+            Body) of
         {ok, _, _, RespBody} ->
             {Props} = couchbeam_util:json_decode(RespBody),
             Rows = proplists:get_value(<<"rows">>, Props),
@@ -110,12 +117,15 @@ fold(View, Fun) ->
 %% same as the order of the elements in the results.
 foreach(View, Fun) ->
      #view{
+        db=Db,
         method=Method, 
         body=Body, 
         headers=Headers,
         url = Url
     } = View,
-    case couchbeam:db_request(Method, Url, ["200"], Headers, Body) of
+    #db{options=IbrowseOpts} = Db,
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, 
+            Headers, Body) of
         {ok, _, _, RespBody} ->
             {Props} = couchbeam_util:json_decode(RespBody),
             Rows = proplists:get_value(<<"rows">>, Props),
