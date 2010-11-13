@@ -577,10 +577,12 @@ put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Op
             end
     end, Headers, [content_type, content_length]),
 
+    IbrowseOpts1 = [{header_as_is, true}|IbrowseOpts],
+
     Url = make_url(Server, [db_url(Db), "/",
             couchbeam_util:encode_docid(DocId), "/", Name], QueryArgs),
 
-    case db_request(put, Url, ["201"], IbrowseOpts, FinalHeaders, Body) of
+    case db_request(put, Url, ["201"], IbrowseOpts1, FinalHeaders, Body) of
         {ok, _, _, RespBody} ->
             {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(RespBody),
             {ok, {R}};
