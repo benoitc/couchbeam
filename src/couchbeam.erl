@@ -12,12 +12,6 @@
 
 -record(state, {}).
 
--define(ATOM_HEADERS, [
-    {content_type, "Content-Type"},
-    {content_length, "Content-Length"}
-]).
-
-
 % generic functions
 -export([start_link/0, start/0, stop/0, version/0]).
 
@@ -568,21 +562,18 @@ put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Op
     
     Headers = couchbeam_util:get_value(headers, Options, []),
 
-    FinalHeaders = lists:foldl(fun(Hdr, Acc) ->
-            case couchbeam_util:get_value(Hdr, Options) of
-                undefined -> Acc;
-                Value -> 
-                    Hdr1 = couchbeam_util:get_value(Hdr, ?ATOM_HEADERS),
-                    [{Hdr1, Value}|Acc]
-            end
-    end, Headers, [content_type, content_length]),
-
-    IbrowseOpts1 = [{header_as_is, true}|IbrowseOpts],
+    FinalHeaders = lists:foldl(fun(Option, Acc) ->
+                case Option of
+                    {content_length, V} -> [{"Content-Length", V}|Acc];
+                    {content_type, V} -> [{"Content-Type", V}|Acc];
+                    _ -> Acc
+                end
+        end, Headers, Options),
 
     Url = make_url(Server, [db_url(Db), "/",
             couchbeam_util:encode_docid(DocId), "/", Name], QueryArgs),
 
-    case db_request(put, Url, ["201"], IbrowseOpts1, FinalHeaders, Body) of
+    case db_request(put, Url, ["201"], IbrowseOpts, FinalHeaders, Body) of
         {ok, _, _, RespBody} ->
             {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(RespBody),
             {ok, {R}};
@@ -872,7 +863,7 @@ make_url(Server=#server{prefix=Prefix}, Path, Query) ->
         iolist_to_binary(
             [server_url(Server),
              Prefix, "/",
-             Path, "/",
+             Path,
              [ ["?", mochiweb_util:urlencode(Query1)] || Query1 =/= [] ]
             ])).
 
@@ -902,7 +893,6 @@ request(Method, Url, Expect, Options, Headers) ->
 request(Method, Url, Expect, Options, Headers, Body) ->
     Accept = {"Accept", "application/json, */*;q=0.9"},
     {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
-
     case ibrowse:send_req(Url, [Accept|Headers1], Method, Body, 
             [{response_format, binary}|Options1]) of
         Resp={ok, Status, _, _} ->

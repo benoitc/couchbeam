@@ -81,7 +81,6 @@ test() ->
     
     {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
 
-   
     {ok, FileInfo} = file:read_file_info("t/1M"),
     FileSize = FileInfo#file_info.size,
     {ok, Fd} = file:open("t/1M", [read]),
@@ -112,5 +111,6 @@ test() ->
     {ok, Res4}= couchbeam:put_attachment(Db, "test3", "test",
 "test",[{content_length, 4}]),
     {ok, Attachment11} = couchbeam:fetch_attachment(Db, "test3", "test"),
-    etap:is(Attachment11, <<"test">>, "fetch attachment with clength ok"), 
+    etap:is(Attachment11, <<"test">>, "fetch attachment with clength ok"),
+     
     ok.
