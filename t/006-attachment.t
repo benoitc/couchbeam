@@ -8,7 +8,7 @@
 -include_lib("kernel/include/file.hrl").
 
 main(_) ->
-    etap:plan(12),
+    etap:plan(13),
     start_app(),
     case (catch test()) of
         ok ->
@@ -107,5 +107,10 @@ test() ->
 
     {ok, Res3}= couchbeam:put_attachment(Db, "test/2", "test", "test"),
     {ok, Attachment10} = couchbeam:fetch_attachment(Db, "test/2", "test"),
-    etap:is(Attachment10, <<"test">>, "fetch attachment with encoded id ok"),   
+    etap:is(Attachment10, <<"test">>, "fetch attachment with encoded id ok"),  
+
+    {ok, Res4}= couchbeam:put_attachment(Db, "test3", "test",
+"test",[{content_length, 4}]),
+    {ok, Attachment11} = couchbeam:fetch_attachment(Db, "test3", "test"),
+    etap:is(Attachment11, <<"test">>, "fetch attachment with clength ok"), 
     ok.
