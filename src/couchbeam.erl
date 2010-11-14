@@ -428,7 +428,7 @@ delete_doc(Db, Doc) ->
 %% @doc delete a document
 %% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
 delete_doc(Db, Doc, Options) ->
-    delete_docs(Db, [Doc], Options).
+     delete_docs(Db, [Doc], Options).
 
 %% @doc delete a list of documents
 %% @equiv delete_docs(Db, Docs, [])
@@ -611,8 +611,10 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
             end,
             Url = make_url(Server, [db_url(Db), "/", DocId, "/", Name], Options2),
             case db_request(delete, Url, ["200"], IbrowseOpts) of
-            {ok, _, _, _Body} ->
-                ok; 
+            {ok, _, _, RespBody} ->
+                {[{<<"ok">>,true}|R]} = couchbeam_util:json_decode(RespBody),
+                {ok, {R}};
+
             Error ->
                 Error
             end

@@ -57,7 +57,11 @@ test() ->
     {ok, Doc2} = couchbeam:open_doc(Db, "test"),
     RevDoc2 = couchbeam_doc:get_value(<<"_rev">>, Doc2),
 
-    etap:is(couchbeam:delete_attachment(Db, Doc2, "test"), ok, "delete attachment ok"),
+
+    etap:is(case couchbeam:delete_attachment(Db, Doc2, "test") of
+        {ok,  {_}} -> true;
+        _ -> false
+    end, true, "delete attachment ok"),
 
     Doc3 = {[
         {<<"_id">>, <<"test2">>}
