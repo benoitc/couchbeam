@@ -587,7 +587,7 @@ delete_attachment(Db, Doc, Name) ->
     delete_attachment(Db, Doc, Name, []).
 
 %% @doc delete a document attachment
-%% @spec(db(), string()|list(), string(), list() -> ok 
+%% @spec(db(), string()|list(), string(), list() -> {ok, Result} | {error, Error}
 delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, Options) ->
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
