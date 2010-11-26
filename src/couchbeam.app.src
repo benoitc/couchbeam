@@ -5,7 +5,7 @@
 
 {application, couchbeam,
  [{description, "Erlang CouchDB kit"},
-  {vsn, "0.5.1"},
+  {vsn, "0.5.2"},
   {modules, []},
   {registered, []},
   {applications, [kernel, stdlib]},
