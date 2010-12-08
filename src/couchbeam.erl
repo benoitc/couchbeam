@@ -10,6 +10,7 @@
 
 -include("couchbeam.hrl").
 
+-define(TIMEOUT, infinity).
 -record(state, {}).
 
 % generic functions
@@ -897,7 +898,7 @@ request(Method, Url, Expect, Options, Headers, Body) ->
     Accept = {"Accept", "application/json, */*;q=0.9"},
     {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
     case ibrowse:send_req(Url, [Accept|Headers1], Method, Body, 
-            [{response_format, binary}|Options1]) of
+            [{response_format, binary}|Options1], ?TIMEOUT) of
         Resp={ok, Status, _, _} ->
             case lists:member(Status, Expect) of
                 true -> Resp;
@@ -919,7 +920,7 @@ request_stream(Pid, Method, Url, Options, Headers, Body) ->
                           [{stream_to, Pid},
                            {response_format, binary},
                            {inactivity_timeout, infinity}|Options1],
-                           infinity) of
+                           ?TIMEOUT) of
         {ibrowse_req_id, ReqId} ->
             {ok, ReqId};
         Error ->
