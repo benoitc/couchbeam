@@ -40,6 +40,7 @@
         delete_db/1, delete_db/2, 
         db_info/1,
         save_doc/2, save_doc/3,
+	doc_exists/2,
         open_doc/2, open_doc/3,
         delete_doc/2, delete_doc/3,
         save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
@@ -359,6 +360,16 @@ db_info(#db{server=Server, name=DbName, options=IbrowseOpts}) ->
             {error, db_not_found};
        Error ->
           Error
+    end.
+
+%% @doc test if doc with uuid exists in the given db
+%% @spec doc_exists(db(), string()) -> boolean()
+doc_exists(#db{server=Server, options=IbrowseOpts}=Db, DocId) ->
+    DocId1 = couchbeam_util:encode_docid(DocId),
+    Url = make_url(Server, doc_url(Db, DocId1), []),
+    case request(head, Url, ["200"], IbrowseOpts) of
+        {ok, _, _, _} -> true;
+        _Error -> false
     end.
 
 %% @doc open a document 
