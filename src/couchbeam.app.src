@@ -8,7 +8,6 @@
   {vsn, "0.5.3"},
   {modules, []},
   {registered, []},
-  {applications, [kernel, stdlib]},
-  {included_applications, [crypto, sasl,  ibrowse]},
+  {applications, [kernel, stdlib, crypto, sasl, ibrowse]},
   {env, []},
   {mod, { couchbeam_app, []}}]}.
