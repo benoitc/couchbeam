@@ -16,8 +16,7 @@
 %%          {error, Reason}   
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-    couchbeam_deps:ensure(),
-    couchbeam_sup:start_link().
+    couchbeam:start().
 
 %%--------------------------------------------------------------------
 %% Func: stop/1
