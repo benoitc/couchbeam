@@ -81,7 +81,14 @@ handle_messages([], _Pid, _PidRef, IbrowseRef, State) ->
 handle_messages([<<"{\"last_seq\":", LastSeq/binary>>], Pid, PidRef,
         IbrowseRef, State) ->
     %% end of continuous response
-    Pid ! {PidRef, {last_seq, LastSeq}},
+    
+    %% get last sequence
+    L = size(LastSeq) - 1,
+    <<LastSeq1:L/binary, _/binary>> = LastSeq,
+    LastSeqInt = list_to_integer(binary_to_list(LastSeq1)),
+    
+    Pid ! {PidRef, {last_seq, LastSeqInt}},
+
     ibrowse:stream_next(IbrowseRef),
     {ok, State};
 handle_messages([Chunk|Rest], Pid, PidRef, IbrowseRef, State) ->
