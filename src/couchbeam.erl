@@ -40,7 +40,7 @@
         delete_db/1, delete_db/2, 
         db_info/1,
         save_doc/2, save_doc/3,
-	doc_exists/2,
+        doc_exists/2,
         open_doc/2, open_doc/3,
         delete_doc/2, delete_doc/3,
         save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
