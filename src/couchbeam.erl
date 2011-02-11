@@ -283,7 +283,7 @@ create_db(Server, DbName, Options) ->
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}} 
 create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts), 
-    Url = make_url(Server, DbName, Params),
+    Url = make_url(Server, dbname(DbName), Params),
     case request(put, Url, ["201"], IbrowseOpts) of
         {ok, _Status, _Headers, _Body} ->
             {ok, #db{server=Server, name=DbName, options=Options1}};
@@ -303,7 +303,7 @@ open_db(Server, DbName) ->
 %%              -> {ok, db()}
 open_db(#server{options=IbrowseOpts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts),
-    {ok, #db{server=Server, name=DbName, options=Options1}}.
+    {ok, #db{server=Server, name=dbname(DbName), options=Options1}}.
     
 
 %% @doc Create a client for connecting to a database and create the
@@ -340,7 +340,7 @@ delete_db(#db{server=Server, name=DbName}) ->
 %% @doc delete database 
 %% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
 delete_db(#server{options=IbrowseOpts}=Server, DbName) ->
-    Url = make_url(Server, DbName, []),
+    Url = make_url(Server, dbname(DbName), []),
     case request(delete, Url, ["200"], IbrowseOpts) of
         {ok, _, _, Body} ->
             {ok, couchbeam_util:json_decode(Body)};
@@ -865,6 +865,13 @@ server_url({Host, Port}, true) ->
 
 uuids_url(Server) ->
     binary_to_list(iolist_to_binary([server_url(Server), "/", "_uuids"])).
+
+dbname(DbName) when is_list(DbName) ->
+    DbName;
+dbname(DbName) when is_binary(DbName) ->
+    binary_to_list(DbName);
+dbname(DbName) ->
+    erlang:error({illegal_database_name, DbName}).
 
 db_url(#db{name=DbName}) ->
     [DbName].
