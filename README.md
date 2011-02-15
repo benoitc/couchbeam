@@ -1,6 +1,6 @@
-#couchbeam 0.5.0 
+#couchbeam 0.5.4 
 
-**2009-2010 (c) Benoît Chesneau <benoitc@e-engura.org>**
+**2009-2011 (c) Benoît Chesneau <benoitc@e-engura.org>**
 
 **couchbeam** is a simple erlang CouchDB framework. couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
 
