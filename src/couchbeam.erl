@@ -837,7 +837,7 @@ changes_wait(#db{server=Server, options=IbrowseOpts}=Db, ClientPid, Options) ->
     end. 
 
 %% --------------------------------------------------------------------
-%% Utilities functins.
+%% Utilities functions.
 %% --------------------------------------------------------------------
 
 %% add missing docid to a list of documents if needed
