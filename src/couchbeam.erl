@@ -44,6 +44,7 @@
         open_doc/2, open_doc/3,
         delete_doc/2, delete_doc/3,
         save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
+	lookup_doc_rev/2, lookup_doc_rev/3,
         fetch_attachment/3, fetch_attachment/4, fetch_attachment/5,
         stream_fetch_attachment/4, stream_fetch_attachment/5,
         stream_fetch_attachment/6, delete_attachment/3,
@@ -487,6 +488,19 @@ save_docs(#db{server=Server, options=IbrowseOpts}=Db, Docs, Options) ->
         Error -> 
             Error
         end.
+
+lookup_doc_rev(Db, DocId) ->
+    lookup_doc_rev(Db, DocId, []).
+
+lookup_doc_rev(#db{server=Server, options=IbrowseOpts}=Db, DocId, Params) ->
+    DocId1 = couchbeam_util:encode_docid(DocId),
+    Url = make_url(Server, doc_url(Db, DocId1), Params),
+    case db_request(head, Url, ["200"], IbrowseOpts) of
+	{ok, _, Headers, _} ->
+	    couchbeam_util:get_value("Etag", Headers);
+	Error ->
+	    Error
+    end.
 
 %% @doc fetch a document attachment
 %% @equiv fetch_attachment(Db, DocId, Name, [], DEFAULT_TIMEOUT)
