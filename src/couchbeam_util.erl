@@ -127,17 +127,24 @@ propmerge1(L1, L2) ->
     propmerge(fun(_, V1, _) -> V1 end, L1, L2).
 
 
-get_value(Key, List) ->
-    get_value(Key, List, undefined).
+%% @doc emulate proplists:get_value/2,3 but use faster lists:keyfind/3
+-spec(get_value/2 :: (Key :: term(), Prop :: [term()] ) -> term()).
+get_value(Key, Prop) ->
+    get_value(Key, Prop, undefined).
 
-get_value(Key, List, Default) ->
-    case lists:keysearch(Key, 1, List) of
-    {value, {Key,Value}} ->
-        Value;
-    false ->
-        Default
-    end.
-    
+-spec(get_value/3 :: (Key :: term(), Prop :: [term()], Default :: term() ) -> term()).
+get_value(Key, Prop, Default) ->
+    case lists:keyfind(Key, 1, Prop) of
+	false ->
+	    case lists:member(Key, Prop) of
+		true -> true;
+		false -> Default
+	    end;
+	{Key, V} -> % only return V if a two-tuple is found
+	    V;
+	Other when is_tuple(Other) -> % otherwise return the default
+	    Default
+    end.    
 
 %% @doc make view options a list
 parse_options(Options) ->
