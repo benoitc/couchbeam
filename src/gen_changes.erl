@@ -133,7 +133,7 @@ handle_info({ibrowse_async_response, ReqId, Chunk},
         State=#gen_changes_state{mod=Module, modstate=ModState, req_id=ReqId}) ->
     Messages = [M || M <- re:split(Chunk, ",?\n", [trim]), M =/= <<>>],
     
-    case handle_messages(Messages, State) of
+    case handle_messages(Messages, State#gen_changes_state{row=undefined}) of
         {ok, #gen_changes_state{complete=true}=State1} ->
             {stop, complete, State1};
         {ok, #gen_changes_state{row=undefined}=State1} ->
