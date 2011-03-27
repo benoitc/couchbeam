@@ -17,7 +17,7 @@ doc:
 	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
 	
 
-test: compile	
+test: all	
 	@$(ERLC) -o t/ t/etap.erl
 	prove t/*.t
 
