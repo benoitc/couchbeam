@@ -584,7 +584,8 @@ put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Op
         end, Headers, Options),
 
     Url = make_url(Server, [db_url(Db), "/",
-            couchbeam_util:encode_docid(DocId), "/", Name], QueryArgs),
+            couchbeam_util:encode_docid(DocId), "/",
+            couchbeam_util:encode_att_name(Name)], QueryArgs),
 
     case db_request(put, Url, ["201"], IbrowseOpts, FinalHeaders, Body) of
         {ok, _, _, RespBody} ->

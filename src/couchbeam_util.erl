@@ -6,7 +6,7 @@
 -module(couchbeam_util).
 
 -export([json_encode/1, json_decode/1]).
--export([encode_docid/1]).
+-export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
 -export([encode_query/1, encode_query_value/2]).
@@ -33,6 +33,13 @@ json_decode(V) ->
             throw({invalid_json,V})
     end.
 
+encode_att_name(Name) when is_binary(Name) ->
+    encode_att_name(xmerl_ucs:from_utf8(Name));
+encode_att_name(Name) ->
+    Parts = lists:foldl(fun(P, Att) ->
+               [xmerl_ucs:to_utf8(P)|Att]
+       end, [], string:tokens(Name, "/")),
+    lists:flatten(Parts).
 
 encode_docid(DocId) when is_binary(DocId) ->
     encode_docid(binary_to_list(DocId));
