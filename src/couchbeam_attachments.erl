@@ -74,7 +74,7 @@ attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef) ->
 %%      AName::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
-    ContentType = mochiweb_util:guess_mime(AName),
+    ContentType = couchbeam_util:guess_mime(AName),
     add_inline(Doc, Content, AName, ContentType).
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
