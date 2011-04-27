@@ -324,7 +324,9 @@ open_or_create_db(Server, DbName, Options) ->
 %% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
 open_or_create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Url = make_url(Server, DbName, []),
-    case request(get, Url, ["200"], IbrowseOpts) of
+    IbrowseOpts1 = couchbeam_util:propmerge1(Options, IbrowseOpts),
+    io:format("options ~p~n", [IbrowseOpts1]),
+    case request(get, Url, ["200"], IbrowseOpts1) of
         {ok, _, _, _} ->
             open_db(Server, DbName, Options);
         {error, {ok, "404", _, _}} ->
