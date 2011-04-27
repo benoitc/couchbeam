@@ -441,6 +441,9 @@ delete_doc(Db, Doc) ->
     delete_doc(Db, Doc, []).
 
 %% @doc delete a document
+%% if you want to make sure the doc it emptied on delete, use the option
+%% {empty_on_delete,  true} or pass a doc with just _id and _rev
+%% members.
 %% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
 delete_doc(Db, Doc, Options) ->
      delete_docs(Db, [Doc], Options).
@@ -451,12 +454,29 @@ delete_docs(Db, Docs) ->
     delete_docs(Db, Docs, []).
 
 %% @doc delete a list of documents
+%% if you want to make sure the doc it emptied on delete, use the option
+%% {empty_on_delete,  true} or pass a doc with just _id and _rev
+%% members.
 %% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 delete_docs(Db, Docs, Options) ->
-    Docs1 = lists:map(fun({DocProps})->
-        {[{<<"_deleted">>, true}|DocProps]}
-        end, Docs),
-    save_docs(Db, Docs1, Options).
+    Empty = couchbeam_util:get_value("empty_on_delete", Options,
+        false),
+
+    {FinalDocs, FinalOptions} = case Empty of
+        true ->
+            Docs1 = lists:map(fun(Doc)->
+                        {[{<<"_id">>, couchbeam_doc:get_id(Doc)},
+                         {<<"_rev">>, couchbeam_doc:get_rev(Doc)},
+                         {<<"_deleted">>, true}]}
+                 end, Docs),
+             {Docs1, proplists:delete("all_or_nothing", Options)};
+         _ ->
+            Docs1 = lists:map(fun({DocProps})->
+                        {[{<<"_deleted">>, true}|DocProps]}
+                end, Docs),
+            {Docs1, Options}
+    end,
+    save_docs(Db, FinalDocs, FinalOptions).
 
 %% @doc save a list of documents
 %% @equiv save_docs(Db, Docs, [])
