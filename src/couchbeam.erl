@@ -325,7 +325,6 @@ open_or_create_db(Server, DbName, Options) ->
 open_or_create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Url = make_url(Server, DbName, []),
     IbrowseOpts1 = couchbeam_util:propmerge1(Options, IbrowseOpts),
-    io:format("options ~p~n", [IbrowseOpts1]),
     case request(get, Url, ["200"], IbrowseOpts1) of
         {ok, _, _, _} ->
             open_db(Server, DbName, Options);
