@@ -36,6 +36,7 @@ clean:
 
 distclean: clean
 	@./rebar delete-deps
+	@rm -rf deps
 
 dialyzer: compile
 	@dialyzer -Wno_return -c ebin
