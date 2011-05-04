@@ -177,7 +177,7 @@ server_info(#server{options=IbrowseOpts}=Server) ->
     Url = binary_to_list(iolist_to_binary(server_url(Server))),
     case request(get, Url, ["200"], IbrowseOpts) of
         {ok, _Status, _Headers, Body} ->
-            Version = ejson:decode(Body),
+            Version = couchbeam_util:json_decode(Body),
             {ok, Version};
         Error -> Error
     end.
@@ -208,7 +208,7 @@ get_uuids(Server, Count) ->
 replicate(#server{options=IbrowseOpts}=Server, RepObj) ->
     Url = make_url(Server, "_replicate", []),
     Headers = [{"Content-Type", "application/json"}],
-    JsonObj = ejson:encode(RepObj),
+    JsonObj = couchbeam_util:json_encode(RepObj),
 
     case request_stream({self(), once}, post, Url, IbrowseOpts, Headers,
             JsonObj) of
@@ -246,7 +246,7 @@ all_dbs(#server{options=IbrowseOpts}=Server) ->
     Url = make_url(Server, "_all_dbs", []),
     case request(get, Url, ["200"], IbrowseOpts) of
         {ok, _, _, Body} ->
-            AllDbs = ejson:decode(Body),
+            AllDbs = couchbeam_util:json_decode(Body),
             {ok, AllDbs};
         Error ->
             Error
@@ -345,7 +345,7 @@ delete_db(#server{options=IbrowseOpts}=Server, DbName) ->
     Url = make_url(Server, dbname(DbName), []),
     case request(delete, Url, ["200"], IbrowseOpts) of
         {ok, _, _, Body} ->
-            {ok, ejson:decode(Body)};
+            {ok, couchbeam_util:json_decode(Body)};
         Error ->
             Error
     end.
@@ -356,7 +356,7 @@ db_info(#db{server=Server, name=DbName, options=IbrowseOpts}) ->
     Url = make_url(Server, DbName, []),
     case request(get, Url, ["200"], IbrowseOpts) of
         {ok, _Status, _Headers, Body} ->
-            Infos = ejson:decode(Body),
+            Infos = couchbeam_util:json_decode(Body),
             {ok, Infos}; 
         {error, {ok, "404", _, _}} ->
             {error, db_not_found};
@@ -388,7 +388,7 @@ open_doc(#db{server=Server, options=IbrowseOpts}=Db, DocId, Params) ->
     Url = make_url(Server, doc_url(Db, DocId1), Params),
     case db_request(get, Url, ["200", "201"], IbrowseOpts) of
         {ok, _, _, Body} ->
-            {ok, ejson:decode(Body)};
+            {ok, couchbeam_util:json_decode(Body)};
         Error ->
             Error
     end.
@@ -421,11 +421,11 @@ save_doc(#db{server=Server, options=IbrowseOpts}=Db, {Props}=Doc, Options) ->
             couchbeam_util:encode_docid(DocId1)
     end,
     Url = make_url(Server, doc_url(Db, DocId), Options),
-    Body = ejson:encode(Doc),
+    Body = couchbeam_util:json_encode(Doc),
     Headers = [{"Content-Type", "application/json"}],
     case db_request(put, Url, ["201", "202"], IbrowseOpts, Headers, Body) of
         {ok, _, _, RespBody} ->
-            {JsonProp} = ejson:decode(RespBody),
+            {JsonProp} = couchbeam_util:json_decode(RespBody),
             NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
             NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
             Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev, 
@@ -491,21 +491,21 @@ save_docs(#db{server=Server, options=IbrowseOpts}=Db, Docs, Options) ->
     {Options2, Body} = case couchbeam_util:get_value("all_or_nothing", 
             Options1, false) of
         true ->
-            Body1 = ejson:encode({[
+            Body1 = couchbeam_util:json_encode({[
                 {<<"all_or_nothing">>, true},
                 {<<"docs">>, Docs1}
             ]}),
 
             {proplists:delete("all_or_nothing", Options1), Body1};
         _ ->
-            Body1 = ejson:encode({[{<<"docs">>, Docs1}]}),
+            Body1 = couchbeam_util:json_encode({[{<<"docs">>, Docs1}]}),
             {Options1, Body1}
         end,
     Url = make_url(Server, [db_url(Db), "/", "_bulk_docs"], Options2),
     Headers = [{"Content-Type", "application/json"}], 
     case db_request(post, Url, ["201"], IbrowseOpts, Headers, Body) of
         {ok, _, _, RespBody} ->
-            {ok, ejson:decode(RespBody)};
+            {ok, couchbeam_util:json_decode(RespBody)};
         Error -> 
             Error
         end.
@@ -624,7 +624,7 @@ put_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocId, Name, Body, Op
 
     case db_request(put, Url, ["201"], IbrowseOpts, FinalHeaders, Body) of
         {ok, _, _, RespBody} ->
-            {[{<<"ok">>, true}|R]} = ejson:decode(RespBody),
+            {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(RespBody),
             {ok, {R}};
         Error ->
             Error
@@ -661,7 +661,7 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
             Url = make_url(Server, [db_url(Db), "/", DocId, "/", Name], Options2),
             case db_request(delete, Url, ["200"], IbrowseOpts) of
             {ok, _, _, RespBody} ->
-                {[{<<"ok">>,true}|R]} = ejson:decode(RespBody),
+                {[{<<"ok">>,true}|R]} = couchbeam_util:json_decode(RespBody),
                 {ok, {R}};
 
             Error ->
@@ -738,7 +738,7 @@ view(#db{server=Server}=Db, ViewName, Options) ->
             undefined ->
                 {get, Options1, []};
             Keys ->
-                Body1 = ejson:encode({[{<<"keys">>, Keys}]}),
+                Body1 = couchbeam_util:json_encode({[{<<"keys">>, Keys}]}),
                 {post, proplists:delete("keys", Options1), Body1}
             end,
         Headers = case Method of
@@ -771,7 +771,7 @@ ensure_full_commit(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
     Headers = [{"Content-Type", "application/json"}],
     case db_request(post, Url, ["201"], IbrowseOpts, Headers) of
         {ok, _, _, Body} ->
-            {[{<<"ok">>, true}|R]} = ejson:decode(Body),
+            {[{<<"ok">>, true}|R]} = couchbeam_util:json_decode(Body),
             {ok, R};
         Error ->
             Error
@@ -922,7 +922,7 @@ make_url(Server=#server{prefix=Prefix}, Path, Query) ->
             [server_url(Server),
              Prefix, "/",
              Path,
-             [ ["?", couchbeam_util:urlencode(Query1)] || Query1 =/= [] ]
+             [ ["?", mochiweb_util:urlencode(Query1)] || Query1 =/= [] ]
             ])).
 
 db_request(Method, Url, Expect, Options) ->
@@ -1053,7 +1053,7 @@ get_new_uuids(Server=#server{host=Host, port=Port, options=IbrowseOptions}) ->
     Url = make_url(Server, "_uuids", [{"count", "1000"}]),  
     case request(get, Url, ["200"], IbrowseOptions) of
         {ok, _Status, _Headers, Body} ->
-            {[{<<"uuids">>, Uuids}]} = ejson:decode(Body),
+            {[{<<"uuids">>, Uuids}]} = couchbeam_util:json_decode(Body),
             ServerUuids = #server_uuids{host_port={Host,
                         Port}, uuids=Uuids},
             ets:insert(couchbeam_uuids, ServerUuids),

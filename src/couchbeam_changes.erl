@@ -22,9 +22,9 @@ wait_for_change(Reqid, ReqStatus, Acc) ->
             Change = iolist_to_binary(lists:reverse(Acc)),
             try
                 if ReqStatus >= 400 ->
-                    {error, {ReqStatus, ejson:decode(Change)}};
+                    {error, {ReqStatus, couchbeam_util:json_decode(Change)}};
                 true ->
-                    {ok, ejson:decode(Change)}
+                    {ok, couchbeam_util:json_decode(Change)}
                 end
             catch
             throw:{invalid_json, Error} ->
@@ -106,7 +106,7 @@ handle_messages([Chunk|Rest], Pid, PidRef, IbrowseRef, State) ->
 decode_row(<<",", Rest/binary>>) ->
     decode_row(Rest);
 decode_row(Row) ->
-    ejson:decode(Row).
+    couchbeam_util:json_decode(Row).
 
 
 
