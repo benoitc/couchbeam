@@ -1,4 +1,4 @@
-#couchbeam 0.5.4 
+#couchbeam 0.6 
 
 **2009-2011 (c) Benoît Chesneau <benoitc@e-engura.org>**
 
