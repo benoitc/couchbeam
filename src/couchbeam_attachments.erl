@@ -83,8 +83,8 @@ add_inline(Doc, Content, AName) ->
 add_inline(Doc, Content, AName, ContentType) ->
     {Props} = Doc,
     Data = base64:encode(Content),
-    Attachment = {list_to_binary(AName), {[{<<"content_type">>, 
-        list_to_binary(ContentType)}, {<<"data">>, Data}]}},
+    Attachment = {couchbeam_util:to_binary(AName), {[{<<"content_type">>, 
+        couchbeam_util:to_binary(ContentType)}, {<<"data">>, Data}]}},
     
     Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
         undefined -> 
