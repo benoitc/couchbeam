@@ -10,13 +10,11 @@
 
 -export([wait_for_change/1, continuous_acceptor/2]).
 
-
 -export([stream/2, stream/3,
          fetch/1, fetch/2,
          parse_changes_options/1,
          changes_loop/3]).
 
--export([decode_row/1]).
 -record(state, {
     partial_chunk = <<"">>
 }).
