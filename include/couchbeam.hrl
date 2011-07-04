@@ -24,6 +24,45 @@
 %% -type boolean() :: bool()
 
 
+
+-type db_name() :: binary() | string().
+-type docid() :: binary() | string().
+
+-type ejson() :: ejson_object() | ejson_array().
+
+-type ejson_array() :: [ejson_term()].
+-type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
+
+-type ejson_key() :: binary() | atom().
+
+-type ejson_term() :: ejson_array() 
+    | ejson_object() 
+    | ejson_string() 
+    | ejson_number() 
+    | true | false | null.
+
+-type ejson_string() :: binary().
+
+-type ejson_number() :: float() | integer().
+
+-type changes_option() :: continuous | longpoll | normal
+    | include_docs | {since, integer()}
+    | {timeout, integer()}
+    | heartbeat | {heartbeat, integer()}
+    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+)}
+    | conflicts | {style, string()} | descending.
+-type changes_options() :: list(changes_option()).
+
+-type changes_option1() :: longpoll | normal
+    | include_docs | {since, integer()}
+    | {timeout, integer()}
+    | heartbeat | {heartbeat, integer()}
+    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+)}
+    | conflicts | {style, string()} | descending.
+-type changes_options1() :: list(changes_option1()).
+
 -record(server, {
     host :: string(),
     port :: integer(),
@@ -60,17 +99,21 @@
 
 -type view() :: #view{}.
 
+-record(changes_args, {
+        type = normal,
+        http_options = []}).
+-type changes_args() :: #changes_args{}.
+
 -record(gen_changes_state, {
-    req_id,
+    start_ref,
+    changes_pid,
+    last_seq=0,
     mod,
     modstate,
-    seq,
     db,
-    options,
-    partial_chunk = <<"">>,
-    row,
-    complete=false
-}).
+    options}).
     
 -define(USER_AGENT, "couchbeam/0.5.0").
 
+-define(DEPRECATED(Old, New, When), 
+    couchbeam_util:deprecated(Old, New, When)).

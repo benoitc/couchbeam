@@ -265,13 +265,13 @@ ok = couchbeam:delete_attachment(Db, Doc4, AttName).
 <h3>9. Changes</h3>
 
 CouchDB provides a means to get a list of changes made to documents in
-the database. With couchbeam you can get changes using {@link couchbeam:changes/2}. 
+the database. With couchbeam you can get changes using {@link couchbeam_changes:fetch/2}. 
 This function returns all changes immediately. But you can also retrieve
-all changes using longpolling :
+all changes rows using longpolling :
 
 ```
 Options = [],
-{ok, Changes} = couchbeam:changes_wait_once(Db, Options).
+{ok, LastSeq, Rows} = couchbeam_changes:fetch(Db, Options).
 '''
 
 Options can be any Changes query parameters. See
@@ -283,19 +283,20 @@ You can also get <a href="http://wiki.apache.org/couchdb/HTTP_database_API#Conti
 ```
 ChangesFun = fun(ReqId, F) ->
     receive
-        {ReqId, done} ->
+        {change, StartRef, {done, LastSeq}} ->
+            io:format("stopped, last seq is ~p~n", [LastSeq]),
             ok;
-        {ReqId, {change, Change}} ->
-            io:format("change ~p ~n", [Change]),
-            F(ReqId, F);    
-        {ReqId, {error, E}}->
-            io:format("error ? ~p ~n", [E])
-    end
+        {change, StartRef, Row} ->
+            io:format("change row ~p ~n", [Row]),
+            F(StartRef, F);    
+        {error, StartRef, LastSeq, Error}->
+            io:format("error ? ~p ~n, last seq: ~p~n", [Error, LastSeq])
+    end 
 end,
 Pid = self(),
-Options = [{heartbeat, "true"}],
-{ok, ReqId} = couchbeam:changes_wait(Db, Pid, Options),
-ChangesFun(ReqId, ChangesFun).
+Options = [continuous, heartbeat],
+{ok, StartRef, _ChangePid} = couchbeam_changes:stream(Db, Pid, Options),
+ChangesFun(StartRef, ChangesFun).
 '''
 
 <h3>Authentication/ Connections options</h3>

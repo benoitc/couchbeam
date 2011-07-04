@@ -14,6 +14,7 @@
 -export([get_value/2, get_value/3]).
 -export([guess_mime/1, quote_plus/1, urlencode/1]).
 -export([parse_qs/1, urlsplit/1]).
+-export([deprecated/3]).
 
 -define(PERCENT, 37).  % $\%
 -define(ENCODE_DOCID, true).
@@ -374,4 +375,11 @@ urlsplit_query("#" ++ Rest, Acc) ->
 urlsplit_query([C | Rest], Acc) ->
     urlsplit_query(Rest, [C | Acc]).
 
-
+deprecated(Old, New, When) ->
+    io:format(
+      <<
+        "WARNING: function deprecated~n"
+        "Function '~p' has been deprecated~n"
+        "in favor of '~p'.~n"
+        "'~p' will be removed ~s.~n~n"
+      >>, [Old, New, Old, When]).

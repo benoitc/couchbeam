@@ -34,9 +34,9 @@ request_stream(Pid, Method, Url, Options) ->
 request_stream(Pid, Method, Url, Options, Headers) ->
     request_stream(Pid, Method, Url, Options, Headers, []).
 request_stream(Pid, Method, Url, Options, Headers, Body) ->
-    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
+    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers,
+        Options),
     {ok, ReqPid} = ibrowse_http_client:start_link(Url),
-
     case ibrowse:send_req_direct(ReqPid, Url, Headers1, Method, Body,
                           [{stream_to, Pid},
                            {response_format, binary},

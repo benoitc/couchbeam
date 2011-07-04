@@ -806,6 +806,7 @@ compact(#db{server=Server, options=IbrowseOpts}=Db, DesignName) ->
 %% instead use  ```changes_wait_once''' or continuous, use 
 %% ```wait_once'''
 %% @equiv changes(Db, [])
+%% @deprecated Use {@link couchbeam_changes:fetch/1} instead.
 changes(Db) ->
     changes(Db, []).
 
@@ -820,7 +821,11 @@ changes(Db) ->
 %%                  {filter, string()} |
 %%                  {since, integer()|string()} |
 %%                  {heartbeat, string()|boolean()}
+%% @deprecated Use {@link couchbeam_changes:fetch/2} instead.
 changes(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
+    ?DEPRECATED(<<"couchbeam:changes and couchbeam:changes_wait_once">>, 
+        <<"couchbeam_changes:fetch">>,
+        <<"in version 0.8">>),
     Url = make_url(Server, [db_url(Db), "/_changes"], Options),
     case couchbeam_httpc:request_stream({self(), once}, get, Url, IbrowseOpts) of
         {ok, ReqId} ->
@@ -830,16 +835,19 @@ changes(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
 
 %% @doc wait for longpoll changes 
 %% @equiv changes_wait_once(Db, [])
+%% @deprecated Use {@link couchbeam_changes:fetch/1}  instead.
 changes_wait_once(Db) ->
     changes_wait_once(Db, []).
 
 %% @doc wait for longpoll changes 
+%% @deprecated Use {@link couchbeam_changes:fetch/2} instead.
 changes_wait_once(Db, Options) ->
     Options1 = [{"feed", "longpoll"}|Options],
     changes(Db, Options1). 
 
 %% @doc wait for continuous changes 
 %% @equiv changes_wait(Db, ClientPid, [])
+%% @deprecated Use {@link couchbeam_changes:stream/2}  instead.
 changes_wait(Db, ClientPid) ->
     changes_wait(Db, ClientPid, []).
 
@@ -856,8 +864,12 @@ changes_wait(Db, ClientPid) ->
 %%          <dt>{error, term()}</dt>
 %%              <dd>n error occurred</dd>
 %%      </dl> 
-%% @spec changes_wait(Db::db(), Pid::pid(), Options::changeoptions()) -> term() 
+%% @spec changes_wait(Db::db(), Pid::pid(), Options::changeoptions()) -> term()
+%% @deprecated Use {@link couchbeam_changes:stream/3} instead.
 changes_wait(#db{server=Server, options=IbrowseOpts}=Db, ClientPid, Options) ->
+    ?DEPRECATED(<<"couchbeam:changes_wait">>,
+        <<"couchbeam_changes:stream">>,
+        <<"in version 0.8">>),
     Options1 = [{"feed", "continuous"}|Options],
     Url = make_url(Server, [db_url(Db), "/_changes"], Options1),
     StartRef = make_ref(),

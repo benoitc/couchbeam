@@ -29,12 +29,16 @@ init([]) ->
 get_changes(Pid) ->
     gen_changes:call(Pid, get_changes).
 
+handle_change({done, _LastSeq}, State) ->
+    {noreply, State};
+
+
 handle_change(Change, State=#state{changes=Changes}) ->
     NewChanges = [Change|Changes],
     {noreply, State#state{changes=NewChanges}}.
 
 handle_call(get_changes, _From, State=#state{changes=Changes}) ->
-    {reply, Changes, State}.
+    {reply, lists:reverse(Changes), State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 

@@ -4,6 +4,9 @@ ebin
 edoc-info
 .DS_Store
 deps/
-doc/api
+doc/*.html
+doc/*.css
+doc/erlang.png
+doc/edoc-info
 t/*.beam
 examples/*.beam

@@ -13,8 +13,7 @@ deps:
 	@./rebar get-deps
 
 doc:
-	@mkdir -p doc/api
-	@$(ERL) -noshell -run edoc_run application '$(APP)' '"."' '[{preprocess, true},{includes, ["."]}, {dir, "./doc/api"}]'
+	@rebar doc	
 	
 
 test: all	
@@ -32,7 +31,7 @@ cover: all
 clean: 
 	@./rebar clean
 	@rm -f t/*.beam
-	@rm -rf doc/api
+	@rm -f doc/*.html doc/*.css doc/edoc-info doc/*.png
 
 distclean: clean
 	@./rebar delete-deps

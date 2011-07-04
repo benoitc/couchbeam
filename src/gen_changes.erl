@@ -58,20 +58,18 @@ cast(Dest, Request) ->
 %%                  {since, integer()|string()} |
 %%                  {heartbeat, string()|boolean()}
 start_link(Module, Db, Options, InitArgs) ->
-    application:start(couchbeam),
     gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
 
 init([Module, Db, Options, InitArgs]) ->
-    process_flag(trap_exit, true),
     case Module:init(InitArgs) of
         {ok, ModState} ->
-            #db{server=Server, options=IbrowseOpts} = Db,
-            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                    "/_changes"], [{feed, "continuous"}|Options]),
-            case couchbeam:request_stream({self(), once}, get, Url, 
-                    IbrowseOpts) of
-            {ok, ReqId} ->
-                {ok, #gen_changes_state{req_id=ReqId,
+            Self = self(),
+            case couchbeam_changes:stream(Db, Self, Options) of
+            {ok, StartRef, ChangesPid} ->
+                erlang:monitor(process, ChangesPid),
+                unlink(ChangesPid),
+                {ok, #gen_changes_state{start_ref=StartRef,
+                                        changes_pid=ChangesPid,
                                         mod=Module,
                                         modstate=ModState,
                                         db=Db,
@@ -90,7 +88,7 @@ stop(Pid) when is_pid(Pid) ->
 get_seq(Pid) when is_pid(Pid) ->
     gen_server:call(Pid, get_seq).
 
-handle_call(get_seq, _From, State=#gen_changes_state{seq=Seq}) ->
+handle_call(get_seq, _From, State=#gen_changes_state{last_seq=Seq}) ->
     {reply, Seq, State};
 handle_call(Request, From,
             State=#gen_changes_state{mod=Module, modstate=ModState}) ->
@@ -123,42 +121,64 @@ handle_cast(Msg, State=#gen_changes_state{mod=Module, modstate=ModState}) ->
     end.
 
 
-handle_info({ibrowse_async_response_end, ReqId},
-        State=#gen_changes_state{req_id=ReqId}) ->
-        {stop, connection_closed, State};
-handle_info({ibrowse_async_response, ReqId, {error,Error}},
-        State=#gen_changes_state{req_id=ReqId}) ->
-        {stop, {error, Error}, State};
-handle_info({ibrowse_async_response, ReqId, Chunk},
-        State=#gen_changes_state{mod=Module, modstate=ModState, req_id=ReqId}) ->
-    Messages = [M || M <- re:split(Chunk, ",?\n", [trim]), M =/= <<>>],
-    
-    case handle_messages(Messages, State#gen_changes_state{row=undefined}) of
-        {ok, #gen_changes_state{complete=true}=State1} ->
-            {stop, complete, State1};
-        {ok, #gen_changes_state{row=undefined}=State1} ->
-            {noreply, State1};
-        {ok, #gen_changes_state{row=Row}=State1} ->
+handle_info({change, Ref, Msg},
+        State=#gen_changes_state{mod=Module, modstate=ModState,
+            start_ref=Ref}) ->
+
+    State2 = case Msg of 
+        {done, LastSeq} ->
+            State#gen_changes_state{last_seq=LastSeq};
+        Row ->
             Seq = couchbeam_doc:get_value(<<"seq">>, Row),
-            State2 = State1#gen_changes_state{seq=Seq},
-
-            case catch Module:handle_change(Row, ModState) of
-                {noreply, NewModState} ->
-                    {noreply, State2#gen_changes_state{modstate=NewModState}};
-                {noreply, NewModState, A} when A =:= hibernate orelse is_number(A) ->
-                    {noreply, State2#gen_changes_state{modstate=NewModState}, A};
-                {stop, Reason, NewModState} ->
-                    {stop, Reason, State2#gen_changes_state{modstate=NewModState}}
-            end
+            State#gen_changes_state{last_seq=Seq}
+    end,
+    
+    case catch Module:handle_change(Msg, ModState) of
+        {noreply, NewModState} ->
+            {noreply, State2#gen_changes_state{modstate=NewModState}};
+        {noreply, NewModState, A} when A =:= hibernate orelse is_number(A) ->
+            {noreply, State2#gen_changes_state{modstate=NewModState}, A};
+        {stop, Reason, NewModState} ->
+            {stop, Reason, State2#gen_changes_state{modstate=NewModState}}
     end;
-handle_info({ibrowse_async_headers, ReqId, Status, Headers},
-        State=#gen_changes_state{req_id=ReqId}) ->
 
-    if Status =/= "200" ->
-            handle_info({error, {Status, Headers}}, State);
+
+handle_info({error, Ref, LastSeq, Error},
+        State=#gen_changes_state{start_ref=Ref}) ->
+    handle_info({error, {LastSeq, Error}}, State);
+
+handle_info({'DOWN', MRef, process, Pid, _},
+        State=#gen_changes_state{changes_pid=Pid, options=Options,
+            last_seq=LastSeq, db=Db}) ->
+
+    %% stop monitoring db
+    erlang:demonitor(MRef, [flush]),
+
+    %% we restart the connection if we are using longpolling or
+    %% continuous feeds
+    Longpoll = proplists:get_value(longpoll, Options) ,
+    Continuous = proplists:get_value(continuous, Options),
+    if
+        Longpoll == true orelse Continuous == true ->
+            Self = self(),
+            Options1 = case proplists:get_value(since, Options) of
+                undefined ->
+                    [{since, LastSeq}|Options];
+                _ ->
+                    [{since, LastSeq}|proplists:delete(since, Options)]
+            end,
+            case couchbeam_changes:stream(Db, Self, Options1) of
+            {ok, StartRef, ChangesPid} ->
+                erlang:monitor(process, ChangesPid),
+                unlink(ChangesPid),
+                {noreply, State#gen_changes_state{start_ref=StartRef,
+                                        changes_pid=ChangesPid,
+                                        options=Options1}};
+            Error ->
+                {stop, Error, State} 
+        end;
         true ->
-            ibrowse:stream_next(State#gen_changes_state.req_id),
-            {noreply, State}
+            {stop, done, State} 
     end;
 
 handle_info(Info, State=#gen_changes_state{mod=Module, modstate=ModState}) ->
@@ -175,27 +195,8 @@ code_change(_OldVersion, State, _Extra) ->
     %% TODO:  support code changes?
     {ok, State}.
 
-terminate(Reason, #gen_changes_state{mod=Module, modstate=ModState}) ->
+terminate(Reason, #gen_changes_state{changes_pid=Pid,
+        mod=Module, modstate=ModState}) ->
     Module:terminate(Reason, ModState),
+    catch exit(Pid, normal),
     ok.
-
-handle_messages([], State) ->
-    ibrowse:stream_next(State#gen_changes_state.req_id),
-    {ok, State};
-handle_messages([<<"{\"last_seq\":", _/binary>>], State) ->
-    %% end of continuous response
-    ibrowse:stream_next(State#gen_changes_state.req_id),
-    {ok, State#gen_changes_state{complete=true}};
-handle_messages([Chunk|Rest], State) ->
-    #gen_changes_state{partial_chunk=Partial}=State,
-    NewState = try
-        Row = couchbeam_changes:decode_row(<<Partial/binary, Chunk/binary>>),
-        Empty= <<"">>,
-        State#gen_changes_state{partial_chunk=Empty, row=Row}
-    catch
-    throw:{invalid_json, Bad} ->
-        State#gen_changes_state{partial_chunk = Bad}
-    end,
-    handle_messages(Rest, NewState).
-
-
