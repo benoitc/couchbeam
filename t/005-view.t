@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(7),
+    etap:plan(3),
     start_app(),
     case (catch test()) of
         ok ->
@@ -63,47 +63,22 @@ test() ->
     couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
     couchbeam:ensure_full_commit(Db),
 
-    {ok, AllDocs} = couchbeam:all_docs(Db),
+    {ok, AllDocs} = couchbeam_view:fetch(Db),
 
-    {ok, {Rst}} = couchbeam_view:fetch(AllDocs),
-
-    TotalRows = proplists:get_value(<<"total_rows">>, Rst),
-    etap:is(TotalRows, 3, "total_rows ok"),
-
-    Rows = proplists:get_value(<<"rows">>, Rst),
-    etap:is(length(Rows), 3, "number of rows ok"),
+    etap:is(length(AllDocs), 3, "total_rows ok"),
 
 
-    {ok, View} = couchbeam:view(Db, "couchbeam/test"),
+    {ok, Rst2} = couchbeam_view:fetch(Db, {"couchbeam", "test"}),
+    etap:is(length(Rst2), 2, "total_rows ok"),
 
-    {ok, {Rst2}} = couchbeam_view:fetch(View),
-    TotalRows2 = proplists:get_value(<<"total_rows">>, Rst2),
-    etap:is(TotalRows2, 2, "total_rows ok"),
 
-    Rows2 = proplists:get_value(<<"rows">>, Rst2),
-    etap:is(length(Rows2), 2, "number of rows ok"),
+    {ok, View1} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+        [include_docs]),
 
-    {ok, View1} = couchbeam:view(Db, "couchbeam/test",
-        [{"include_docs",true}]),
-
-    {ok, {FirstRow}} = couchbeam_view:first(View1),
+    {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},
+        [include_docs]),
     {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
     
-    etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>, "first with
-include docs ok"),
-
-    Fun = fun(Row, AttIn) -> [Row|AttIn] end,
-    Att = couchbeam_view:fold(View, Fun),
-    etap:is(length(Att), 2, "fold ok"),
-
-    Tid =  ets:new(couchbeam_test, [set, private]),
-    Fun1 = fun({Row}) -> 
-        Key = proplists:get_value(<<"key">>, Row),
-        true = ets:insert(Tid, {Key, Row})
-    end,
-    couchbeam_view:foreach(View, Fun1),
-    etap:is(ets:info(Tid, size), 2, "foreach ok"),
+    etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>, 
+        "first with include docs ok"),
     ok.
-
-
-

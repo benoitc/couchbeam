@@ -63,6 +63,26 @@
     | conflicts | {style, string()} | descending.
 -type changes_options1() :: list(changes_option1()).
 
+-type stale() :: ok | update_after.
+
+-type view_option() :: {key, binary()} | {start_docid, binary()}
+    | {end_docid, binary()} | {start_key, binary()}
+    | {end_key, binary()} | {limit, integer()}
+    | {stale, stale()}
+    | descending
+    | {skip, integer()}
+    | group | {group_level, exact | integer()}
+    | inclusive_end | reduce | include_docs | conflicts
+    | {list, binary()}
+    | {keys, list(binary())}.
+
+-type view_options() :: list(view_option()).
+
+-record(view_query_args, {
+        method = get :: atom(),
+        options = [] :: view_options(),
+        keys = [] :: list(binary())}).
+
 -record(server, {
     host :: string(),
     port :: integer(),

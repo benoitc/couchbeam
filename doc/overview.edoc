@@ -149,38 +149,22 @@ To get all documents you have first to create an object
 that will keep all informations.
 
 ```
-Options = [{include_docs, "true"}],
-{ok, AllDocs} = couchbeam:all_docs(Db, Options).
+Options = [include_docs],
+{ok, AllDocs} = couchbeam_view:fetch(Db, 'all_docs', Options).
 '''
 
-You can pass any parameters from the API in the Options 
-Then if you want to retrieve all documents.
-
-```
-{ok, Results} = couchbeam_view:fetch(AllDocs).
-'''
 
 Ex of results:
 
 ```
-{ok,{[{<<"total_rows">>,4},
-      {<<"offset">>,0},
-      {<<"rows">>,
-       [{[{<<"id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
+{ok,[{[{<<"id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
           {<<"key">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
           {<<"value">>,
            {[{<<"rev">>,<<"15-15c0b3c4efa74f9a80d28ac040f18bdb">>}]}},
           {<<"doc">>,
            {[{<<"_id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
              {<<"_rev">>,<<"15-15c0b3c4efa74f9a80d28ac040f18"...>>}]}}]},
-        ]}]}}.
-'''
-
-If you want to fold rows in a fun :
-
-```
-Fun = fun(Row, AttIn) -> [Row|AttIn] end,
-Att = couchbeam_view:fold(AllDocs, Fun).
+        ]}.
 '''
 
 All functions to manipulate these results are in {@link couchbeam_view}
@@ -195,11 +179,10 @@ doing anything.
 Options = [],
 DesignNam = "designname",
 ViewName = "viewname",
-{ok, View} = couchbeam:view(Db, {DesignNam, ViewName}, Options).
+{ok, ViewResults} = couchbeam_view:fetch(Db, {DesignNam, ViewName}, Options).
 '''
 
-As a convenience, you can replace the tupple by a string
-"designname/viewname". Like the `all_docs' function, use the functions
+Like the `all_docs' function, use the functions
 from {@link couchbeam_view} module to manipulate results. You can pass
 any querying options from the <a href="http://wiki.apache.org/couchdb/HTTP_view_API">view API</a>.
 
@@ -227,7 +210,42 @@ DesignDoc = {[
 You can also use <a href="http://github.com/couchapp/couchapp">couchapp</a> to manage them
 more easily.
 
-<h3>8. Put,Fetch and Delete documents attachments</h3>
+<h3>8. Stream View results</h3>
+
+<strong>New feature in couchbeam 0.7</strong>. While you can get
+results using {@link couchbeam_views:fetch/2}i, you can also retrieve
+all rows in a streaming fashion:
+
+```
+ViewFun = fun(Ref, F) ->
+    receive
+        {row, Ref, done} ->
+            io:format("done", []),
+            done;
+        {row, Ref, Row} ->
+            io:format("got ~p~n", [Row]),
+            F(Ref, F);
+        {error, Ref, Error} ->
+            io:format("error: ~p~n", [Error])
+    end
+end,
+
+{ok, StartRef, _ViewPid} = couchbeam_view:stream(Db, 'all_docs', self()),
+ViewFun(StartRef, ViewFun),
+{ok, StartRef2, _ViewPid2} = couchbeam_view:stream(Db, 'all_docs', self(), [include_docs]),
+ViewFun(StartRef2, ViewFun).
+'''
+
+You can of course do the same with a view:
+
+```
+DesignNam = "designname",
+ViewName = "viewname",
+{ok, StartRef3, _ViewPid3} = couchbeam_view:stream(Db, {DesignNam, ViewName}, self(), [include_docs]),
+ViewFun(StartRef3, ViewFun).
+'''
+
+<h3>9. Put,Fetch and Delete documents attachments</h3>
 
 You can add attachments to any CouchDB documents. Attachments could be
 anything.
@@ -262,7 +280,7 @@ To delete an attachment:
 ok = couchbeam:delete_attachment(Db, Doc4, AttName).
 '''
 
-<h3>9. Changes</h3>
+<h3>10. Changes</h3>
 
 CouchDB provides a means to get a list of changes made to documents in
 the database. With couchbeam you can get changes using {@link couchbeam_changes:fetch/2}. 

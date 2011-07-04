@@ -14,7 +14,7 @@
 -export([get_value/2, get_value/3]).
 -export([guess_mime/1, quote_plus/1, urlencode/1]).
 -export([parse_qs/1, urlsplit/1]).
--export([deprecated/3]).
+-export([deprecated/3, shutdown_sync/1]).
 
 -define(PERCENT, 37).  % $\%
 -define(ENCODE_DOCID, true).
@@ -383,3 +383,18 @@ deprecated(Old, New, When) ->
         "in favor of '~p'.~n"
         "'~p' will be removed ~s.~n~n"
       >>, [Old, New, Old, When]).
+
+shutdown_sync(Pid) when not is_pid(Pid)->
+    ok;
+shutdown_sync(Pid) ->
+    MRef = erlang:monitor(process, Pid),
+    try
+        catch unlink(Pid),
+        catch exit(Pid, shutdown),
+        receive
+        {'DOWN', MRef, _, _, _} ->
+            ok
+        end
+    after
+        erlang:demonitor(MRef, [flush])
+    end.

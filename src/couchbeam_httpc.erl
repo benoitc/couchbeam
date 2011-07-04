@@ -5,8 +5,12 @@
 
 -module(couchbeam_httpc).
 
+-include_lib("ibrowse/src/ibrowse.hrl").
+
 -export([request/4, request/5, request/6,
-        request_stream/4, request_stream/5, request_stream/6]).
+        request_stream/4, request_stream/5, request_stream/6,
+        clean_mailbox_req/1,
+        redirect_url/2]).
      
 -define(TIMEOUT, infinity).
 
@@ -57,3 +61,42 @@ maybe_oauth_header(Method, Url, Headers, Options) ->
             {[Hdr|Headers], proplists:delete(oauth, Options)}
     end.
 
+
+clean_mailbox_req(ReqId) ->
+    receive
+    {ibrowse_async_response, ReqId, _} ->
+        clean_mailbox_req(ReqId);
+    {ibrowse_async_response_end, ReqId} ->
+        clean_mailbox_req(ReqId)
+    after 0 ->
+        ok
+    end.
+
+redirect_url(RespHeaders, OrigUrl) ->
+    MochiHeaders = mochiweb_headers:make(RespHeaders),
+    Location = mochiweb_headers:get_value("Location", MochiHeaders),
+    #url{
+        host = Host,
+        host_type = HostType,
+        port = Port,
+        path = Path,  % includes query string
+        protocol = Proto
+    } = ibrowse_lib:parse_url(Location),
+    #url{
+        username = User,
+        password = Passwd
+    } = ibrowse_lib:parse_url(OrigUrl),
+    Creds = case is_list(User) andalso is_list(Passwd) of
+    true ->
+        User ++ ":" ++ Passwd ++ "@";
+    false ->
+        []
+    end,
+    HostPart = case HostType of
+    ipv6_address ->
+        "[" ++ Host ++ "]";
+    _ ->
+        Host
+    end,
+    atom_to_list(Proto) ++ "://" ++ Creds ++ HostPart ++ ":" ++
+        integer_to_list(Port) ++ Path.

@@ -38,7 +38,8 @@ stream(Db, Client) ->
 %%      <dt>{change, StartRef, Row :: ejson_object()}</dt>
 %%          <dd>Line of change</dd>
 %%      <dt>{error, LastSeq::integer(), Msg::term()}</dt>
-%%          <dd>Got an error, connection is closed.</dd>
+%%          <dd>Got an error, connection is closed when an error
+%%          happend.</dd>
 %% </dl>
 %%    LastSeq is the last sequence of changes.</p>
 %% <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
@@ -61,7 +62,7 @@ stream(Db, Client) ->
 %%
 %% <p> Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
 %% used to disctint all changes from this pid. ChangesPid is the pid of
-%% the process changes loop process. Can be used to monitor it or kill it
+%% the changes loop process. Can be used to monitor it or kill it
 %% when needed.</p>
 stream(#db{server=Server, options=IbrowseOpts}=Db,
         ClientPid, Options) ->
@@ -241,7 +242,7 @@ process_changes(ReqId, Params, UserFun, Callback) ->
                     ibrowse:stream_next(IbrowseRef),
                     try 
                         Callback(Ok, Headers, StreamDataFun),
-                        clean_mailbox_req(ReqId)
+                        couchbeam_httpc:clean_mailbox_req(ReqId)
                     catch
                         throw:http_response_end -> ok;
                         _:Error ->
@@ -276,18 +277,8 @@ process_changes1(ReqId, UserFun, Callback) ->
 end.
 
 
-clean_mailbox_req(ReqId) ->
-    receive
-    {ibrowse_async_response, ReqId, _} ->
-        clean_mailbox_req(ReqId);
-    {ibrowse_async_response_end, ReqId} ->
-        clean_mailbox_req(ReqId)
-    after 0 ->
-        ok
-    end.
-
 do_redirect(Headers, UserFun, Callback, {Url, IbrowseOpts}) ->
-    RedirectUrl = redirect_url(Headers, Url),
+    RedirectUrl = couchbeam_httpc:redirect_url(Headers, Url),
     Params = {RedirectUrl, IbrowseOpts},
     case couchbeam_httpc:request_stream({self(), once}, get, RedirectUrl, 
             IbrowseOpts) of
@@ -296,35 +287,6 @@ do_redirect(Headers, UserFun, Callback, {Url, IbrowseOpts}) ->
         Error ->
             UserFun({error, {redirect, Error}})
     end.
-
-redirect_url(RespHeaders, OrigUrl) ->
-    MochiHeaders = mochiweb_headers:make(RespHeaders),
-    Location = mochiweb_headers:get_value("Location", MochiHeaders),
-    #url{
-        host = Host,
-        host_type = HostType,
-        port = Port,
-        path = Path,  % includes query string
-        protocol = Proto
-    } = ibrowse_lib:parse_url(Location),
-    #url{
-        username = User,
-        password = Passwd
-    } = ibrowse_lib:parse_url(OrigUrl),
-    Creds = case is_list(User) andalso is_list(Passwd) of
-    true ->
-        User ++ ":" ++ Passwd ++ "@";
-    false ->
-        []
-    end,
-    HostPart = case HostType of
-    ipv6_address ->
-        "[" ++ Host ++ "]";
-    _ ->
-        Host
-    end,
-    atom_to_list(Proto) ++ "://" ++ Creds ++ HostPart ++ ":" ++
-        integer_to_list(Port) ++ Path.
 
 
 changes_ev1(object_start, UserFun) ->

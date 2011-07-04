@@ -46,7 +46,7 @@
         stream_fetch_attachment/4, stream_fetch_attachment/5,
         stream_fetch_attachment/6, delete_attachment/3,
         delete_attachment/4, put_attachment/4, put_attachment/5, 
-        all_docs/1, all_docs/2, view/2, view/3,
+        all_docs1/1, all_docs1/2, view1/2, view1/3,
         ensure_full_commit/1, ensure_full_commit/2,
         compact/1, compact/2,
         changes/1, changes/2, changes_wait/2, changes_wait/3,
@@ -667,9 +667,10 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
     end.
 
 %% @doc get all documents from a CouchDB database.
-%% @equiv all_docs(Db, [])
-all_docs(Db) ->
-    all_docs(Db, []).
+%% @equiv all_docs1(Db, [])
+%% @deprecated use new api in {@link couch_view}.
+all_docs1(Db) ->
+    all_docs1(Db, []).
 
 %% @doc get all documents from a CouchDB database. It return a 
 %% #view{} record that you can use with couchbeam_view functions:
@@ -681,15 +682,17 @@ all_docs(Db) ->
 %%      <li>{@link couchbeam_view:foreach/1. couchbeam_view:foreach/1}</li>
 %% </ul>
 %%
-%% @spec all_docs(Db::db(), Options::list()) 
+%% @spec all_docs1(Db::db(), Options::list()) 
 %%              -> {ok, View::view()}|{error, term()}
-all_docs(Db, Options) ->
-    view(Db, "_all_docs", Options).
+%% @deprecated use new api in {@link couch_view}.
+all_docs1(Db, Options) ->
+    view1(Db, "_all_docs", Options).
 
 %% @doc  get view results from database
-%% @equiv view(Db, ViewName, [])
-view(Db, ViewName) ->
-    view(Db, ViewName, []).
+%% @equiv view1(Db, ViewName, [])
+%% @deprecated use new api in {@link couch_view}.
+view1(Db, ViewName) ->
+    view1(Db, ViewName, []).
 
 %% @doc get view results from database. viewname is generally
 %% a tupple like {DesignName::string(), ViewName::string()} or string 
@@ -708,9 +711,11 @@ view(Db, ViewName) ->
 %%
 %% See [http://wiki.apache.org/couchdb/HTTP_view_API] for more informations. 
 %%
-%% @spec view(Db::db(), ViewName::string(), Options::list()) 
+%% @spec view1(Db::db(), ViewName::string(), Options::list()) 
 %%          -> {ok, View::view()}|{error, term()}
-view(#db{server=Server}=Db, ViewName, Options) ->
+%% @deprecated use new api in {@link couch_view}.
+
+view1(#db{server=Server}=Db, ViewName, Options) ->
     ViewName1 = couchbeam_util:to_list(ViewName),
     Options1 = couchbeam_util:parse_options(Options),
     Url = case ViewName1 of
