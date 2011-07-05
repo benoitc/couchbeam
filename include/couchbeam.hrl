@@ -83,6 +83,8 @@
         options = [] :: view_options(),
         keys = [] :: list(binary())}).
 
+-type view_query_args() :: #view_query_args{}.
+
 -record(server, {
     host :: string(),
     port :: integer(),

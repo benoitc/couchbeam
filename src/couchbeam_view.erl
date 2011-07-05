@@ -14,7 +14,7 @@
          count/1, count/2, count/3,
          first/1, first/2, first/3,
          all/1, all/2,
-         view_loop/2]).
+         view_loop/2, parse_view_options/1]).
 
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @doc fetch all docs
@@ -248,7 +248,8 @@ first(Db, ViewName, Options) ->
             Error
     end.
 
-
+-spec parse_view_options(Options::list()) -> view_query_args().
+%% @doc parse view options
 parse_view_options(Options) ->
     parse_view_options(Options, #view_query_args{}).
 
