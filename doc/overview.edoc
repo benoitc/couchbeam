@@ -32,6 +32,10 @@ each rows.</dd>
 The goal of couchbeam is to give all access to CouchDB >0.10 API via
 HTTP in erlang. 
 
+Read the <a
+href="https://raw.github.com/benoitc/couchbeam/master/NEWS">NEWS</a>
+file to get last changeslog.
+
 <h2>Installation</h2>
 
 Download the sources from our <a
