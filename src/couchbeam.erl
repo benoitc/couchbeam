@@ -936,7 +936,7 @@ make_url(Server=#server{prefix=Prefix}, Path, Query) ->
             [server_url(Server),
              Prefix, "/",
              Path,
-             [ ["?", couchbeam_util:urlencode(Query1)] || Query1 =/= [] ]
+             [ ["?", mochiweb_util:urlencode(Query1)] || Query1 =/= [] ]
             ])).
 
 db_request(Method, Url, Expect, Options) ->
