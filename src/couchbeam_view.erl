@@ -13,8 +13,21 @@
          fetch/1, fetch/2, fetch/3,
          count/1, count/2, count/3,
          first/1, first/2, first/3,
+         all/1, all/2,
          view_loop/2]).
 
+-spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
+%% @doc fetch all docs
+%% @equiv fetch(Db, 'all_docs', [])
+all(Db) ->
+    fetch(Db, 'all_docs', []).
+
+-spec all(Db::db(), Options::view_options()) 
+        -> {ok, Rows::list(ejson_object())} | {error, term()}.
+%% @doc fetch all docs
+%% @equiv fetch(Db, 'all_docs', Options)
+all(Db, Options) ->
+    fetch(Db, 'all_docs', Options).
 
 -spec fetch(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @equiv fetch(Db, 'all_docs', [])
