@@ -308,7 +308,7 @@ foreach(Function, Db, ViewName, Options) ->
             Function(Row),
             ok
     end,
-    ok = fold(FunWrapper, ok, Db, ViewName, Options).
+    fold(FunWrapper, ok, Db, ViewName, Options).
 
 
 %% ----------------------------------
