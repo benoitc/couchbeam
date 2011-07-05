@@ -14,6 +14,7 @@
          count/1, count/2, count/3,
          first/1, first/2, first/3,
          all/1, all/2,
+         fold/4, fold/5,
          view_loop/2, parse_view_options/1]).
 
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
@@ -144,30 +145,39 @@ stream(Db, ViewName, Client) ->
 %% used to disctint all changes from this pid. ViewPid is the pid of
 %% the view loop process. Can be used to monitor it or kill it
 %% when needed.</p>
-stream(#db{server=Server,options=IbrowseOpts}=Db, 'all_docs', Client, 
-        Options) ->
-    case parse_view_options(Options) of
-        {error, _} = Error ->
-            Error;
-        Args ->
-            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                "/_all_docs"], Args#view_query_args.options),
-            stream1(Args, Url, IbrowseOpts, Client)
-    end;
-stream(#db{server=Server,options=IbrowseOpts}=Db, {DesignName,
-        ViewName}, Client, Options) ->
-    case parse_view_options(Options) of
-        {error, _} = Error ->
-            Error;
-        Args ->
-            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                "/_design/", DesignName, "/_view/", ViewName],
-                Args#view_query_args.options),
-    
-            stream1(Args, Url, IbrowseOpts, Client)
-    end;
-stream(_, _, _, _) ->
-    {error, invalid_view_name}.
+stream(#db{options=IbrowseOpts}=Db, ViewName, ClientPid, Options) ->
+    make_view(Db, ViewName, Options, fun(Args, Url) ->
+        StartRef = make_ref(),
+        UserFun = fun
+            (done) ->
+                ClientPid ! {row, StartRef, done};
+            ({error, Error}) ->
+                ClientPid ! {error, StartRef, Error};
+            (Row) ->
+                ClientPid ! {row, StartRef, Row}
+        end,
+        Params = {Args, Url, IbrowseOpts},
+        ViewPid = spawn_link(couchbeam_view, view_loop, [UserFun, Params]),
+
+        %% if we send multiple keys, we do a Post
+        Result = case Args#view_query_args.method of
+            get ->
+                couchbeam_httpc:request_stream({ViewPid, once}, get, Url, IbrowseOpts);
+            post ->
+                Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+                Headers = [{"Content-Type", "application/json"}],
+                couchbeam_httpc:request_stream({ViewPid, once}, post, Url,
+                    IbrowseOpts, Headers, Body)
+        end,
+
+        case Result of
+            {ok, ReqId} ->
+                ViewPid ! {ibrowse_req_id, ReqId},
+                {ok, StartRef, ViewPid};
+            Error ->
+                Error
+        end
+    end).
 
 -spec count(Db::db()) -> integer() | {error, term()}.
 %% @equiv count(Db, 'all_docs', [])
@@ -184,29 +194,32 @@ count(Db, ViewName) ->
         ViewName::string()}, Options::view_options()) 
     -> integer() | {error, term()}.
 %% @doc count number of doc in a view (or all docs)
-count(#db{server=Server, options=IbrowseOpts}=Db, 'all_docs', 
-        Options) ->
-    case parse_view_options(Options) of
-        {error, _} = Error ->
-            Error;
-        Args ->
-            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                "/_all_docs"], Args#view_query_args.options),
-            do_count(Args, Url, IbrowseOpts)
-    end;
-count(#db{server=Server, options=IbrowseOpts}=Db, {DesignName,
-        ViewName}, Options)->
-    case parse_view_options(Options) of
-        {error, _} = Error ->
-            Error;
-        Args ->
-            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                "/_design/", DesignName, "/_view/", ViewName],
-                Args#view_query_args.options),
-            do_count(Args, Url, IbrowseOpts)
-    end;
-count(_, _, _) ->
-    {error, invalid_view_name}.
+count(#db{options=IbrowseOpts}=Db, ViewName, Options)->
+    make_view(Db, ViewName, Options, fun(Args, Url) ->
+        Result = case Args#view_query_args.method of
+            get ->
+                couchbeam_httpc:request(get, Url, ["200"], IbrowseOpts);
+            post ->
+                Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+                Headers = [{"Content-Type", "application/json"}],
+                couchbeam_httpc:request_stream(post, Url, ["200"],
+                    IbrowseOpts, Headers, Body)
+        end,
+        case Result of
+            {ok, _, _, RespBody} ->
+                {Props} = ejson:decode(RespBody),
+                case proplists:get_value("limit",
+                        Args#view_query_args.options, 0) of
+                0 ->
+                    proplists:get_value(<<"total_rows">>, Props);
+                _ ->
+                    Rows = proplists:get_value(<<"rows">>, Props),
+                    length(Rows)
+                end;
+            Error ->
+                Error
+        end
+    end).
 
 -spec first(Db::db()) -> {ok, Row::ejson_object()} | {error, term()}.
 %% @equiv first(Db, 'all_docs', [])
@@ -247,6 +260,37 @@ first(Db, ViewName, Options) ->
         Error ->
             Error
     end.
+
+-spec fold(Function::function(), Acc::list(), Db::db(), 
+        ViewName::'all_docs' | {DesignName::string(), ViewName::string()})
+    -> list(term()) | {error, term()}.
+%% @equiv fold(Function, Acc, Db, ViewName, [])
+fold(Function, Acc, Db, ViewName) ->
+    fold(Function, Acc, Db, ViewName, []).
+
+-spec fold(Function::function(), Acc::list(), Db::db(), 
+        ViewName::'all_docs' | {DesignName::string(),
+        ViewName::string()}, Options::view_options())
+    -> list(term()) | {error, term()}.
+%% @doc call Function(Row, AccIn) on succesive row, starting with 
+%% AccIn == Acc. Function/2 must return a new list accumultator or the
+%% atom <em>done</em> to stop fetching results. Acc0 is returned if the 
+%% list is empty. For example:
+%% ```
+%% couchbeam_view:fold(fun(Row, Acc) -> [Row|Acc] end, [], Db, 'all_docs').
+%% '''
+fold(Function, Acc, Db, ViewName, Options) ->
+    case stream(Db, ViewName, self(), Options) of
+        {ok, StartRef, ViewPid} ->
+            fold_view_results(StartRef, ViewPid, Function, Acc);
+        Error ->
+            Error
+    end.
+
+
+%% ----------------------------------
+%% utilities functions
+%% ----------------------------------
 
 -spec parse_view_options(Options::list()) -> view_query_args().
 %% @doc parse view options
@@ -334,31 +378,27 @@ view_loop(UserFun, Params) ->
 
 %% @private
 
-do_count(Args, Url, IbrowseOpts) ->
-    Result = case Args#view_query_args.method of
-        get ->
-            couchbeam_httpc:request(get, Url, ["200"], IbrowseOpts);
-        post ->
-            Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
-            Headers = [{"Content-Type", "application/json"}],
-            couchbeam_httpc:request_stream(post, Url, ["200"],
-                IbrowseOpts, Headers, Body)
-    end,
-    case Result of
-        {ok, _, _, RespBody} ->
-            {Props} = ejson:decode(RespBody),
-            case proplists:get_value("limit",
-                    Args#view_query_args.options, 0) of
-            0 ->
-                proplists:get_value(<<"total_rows">>, Props);
-            _ ->
-                Rows = proplists:get_value(<<"rows">>, Props),
-                length(Rows)
-            end;
-        Error ->
-            Error
+make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
+    case parse_view_options(Options) of
+        {error, _} = Error ->
+            Error;
+        Args ->
+            case ViewName of
+                'all_docs' ->
+                    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), 
+                            "/_all_docs"],
+                            Args#view_query_args.options),
+                    Fun(Args, Url);
+                {DName, VName} ->
+                    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), 
+                            "/_design/", DName, "/_view/", VName],
+                            Args#view_query_args.options),
+                    Fun(Args, Url);
+                _ ->
+                    {error, invalid_view_name}
+            end
     end.
-
+    
 collect_view_first(Ref, Pid) ->
     receive
         {row, Ref, done} ->
@@ -369,6 +409,24 @@ collect_view_first(Ref, Pid) ->
         {error, Ref, Error} ->
             {error, Error}
     end.
+
+
+fold_view_results(Ref, Pid, Fun, Acc) ->
+    receive
+        {row, Ref, done} ->
+            Acc;
+        {row, Ref, Row} ->
+            case Fun(Row, Acc) of
+                done ->
+                    couchbeam_util:shutdown_sync(Pid),
+                    Acc;
+                Acc1 ->
+                    fold_view_results(Ref, Pid, Fun, Acc1)
+            end;
+        {error, Ref, Error} ->
+            {error, Acc, Error}
+    end.
+
 
 
 collect_view_results(Ref, Acc) ->
@@ -383,39 +441,6 @@ collect_view_results(Ref, Acc) ->
             Rows = lists:reverse(Acc),
             {error, Rows, Error}
     end.
-
-stream1(Args, Url, IbrowseOpts, ClientPid) ->
-    StartRef = make_ref(),
-    UserFun = fun
-        (done) ->
-            ClientPid ! {row, StartRef, done};
-        ({error, Error}) ->
-            ClientPid ! {error, StartRef, Error};
-        (Row) ->
-            ClientPid ! {row, StartRef, Row}
-    end,
-    Params = {Args, Url, IbrowseOpts},
-    ViewPid = spawn_link(couchbeam_view, view_loop, [UserFun, Params]),
-
-    %% if we send multiple keys, we do a Post
-    Result = case Args#view_query_args.method of
-        get ->
-            couchbeam_httpc:request_stream({ViewPid, once}, get, Url, IbrowseOpts);
-        post ->
-            Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
-            Headers = [{"Content-Type", "application/json"}],
-            couchbeam_httpc:request_stream({ViewPid, once}, post, Url,
-                IbrowseOpts, Headers, Body)
-    end,
-
-    case Result of
-        {ok, ReqId} ->
-            ViewPid ! {ibrowse_req_id, ReqId},
-            {ok, StartRef, ViewPid};
-        Error ->
-            Error
-    end.
-            
 
 process_view_results(ReqId, Params, UserFun, Callback) ->
     receive
