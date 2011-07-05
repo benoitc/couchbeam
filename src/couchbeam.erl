@@ -46,7 +46,7 @@
         stream_fetch_attachment/4, stream_fetch_attachment/5,
         stream_fetch_attachment/6, delete_attachment/3,
         delete_attachment/4, put_attachment/4, put_attachment/5, 
-        all_docs1/1, all_docs1/2, view1/2, view1/3,
+        all_docs/1, all_docs/2, view/2, view/3,
         ensure_full_commit/1, ensure_full_commit/2,
         compact/1, compact/2,
         changes/1, changes/2, changes_wait/2, changes_wait/3,
@@ -667,55 +667,55 @@ delete_attachment(#db{server=Server, options=IbrowseOpts}=Db, DocOrDocId, Name, 
     end.
 
 %% @doc get all documents from a CouchDB database.
-%% @equiv all_docs1(Db, [])
+%% @equiv all_docs(Db, [])
 %% @deprecated use new api in {@link couch_view}.
-all_docs1(Db) ->
-    all_docs1(Db, []).
+all_docs(Db) ->
+    all_docs(Db, []).
 
 %% @doc get all documents from a CouchDB database. It return a 
-%% #view{} record that you can use with couchbeam_view functions:
+%% #view{} record that you can use with couchbeam_oldview functions:
 %% <ul>
-%%      <li>{@link couchbeam_view:count/1. couchbeam_view:count/1}</li>
-%%      <li>{@link couchbeam_view:fetch/1. couchbeam_view:fetch/1}</li>
-%%      <li>{@link couchbeam_view:first/1. couchbeam_view:first/1}</li>
-%%      <li>{@link couchbeam_view:fold/1. couchbeam_view:fold/1}</li>
-%%      <li>{@link couchbeam_view:foreach/1. couchbeam_view:foreach/1}</li>
+%%      <li>{@link couchbeam_oldview:count/1. couchbeam_oldview:count/1}</li>
+%%      <li>{@link couchbeam_oldview:fetch/1. couchbeam_oldview:fetch/1}</li>
+%%      <li>{@link couchbeam_oldview:first/1. couchbeam_oldview:first/1}</li>
+%%      <li>{@link couchbeam_oldview:fold/1. couchbeam_oldview:fold/1}</li>
+%%      <li>{@link couchbeam_oldview:foreach/1. couchbeam_oldview:foreach/1}</li>
 %% </ul>
 %%
-%% @spec all_docs1(Db::db(), Options::list()) 
+%% @spec all_docs(Db::db(), Options::list()) 
 %%              -> {ok, View::view()}|{error, term()}
 %% @deprecated use new api in {@link couch_view}.
-all_docs1(Db, Options) ->
-    view1(Db, "_all_docs", Options).
+all_docs(Db, Options) ->
+    view(Db, "_all_docs", Options).
 
 %% @doc  get view results from database
-%% @equiv view1(Db, ViewName, [])
+%% @equiv view(Db, ViewName, [])
 %% @deprecated use new api in {@link couch_view}.
-view1(Db, ViewName) ->
-    view1(Db, ViewName, []).
+view(Db, ViewName) ->
+    view(Db, ViewName, []).
 
 %% @doc get view results from database. viewname is generally
 %% a tupple like {DesignName::string(), ViewName::string()} or string 
 %% like "designname/viewname". It return a #view{} record  that you can use 
-%% with couchbeam_view functions:
+%% with couchbeam_oldview functions:
 %%
 %% <ul>
-%%      <li>{@link couchbeam_view:count/1. couchbeam_view:count/1}</li>
-%%      <li>{@link couchbeam_view:fetch/1. couchbeam_view:fetch/1}</li>
-%%      <li>{@link couchbeam_view:first/1. couchbeam_view:first/1}</li>
-%%      <li>{@link couchbeam_view:fold/1. couchbeam_view:fold/1}</li>
-%%      <li>{@link couchbeam_view:foreach/1. couchbeam_view:foreach/1}</li>
+%%      <li>{@link couchbeam_oldview:count/1. couchbeam_oldview:count/1}</li>
+%%      <li>{@link couchbeam_oldview:fetch/1. couchbeam_oldview:fetch/1}</li>
+%%      <li>{@link couchbeam_oldview:first/1. couchbeam_oldview:first/1}</li>
+%%      <li>{@link couchbeam_oldview:fold/1. couchbeam_oldview:fold/1}</li>
+%%      <li>{@link couchbeam_oldview:foreach/1. couchbeam_oldview:foreach/1}</li>
 %% </ul>
 %%
 %% Options are CouchDB view parameters
 %%
 %% See [http://wiki.apache.org/couchdb/HTTP_view_API] for more informations. 
 %%
-%% @spec view1(Db::db(), ViewName::string(), Options::list()) 
+%% @spec view(Db::db(), ViewName::string(), Options::list()) 
 %%          -> {ok, View::view()}|{error, term()}
 %% @deprecated use new api in {@link couch_view}.
 
-view1(#db{server=Server}=Db, ViewName, Options) ->
+view(#db{server=Server}=Db, ViewName, Options) ->
     ViewName1 = couchbeam_util:to_list(ViewName),
     Options1 = couchbeam_util:parse_options(Options),
     Url = case ViewName1 of
