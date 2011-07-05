@@ -15,6 +15,7 @@
          first/1, first/2, first/3,
          all/1, all/2,
          fold/4, fold/5,
+         foreach/3, foreach/4,
          view_loop/2, parse_view_options/1]).
 
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
@@ -286,6 +287,28 @@ fold(Function, Acc, Db, ViewName, Options) ->
         Error ->
             Error
     end.
+
+-spec foreach(Function::function(), Db::db(), 
+        ViewName::'all_docs' | {DesignName::string(), ViewName::string()})
+    -> list(term()) | {error, term()}.
+%% @equiv foreach(Function, Db, ViewName, [])
+foreach(Function, Db, ViewName) ->
+    foreach(Function, Db, ViewName, []).
+
+-spec foreach(Function::function(),  Db::db(), 
+        ViewName::'all_docs' | {DesignName::string(),
+        ViewName::string()}, Options::view_options())
+    -> list(term()) | {error, term()}.
+%% @doc call Function(Row) on succesive row. Example:
+%% ```
+%% couchbeam_view:foreach(fun(Row) -> io:format("got row ~p~n", [Row]) end, Db, 'all_docs').
+%% '''
+foreach(Function, Db, ViewName, Options) ->
+    FunWrapper = fun(Row, _Acc) ->
+            Function(Row),
+            ok
+    end,
+    ok = fold(FunWrapper, ok, Db, ViewName, Options).
 
 
 %% ----------------------------------
