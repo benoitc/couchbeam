@@ -514,12 +514,12 @@ lookup_doc_rev(#db{server=Server, options=IbrowseOpts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = make_url(Server, doc_url(Db, DocId1), Params),
     case db_request(head, Url, ["200"], IbrowseOpts) of
-	{ok, _, Headers, _} ->
-        MHeaders = mochiweb_headers:make(Headers),
-	    re:replace(mochiweb_headers:get_value("etag", MHeaders),
-            <<"\"">>, <<>>, [global, {return, binary}]);
-	Error ->
-	    Error
+        {ok, _, Headers, _} ->
+            MHeaders = mochiweb_headers:make(Headers),
+            re:replace(mochiweb_headers:get_value("etag", MHeaders),
+                <<"\"">>, <<>>, [global, {return, binary}]);
+        Error ->
+            Error
     end.
 
 %% @doc fetch a document attachment
