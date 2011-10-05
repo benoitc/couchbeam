@@ -72,7 +72,8 @@
     | descending
     | {skip, integer()}
     | group | {group_level, exact | integer()}
-    | inclusive_end | reduce | include_docs | conflicts
+    | reduce | {reduce, boolean()}
+    | inclusive_end | include_docs | conflicts
     | {list, binary()}
     | {keys, list(binary())}.
 
