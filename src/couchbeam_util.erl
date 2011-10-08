@@ -35,8 +35,7 @@ encode_docid(DocId)->
 encode_docid1(DocId) ->
     case DocId of
         "_design/" ++ Rest ->
-            Rest1 = encode_docid(Rest),
-            "_design/" ++ Rest1;
+            DocId;
         _ ->
             ibrowse_lib:url_encode(DocId)
     end.
