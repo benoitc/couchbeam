@@ -163,7 +163,13 @@ server_connection(Host, Port, Prefix, Options) when is_binary(Port) ->
 server_connection(Host, Port, Prefix, Options) when is_list(Port) ->
     server_connection(Host, list_to_integer(Port), Prefix, Options); 
 server_connection(Host, Port, Prefix, Options) when is_integer(Port), Port =:=443 ->
-    Options1 = [{is_ssl, true}|Options],
+    Options1 = case proplists:get_value(ssl_options, Options) of
+        undefined ->
+            [{is_ssl, true}, {ssl_options, []}|Options];
+        _ ->
+            [{is_ssl, true}|Options]
+    end,
+
     #server{host=Host, port=Port, prefix=Prefix, options=Options1};
 server_connection(Host, Port, Prefix, Options) ->
     #server{host=Host, port=Port, prefix=Prefix, options=Options}.
