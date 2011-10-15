@@ -288,7 +288,7 @@ create_db(Server, DbName, Options) ->
 create_db(#server{options=IbrowseOpts}=Server, DbName, Options, Params) ->
     Options1 = couchbeam_util:propmerge1(Options, IbrowseOpts), 
     Url = make_url(Server, dbname(DbName), Params),
-    case couchbeam_httpc:request(put, Url, ["201"], IbrowseOpts) of
+    case couchbeam_httpc:request(put, Url, ["201"], Options1) of
         {ok, _Status, _Headers, _Body} ->
             {ok, #db{server=Server, name=DbName, options=Options1}};
         {error, {ok, "412", _, _}} ->
