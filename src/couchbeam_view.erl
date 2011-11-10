@@ -58,7 +58,7 @@ fetch(Db, ViewName) ->
 %%    | descending
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
-%%    | inclusive_end | {reduce, boolean()} | reduce | include_docs | conflicts
+%%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}</p>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
@@ -110,7 +110,7 @@ stream(Db, ViewName, Client) ->
 %%    | descending
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
-%%    | inclusive_end | {reduce, boolean()} | reduce | include_docs | conflicts
+%%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}
 %%
 %%  <ul>
@@ -132,11 +132,11 @@ stream(Db, ViewName, Client) ->
 %%      row.</li>
 %%      <li>{group_level, Level}: the reduce function reduces to a set
 %%      of distinct keys.</li>
-%%      <li>{reduce, boolean(): whether to use the reduce function of the view. It defaults to
+%%      <li>{reduce, boolean()}: whether to use the reduce function of the view. It defaults to
 %%      true, if a reduce function is defined and to false otherwise.</li>
 %%      <li>include_docs: automatically fetch and include the document
 %%      which emitted each view entry</li>
-%%      <li>inclusive_end: Controls whether the endkey is included in
+%%      <li>{inclusive_end, boolean()}: Controls whether the endkey is included in
 %%      the result. It defaults to true.</li>
 %%      <li>conflicts: include conflicts</li>
 %%      <li>{keys, [Keys]}: to pass multiple keys to the view query</li>
@@ -249,7 +249,7 @@ first(Db, ViewName) ->
 %%    | descending
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
-%%    | inclusive_end | {reduce, boolean()} | reduce | include_docs | conflicts
+%%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}</p>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
@@ -356,6 +356,12 @@ parse_view_options([group|Rest], #view_query_args{options=Opts}=Args) ->
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([inclusive_end|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"inclusive_end", "true"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{inclusive_end, true}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{"inclusive_end", "true"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{inclusive_end, false}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{"inclusive_end", "false"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([reduce|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"reduce", "true"}|Opts],
