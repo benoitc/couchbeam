@@ -26,12 +26,15 @@
 stream(Db, Client) ->
     stream(Db, Client, []).
 
--spec stream(Db::db(), ClientPid::pid(),
-    Options::changes_options()) -> {ok, StartRef::term(),
-        ChangesPid::pid()} | {error, term()}. 
+
+
+-spec stream(Db::db() | function(), Client::pid() | function(),
+     Options::changes_options()) -> {ok, StartRef::term(), ChangesPid::pid()} | 
+        {ok, ChangesPid::pid()} | {error, term()}. 
 %% @doc Stream changes to a pid
 %%  <p>Db : a db record</p>
-%%  <p>ClientPid : pid where to send changes events where events are
+%%  <p>Client : pid  or callback where to send changes events where events are
+%%  The pid receive these events:
 %%  <dl>
 %%      <dt>{change, StartRef, {done, Lastseq::integer()}</dt>
 %%          <dd>Connection terminated or you got all changes</dd>
@@ -42,6 +45,14 @@ stream(Db, Client) ->
 %%          happend.</dd>
 %% </dl>
 %%    LastSeq is the last sequence of changes.</p>
+%% While the callbac could be like:
+%%
+%%      fun({done, LastSeq}) ->
+%%          ok;
+%%      fun({done, LastSeq}) ->
+%%          ok;
+%%      fun({done, LastSeq}) ->
+%%          ok.
 %% <p>ChangesOptions :: changes_options() [continuous | longpoll | normal
 %%    | include_docs | {since, integer()}
 %%    | {timeout, integer()}
@@ -64,13 +75,10 @@ stream(Db, Client) ->
 %% used to disctint all changes from this pid. ChangesPid is the pid of
 %% the changes loop process. Can be used to monitor it or kill it
 %% when needed.</p>
-stream(#db{server=Server, options=IbrowseOpts}=Db,
-        ClientPid, Options) ->
-    Args = parse_changes_options(Options),
-    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
-        Args#changes_args.http_options),
-    StartRef = make_ref(),
 
+
+stream(Db, ClientPid, Options) when is_pid(ClientPid) ->
+    StartRef = make_ref(),
     UserFun = fun
         (done) ->
             LastSeq = get(last_seq),
@@ -85,19 +93,25 @@ stream(#db{server=Server, options=IbrowseOpts}=Db,
             Seq = couchbeam_doc:get_value(<<"seq">>, Row),
             put(last_seq, Seq)
     end,
-    
-    Params = {Url, IbrowseOpts},
+    do_stream(Db, UserFun, Options, StartRef);
 
-    ChangesPid = spawn_link(couchbeam_changes, changes_loop,
-        [Args, UserFun, Params]),
+stream(Db, Fun, Options) ->
+    UserFun = fun
+        (done) ->
+            LastSeq = get(last_seq),
+            Fun({done, LastSeq});
+        ({error, Error}) ->
+            LastSeq = get(last_seq),
+            Fun({error, LastSeq, Error});
+        ({[{<<"last_seq">>, _}]}) ->
+            ok;
+        (Row) ->
+            Fun({change, Row}),
+            Seq = couchbeam_doc:get_value(<<"seq">>, Row),
+            put(last_seq, Seq)
+    end,
+    do_stream(Db, UserFun, Options).
 
-    case couchbeam_httpc:request_stream({ChangesPid, once}, get, Url, IbrowseOpts) of
-        {ok, ReqId} ->
-            ChangesPid ! {ibrowse_req_id, ReqId},
-            {ok, StartRef, ChangesPid};
-        Error ->
-            Error
-    end.
 
 -spec fetch(Db::db()) -> {ok, LastSeq::integer(), Rows::list()} | {error,
         LastSeq::integer(), Error::term()}.
@@ -218,6 +232,32 @@ changes_loop(Args, UserFun, Params) ->
     end.
 
 %% @private
+do_stream(Db, UserFun, Options) ->
+    do_stream(Db, UserFun, Options, nil).
+
+do_stream(#db{server=Server, options=IbrowseOpts}=Db, UserFun, Options, 
+        StartRef) ->
+    Args = parse_changes_options(Options),
+    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
+        Args#changes_args.http_options),
+
+    Params = {Url, IbrowseOpts},
+
+    ChangesPid = spawn_link(couchbeam_changes, changes_loop,
+        [Args, UserFun, Params]),
+
+    case couchbeam_httpc:request_stream({ChangesPid, once}, get, Url, IbrowseOpts) of
+        {ok, ReqId} ->
+            ChangesPid ! {ibrowse_req_id, ReqId},
+            case StartRef of
+                nil ->
+                    {ok, ChangesPid};
+                _ ->
+                    {ok, StartRef, ChangesPid}
+            end;
+        Error ->
+            Error
+    end.
 
 collect_changes(Ref, Acc) ->
     receive

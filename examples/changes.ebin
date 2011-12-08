@@ -8,7 +8,7 @@ main(_) ->
     couchbeam:start(),
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:open_or_create_db(Server, "testdb"),
-    {ok, StartRef, ChangesPid} = couchbeam_changes:stream(Db, self(), []),
+    {ok, StartRef, ChangesPid} = couchbeam_changes:stream(Db, self(), [continuous, heartbeat]),
     io:format("StartRef ~p~n", [ChangesPid]),
     get_changes(StartRef).
     
