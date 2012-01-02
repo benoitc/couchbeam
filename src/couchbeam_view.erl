@@ -493,11 +493,13 @@ process_view_results(ReqId, Params, UserFun, Callback) ->
                         throw:http_response_end -> ok;
                         _:Error ->
                             UserFun({error, Error})
+                    after
+                        ibrowse:stream_close(ReqId)
                     end,
                     ok;
                 R when R =:= 301 ; R =:= 302 ; R =:= 303 ->
                     do_redirect(Headers, UserFun, Callback, Params),
-                    ibrowse:stream_close(reqId);
+                    ibrowse:stream_close(ReqId);
                 Error ->
                     UserFun({error, {http_error, {status,
                                     Error}}})
