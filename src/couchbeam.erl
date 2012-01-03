@@ -134,7 +134,7 @@ server_connection(Host, Port) ->
 %% @spec server_connection(Host::string(), Port::integer(),
 %%                        Prefix::string(), Options::optionList())
 %%                        -> Server::server()
-%% <blocquote>optionList() = [option()]
+%% optionList() = [option()]
 %% option() =
 %%          {is_ssl, boolean()}                |
 %%          {ssl_options, [SSLOpt]}            |
@@ -156,7 +156,7 @@ server_connection(Host, Port) ->
 %%          {token, string()} |
 %%          {token_secret, string()} |
 %%          {consumer_secret, string()} |
-%%          {signature_method, string()}</blocquote>
+%%          {signature_method, string()}
 %%
 server_connection(Host, Port, Prefix, Options) when is_binary(Port) ->
     server_connection(Host, binary_to_list(Port), Prefix, Options);
