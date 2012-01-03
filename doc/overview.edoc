@@ -1,6 +1,6 @@
 @title Couchbeam - simple erlang CouchDB framework.
-@copyright 2009-2011 (c) Benoit Chesneau <benoitc@e-engura.org>
-@version 0.7.0
+@copyright 2009-2012 (c) Benoit Chesneau <benoitc@e-engura.org>
+@version 0.7.3
 
 @doc couchbeam is a simple erlang <a href="http://couchdb.apache.org">CouchDB</a> framework. 
 couchbeam provides you a full featured and easy client to access and manage multiple
