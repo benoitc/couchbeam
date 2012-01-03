@@ -1,6 +1,6 @@
 %%% -*- erlang -*-
 %%%
-%%% This file is part of couchbeam released under the MIT license. 
+%%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 
@@ -22,7 +22,7 @@ wait_for_attachment(ReqId, Timeout, Acc) ->
     receive
         {ReqId, done} ->
             {ok, iolist_to_binary(lists:reverse(Acc))};
-        {ReqId, {ok, Data}} -> 
+        {ReqId, {ok, Data}} ->
             wait_for_attachment(ReqId, Timeout, [Data|Acc]);
 
         {ReqId, {error, Reason}} ->
@@ -37,7 +37,7 @@ wait_for_attachment(ReqId, Timeout, Acc) ->
     after Timeout ->
         {error, {timeout, Acc}}
     end.
-            
+
 %% @doc initiate attachment fetching
 attachment_acceptor(Pid, PidRef, Timeout) ->
     receive
@@ -58,7 +58,7 @@ attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef) ->
             Pid ! {PidRef, {ok, Data}},
             attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef),
             ibrowse:stream_next(IbrowseRef);
-            
+
         {ibrowse_async_headers, IbrowseRef, Status, Headers} ->
             if Status =/= "200" ->
                     Pid ! {PidRef, {error, {Status, Headers}}};
@@ -70,7 +70,7 @@ attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef) ->
         Pid ! {PidRef, {error, timeout}}
     end.
 
-%% @spec add_inline(Doc::json_obj(),Content::attachment_content(), 
+%% @spec add_inline(Doc::json_obj(),Content::attachment_content(),
 %%      AName::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
@@ -79,15 +79,15 @@ add_inline(Doc, Content, AName) ->
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
 %%      AName::string(), ContentType::string()) -> json_obj()
-%% @doc add attachment  to a doc and encode it with ContentType fixed.    
+%% @doc add attachment  to a doc and encode it with ContentType fixed.
 add_inline(Doc, Content, AName, ContentType) ->
     {Props} = Doc,
     Data = base64:encode(Content),
-    Attachment = {couchbeam_util:to_binary(AName), {[{<<"content_type">>, 
+    Attachment = {couchbeam_util:to_binary(AName), {[{<<"content_type">>,
         couchbeam_util:to_binary(ContentType)}, {<<"data">>, Data}]}},
-    
+
     Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
-        undefined -> 
+        undefined ->
             [Attachment];
         {Attachments} ->
             case set_attachment(Attachments, [], Attachment) of
@@ -98,7 +98,7 @@ add_inline(Doc, Content, AName, ContentType) ->
                 end
         end,
     couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc).
-    
+
 %% @spec delete_inline(Doc::json_obj(), AName::string()) -> json_obj()
 %% @doc delete an attachment record in doc. This is different from delete_attachment
 %%      change is only applied in Doc object. Save_doc should be save to save changes.

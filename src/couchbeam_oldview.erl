@@ -1,6 +1,6 @@
 %%% -*- erlang -*-
 %%%
-%%% This file is part of couchbeam released under the MIT license. 
+%%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 -module(couchbeam_oldview).
@@ -16,7 +16,7 @@
 count(#view{db=Db,url=Url, options=Options, method=Method, body=Body,
         headers=Headers}) ->
     #db{options=IbrowseOpts} = Db,
-    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers,
             Body) of
         {ok, _, _, RespBody} ->
             {Props} = ejson:decode(RespBody),
@@ -37,7 +37,7 @@ count(#view{db=Db,url=Url, options=Options, method=Method, body=Body,
 %% @deprecated use {@link couchbeam_view:fetch/3} instead.
 fetch(#view{db=Db, url=Url, method=Method, body=Body, headers=Headers}) ->
     #db{options=IbrowseOpts} = Db,
-    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers,
             Body) of
         {ok, _, _, RespBody} ->
             JsonBody = ejson:decode(RespBody),
@@ -52,10 +52,10 @@ fetch(#view{db=Db, url=Url, method=Method, body=Body, headers=Headers}) ->
 %% @deprecated use couchbeam_view:first/1 instead.
 first(View) ->
     #view{
-        db=Db, 
-        options=Options, 
-        method=Method, 
-        body=Body, 
+        db=Db,
+        options=Options,
+        method=Method,
+        body=Body,
         headers=Headers,
         url_parts = UrlParts
     } = View,
@@ -69,7 +69,7 @@ first(View) ->
     end,
     #db{server=Server, options=IbrowseOpts} = Db,
     Url = couchbeam:make_url(Server, UrlParts, Options1),
-    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, 
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts,
             Headers, Body) of
         {ok, _, _, RespBody} ->
             {Props} = ejson:decode(RespBody),
@@ -88,20 +88,20 @@ first(View) ->
 %% Fun = fun(Row, AccIn) -> AccOut
 %% Row = json_term()
 %% Acc = AccIn = AccOut = term()
-%% @doc Calls Fun on successive keys and values of View Results. Fun must return a new accumulator 
+%% @doc Calls Fun on successive keys and values of View Results. Fun must return a new accumulator
 %% which is passed to the next call. [] is returned if the list is empty.
 %% The evaluation order is undefined.
 %% @deprecated use {@link couchbeam_view:stream/4} instead
 fold(View, Fun) ->
     #view{
         db=Db,
-        method=Method, 
-        body=Body, 
+        method=Method,
+        body=Body,
         headers=Headers,
         url = Url
     } = View,
     #db{options=IbrowseOpts} = Db,
-    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers, 
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, Headers,
             Body) of
         {ok, _, _, RespBody} ->
             {Props} = ejson:decode(RespBody),
@@ -115,20 +115,20 @@ fold(View, Fun) ->
 %% View = view()
 %% Fun = fun(Row) -> void()
 %% Row = json_term()
-%% @doc Calls Fun(Elem) for each element Row in view results. This function is used 
+%% @doc Calls Fun(Elem) for each element Row in view results. This function is used
 %% for its side effects and the evaluation order is defined to be the
 %% same as the order of the elements in the results.
 %% @deprecated use {@link couchbeam_view:stream/4} instead
 foreach(View, Fun) ->
      #view{
         db=Db,
-        method=Method, 
-        body=Body, 
+        method=Method,
+        body=Body,
         headers=Headers,
         url = Url
     } = View,
     #db{options=IbrowseOpts} = Db,
-    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts, 
+    case couchbeam:db_request(Method, Url, ["200"], IbrowseOpts,
             Headers, Body) of
         {ok, _, _, RespBody} ->
             {Props} = ejson:decode(RespBody),

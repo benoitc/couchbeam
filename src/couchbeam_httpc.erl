@@ -1,6 +1,6 @@
 %%% -*- erlang -*-
 %%%
-%%% This file is part of couchbeam released under the MIT license. 
+%%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 -module(couchbeam_httpc).
@@ -11,7 +11,7 @@
         request_stream/4, request_stream/5, request_stream/6,
         clean_mailbox_req/1,
         redirect_url/2]).
-     
+
 -define(TIMEOUT, infinity).
 
 %% @doc send an ibrowse request
@@ -22,7 +22,7 @@ request(Method, Url, Expect, Options, Headers) ->
 request(Method, Url, Expect, Options, Headers, Body) ->
     Accept = {"Accept", "application/json, */*;q=0.9"},
     {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
-    case ibrowse:send_req(Url, [Accept|Headers1], Method, Body, 
+    case ibrowse:send_req(Url, [Accept|Headers1], Method, Body,
             [{response_format, binary}|Options1], ?TIMEOUT) of
         Resp={ok, Status, _, _} ->
             case lists:member(Status, Expect) of
@@ -54,7 +54,7 @@ request_stream(Pid, Method, Url, Options, Headers, Body) ->
 
 maybe_oauth_header(Method, Url, Headers, Options) ->
     case couchbeam_util:get_value(oauth, Options) of
-        undefined -> 
+        undefined ->
             {Headers, Options};
         OauthProps ->
             Hdr = couchbeam_util:oauth_header(Url, Method, OauthProps),
