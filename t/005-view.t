@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(3),
+    etap:plan(5),
     start_app(),
     case (catch test()) of
         ok ->
@@ -72,13 +72,34 @@ test() ->
     etap:is(length(Rst2), 2, "total_rows ok"),
 
 
-    {ok, View1} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-        [include_docs]),
-
     {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},
         [include_docs]),
     {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
     
     etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>, 
         "first with include docs ok"),
+
+
+    Docs = [
+        {[{<<"_id">>, <<"test1">>}, {<<"type">>, <<"test">>}, {<<"value">>, 1}]},
+        {[{<<"_id">>, <<"test2">>}, {<<"type">>, <<"test">>}, {<<"value">>, 2}]},
+        {[{<<"_id">>, <<"test3">>}, {<<"type">>, <<"test">>}, {<<"value">>, 3}]},
+        {[{<<"_id">>, <<"test4">>}, {<<"type">>, <<"test">>}, {<<"value">>, 4}]}
+    ],
+
+    couchbeam:save_docs(Db, Docs),
+    couchbeam:ensure_full_commit(Db),
+
+    {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+        [{start_key, <<"test">>}]),
+
+    etap:is(length(Rst3), 4, "total_rows with start_key ok"),
+
+    {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+        [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
+
+    etap:is(length(Rst4), 3, "total_rows with end_keys ok"),
+
+
+
     ok.
