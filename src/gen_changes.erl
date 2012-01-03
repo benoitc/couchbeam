@@ -1,10 +1,10 @@
 %%% -*- erlang -*-
 %%%
-%%% This file is part of couchbeam released under the MIT license. 
+%%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 %% @doc gen_changes CouchDB continuous changes consumer behavior
-%% This behaviour allws you to create easily a server that consume 
+%% This behaviour allws you to create easily a server that consume
 %% Couchdb continuous changes
 
 -module(gen_changes).
@@ -48,15 +48,15 @@ call(Name, Request, Timeout) ->
 cast(Dest, Request) ->
     gen_server:cast(Dest, Request).
 
-%% @doc create a gen_changes process as part of a supervision tree. 
+%% @doc create a gen_changes process as part of a supervision tree.
 %% The function should be called, directly or indirectly, by the supervisor.
 %% @spec start_link(Module, Db::db(), Options::changesoptions(),
 %%                  InitArgs::list()) -> term()
-%%       changesoptions() = [changeoption()]
+%%       <pre>changesoptions() = [changeoption()]
 %%       changeoption() = {include_docs, string()} |
 %%                  {filter, string()} |
 %%                  {since, integer()|string()} |
-%%                  {heartbeat, string()|boolean()}
+%%                  {heartbeat, string()|boolean()}</pre>
 start_link(Module, Db, Options, InitArgs) ->
     gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
 
@@ -76,7 +76,7 @@ init([Module, Db, Options, InitArgs]) ->
                                         options=Options}};
             {error, Error} ->
                 Module:terminate(Error, ModState),
-                {stop, Error} 
+                {stop, Error}
             end;
         Error ->
             Error
@@ -125,14 +125,14 @@ handle_info({change, Ref, Msg},
         State=#gen_changes_state{mod=Module, modstate=ModState,
             start_ref=Ref}) ->
 
-    State2 = case Msg of 
+    State2 = case Msg of
         {done, LastSeq} ->
             State#gen_changes_state{last_seq=LastSeq};
         Row ->
             Seq = couchbeam_doc:get_value(<<"seq">>, Row),
             State#gen_changes_state{last_seq=Seq}
     end,
-    
+
     case catch Module:handle_change(Msg, ModState) of
         {noreply, NewModState} ->
             {noreply, State2#gen_changes_state{modstate=NewModState}};
@@ -175,10 +175,10 @@ handle_info({'DOWN', MRef, process, Pid, _},
                                         changes_pid=ChangesPid,
                                         options=Options1}};
             Error ->
-                {stop, Error, State} 
+                {stop, Error, State}
         end;
         true ->
-            {stop, done, State} 
+            {stop, done, State}
     end;
 
 handle_info(Info, State=#gen_changes_state{mod=Module, modstate=ModState}) ->

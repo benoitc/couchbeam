@@ -48,9 +48,9 @@ fetch(Db, ViewName) ->
      -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @doc Collect view results
 %%  <p>Db: a db record</p>
-%%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
-%%  ViewName}</p>
-%%  <p>Options :: view_options() [{key, binary()} | {start_docid, binary()}
+%%  <p>ViewName: <code>'all_docs'</code> to get all docs or <code>{DesignName,
+%%  ViewName}</code></p>
+%%  <pre>Options :: view_options() [{key, binary()} | {start_docid, binary()}
 %%    | {end_docid, binary()} | {start_key, binary()}
 %%    | {end_key, binary()} | {limit, integer()}
 %%    | {stale, stale()}
@@ -58,7 +58,7 @@ fetch(Db, ViewName) ->
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}</p>
+%%    | {keys, list(binary())}</pre>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
 %% <p>Return: {ok, Rows} or {error, Rows, Error}</p>
