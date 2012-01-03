@@ -102,7 +102,7 @@ stream(Db, ViewName, Client) ->
 %%          <dd>Got an error, connection is closed when an error
 %%          happend.</dd>
 %%  </dl></p>
-%%  <p>Options :: view_options() [{key, binary()} | {start_docid, binary()}
+%%  <p><pre>Options :: view_options() [{key, binary()} | {start_docid, binary()}
 %%    | {end_docid, binary()} | {start_key, binary()}
 %%    | {end_key, binary()} | {limit, integer()}
 %%    | {stale, stale()}
@@ -110,38 +110,39 @@ stream(Db, ViewName, Client) ->
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}
+%%    | {keys, list(binary())}</pre>
 %%
 %%  <ul>
-%%      <li>{key, Key}: key value</li>
-%%      <li>{start_docid, DocId}: document id to start with (to allow pagination
+%%      <li><code>{key, Key}</code>: key value</li>
+%%      <li><code>{start_docid, DocId}</code>: document id to start with (to allow pagination
 %%          for duplicate start keys</li>
-%%      <li>{end_docid, DocId}: last document id to include in the result (to
+%%      <li><code>{end_docid, DocId}</code>: last document id to include in the result (to
 %%          allow pagination for duplicate endkeys)</li>
-%%      <li>{start_key, Key}: start result from key value</li>
-%%      <li>{end_key, Key}: end result from key value</li>
-%%      <li>{limit, Limit}: Limit the number of documents in the result</li>
-%%      <li>{stale, Stale}: If stale=ok is set, CouchDB will not refresh the view
+%%      <li><code>{start_key, Key}</code>: start result from key value</li>
+%%      <li><code>{end_key, Key}</code>: end result from key value</li>
+%%      <li><code>{limit, Limit}</code>: Limit the number of documents in the result</li>
+%%      <li><code>{stale, Stale}</code>: If stale=ok is set, CouchDB will not refresh the view
 %%      even if it is stale, the benefit is a an improved query latency. If
 %%      stale=update_after is set, CouchDB will update the view after the stale
 %%      result is returned.</li>
-%%      <li>descending: reverse the result</li>
-%%      <li>{skip, N}: skip n number of documents</li>
-%%      <li>group: the reduce function reduces to a single result
+%%      <li><code>descending</code>: reverse the result</li>
+%%      <li><code>{skip, N}</code>: skip n number of documents</li>
+%%      <li><code>group</code>: the reduce function reduces to a single result
 %%      row.</li>
-%%      <li>{group_level, Level}: the reduce function reduces to a set
+%%      <li><code>{group_level, Level}</code>: the reduce function reduces to a set
 %%      of distinct keys.</li>
-%%      <li>{reduce, boolean()}: whether to use the reduce function of the view. It defaults to
+%%      <li><code>{reduce, boolean()}</code>: whether to use the reduce function of the view. It defaults to
 %%      true, if a reduce function is defined and to false otherwise.</li>
-%%      <li>include_docs: automatically fetch and include the document
+%%      <li><code>include_docs</code>: automatically fetch and include the document
 %%      which emitted each view entry</li>
-%%      <li>{inclusive_end, boolean()}: Controls whether the endkey is included in
+%%      <li><code>{inclusive_end, boolean()}</code>: Controls whether the endkey is included in
 %%      the result. It defaults to true.</li>
-%%      <li>conflicts: include conflicts</li>
-%%      <li>{keys, [Keys]}: to pass multiple keys to the view query</li>
+%%      <li><code>conflicts</code>: include conflicts</li>
+%%      <li><code>{keys, [Keys]}</code>: to pass multiple keys to the view query</li>
 %%  </ul></p>
 %%
-%% <p> Return {ok, StartRef, ViewPid} or {error, Error}. Ref can be
+%% <p> Return <code>{ok, StartRef, ViewPid}</code> or <code>{error,
+%Error}</code>. Ref can be
 %% used to disctint all changes from this pid. ViewPid is the pid of
 %% the view loop process. Can be used to monitor it or kill it
 %% when needed.</p>
@@ -241,7 +242,7 @@ first(Db, ViewName) ->
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
 %%  ViewName}</p>
-%%  <p>Options :: view_options() [{key, binary()} | {start_docid, binary()}
+%%  <pre>Options :: view_options() [{key, binary()} | {start_docid, binary()}
 %%    | {end_docid, binary()} | {start_key, binary()}
 %%    | {end_key, binary()} | {limit, integer()}
 %%    | {stale, stale()}
@@ -249,7 +250,7 @@ first(Db, ViewName) ->
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}</p>
+%%    | {keys, list(binary())}</pre>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
 %% <p>Return: {ok, Row} or {error, Error}</p>
