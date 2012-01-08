@@ -2,7 +2,7 @@
 %% -*- erlang -*-
 %%! -pa ./ebin -pa ./t
 %%
-%% This file is part of couchbeam released under the MIT license. 
+%% This file is part of couchbeam released under the MIT license.
 %% See the NOTICE for more information.
 
 
@@ -17,10 +17,10 @@ main(_) ->
             etap:bail()
     end,
     ok.
-    
+
 
 test() ->
-    Server = couchbeam:server_connection(), 
+    Server = couchbeam:server_connection(),
     {ok, {Data}} = couchbeam:server_info(Server),
     etap:is(proplists:get_value(<<"couchdb">>, Data), <<"Welcome">>, "message ok"),
     ok.

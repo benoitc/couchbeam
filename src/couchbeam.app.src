@@ -1,13 +1,18 @@
 %%% -*- erlang -*-
 %%%
-%%% This file is part of couchbeam released under the MIT license. 
+%%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 {application, couchbeam,
  [{description, "Erlang CouchDB kit"},
   {vsn, "0.7.3"},
   {modules, []},
-  {registered, []},
-  {applications, [kernel, stdlib, crypto, sasl, ibrowse]},
+  {registered, [
+    couchbeam_sup
+  ]},
+  {applications, [kernel, stdlib, crypto, public_key, ssl, sasl,
+        ibrowse]},
   {env, []},
-  {mod, { couchbeam_app, []}}]}.
+  {mod, { couchbeam_app, []}}
+ ]
+}.

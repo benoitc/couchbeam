@@ -13,6 +13,7 @@
 -export([propmerge/3, propmerge1/2]).
 -export([get_value/2, get_value/3]).
 -export([deprecated/3, shutdown_sync/1]).
+-export([start_app_deps/1, get_app_env/2]).
 
 -define(ENCODE_DOCID, true).
 
@@ -213,4 +214,27 @@ shutdown_sync(Pid) ->
         end
     after
         erlang:demonitor(MRef, [flush])
+    end.
+
+%% @spec start_app_deps(App :: atom()) -> ok
+%% @doc Start depedent applications of App.
+start_app_deps(App) ->
+    {ok, DepApps} = application:get_key(App, applications),
+    [ensure_started(A) || A <- DepApps],
+    ok.
+
+%% @spec ensure_started(Application :: atom()) -> ok
+%% @doc Start the named application if not already started.
+ensure_started(App) ->
+    case application:start(App) of
+	ok ->
+	    ok;
+	{error, {already_started, App}} ->
+	    ok
+    end.
+
+get_app_env(Env, Default) ->
+    case application:get_env(couch, Env) of
+        {ok, Val} -> Val;
+        undefined -> Default
     end.

@@ -6,20 +6,12 @@
 -module(couchbeam).
 -author('Benoît Chesneau <benoitc@e-engura.org>').
 
--behaviour(gen_server).
-
 -include("couchbeam.hrl").
 
 -define(TIMEOUT, infinity).
--record(state, {}).
 
 % generic functions
--export([start_link/0, start/0, stop/0, version/0]).
-
-
-%% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([start/0, stop/0, version/0]).
 
 %% utilities urls
 -export([server_url/1, uuids_url/1, db_url/1, doc_url/2, make_url/3]).
@@ -57,48 +49,16 @@
 %% Generic utilities.
 %% --------------------------------------------------------------------
 
-%%--------------------------------------------------------------------
-%% Function: start_link/0
-%% Description: Starts the server
-%%--------------------------------------------------------------------
-%% @doc Starts the couchbeam process linked to the calling process. Usually
-%% invoked by the supervisor couchbeam_sup
-%% @spec start_link() -> {ok, pid()}
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-start_apps([]) ->
-    ok;
-start_apps([App|Rest]) ->
-    case application:start(App) of
-    ok ->
-       start_apps(Rest);
-    {error, {already_started, App}} ->
-       start_apps(Rest);
-    {error, _Reason} when App =:= public_key ->
-       % ignore on R12B5
-       start_apps(Rest);
-    {error, _Reason} ->
-       {error, {app_would_not_start, App}}
-    end.
-
-
 %% @doc Start the couchbeam process. Useful when testing using the shell.
 start() ->
     couchbeam_deps:ensure(),
-    case start_apps([crypto, public_key, sasl, ssl, ibrowse]) of
-        ok ->
-            couchbeam_sup:start_link();
-        Error ->
-            Error
-    end.
+    application:load(couchbeam),
+    couchbeam_util:start_app_deps(couchbeam),
+    application:start(couchbeam).
 
 %% @doc Stop the couchbeam process. Useful when testing using the shell.
 stop() ->
-    application:stop(couchbeam),
-    application:stop(ibrowse),
-    application:stop(crypto).
-
+    application:stop(couchbeam).
 
 %% @spec () -> Version
 %%     Version = string()
@@ -188,12 +148,13 @@ server_info(#server{options=IbrowseOpts}=Server) ->
 %% @doc Get one uuid from the server
 %% @spec get_uuid(server()) -> lists()
 get_uuid(Server) ->
-    get_uuids(Server, 1).
+    couchbeam_uuids:get_uuids(Server, 1).
 
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
-    gen_server:call(?MODULE, {get_uuids, Server, Count}).
+    couchbeam_uuids:get_uuids(Server, Count).
+
 
 %% @doc Handle replication. Pass an object containting all informations
 %% It allows to pass for example an authentication info
@@ -908,7 +869,7 @@ maybe_docid(Server, {DocProps}) ->
             {DocProps}
     end.
 
-%% @doc Assemble the server URL for the given client
+%% @doc Asemble the server URL for the given client
 %% @spec server_url({Host, Port}) -> iolist()
 server_url(#server{host=Host, port=Port, options=Options}) ->
     Ssl = couchbeam_util:get_value(is_ssl, Options, false),
@@ -964,78 +925,5 @@ db_request(Method, Url, Expect, Options, Headers, Body) ->
         Error ->
             Error
     end.
-
-%%---------------------------------------------------------------------------
-%% gen_server callbacks
-%%---------------------------------------------------------------------------
-%% @private
-
-init(_) ->
-    process_flag(trap_exit, true),
-    ets:new(couchbeam_uuids, [named_table, public, {keypos, 2}]),
-    {ok, #state{}}.
-
-handle_call({get_uuids, #server{host=Host, port=Port}=Server, Count}, _From, State) ->
-    {ok, Uuids} = do_get_uuids(Server, Count, [],
-        ets:lookup(couchbeam_uuids, {Host, Port})),
-    {reply, Uuids, State}.
-
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-
-handle_info(_Info, State) ->
-    {noreply, State}.
-
-terminate(_Reason, _State) ->
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
-
-%%--------------------------------------------------------------------
-%%% Internal functions
-%%--------------------------------------------------------------------
-do_get_uuids(_Server, Count, Acc, _) when length(Acc) >= Count ->
-    {ok, Acc};
-do_get_uuids(Server, Count, Acc, []) ->
-    {ok, ServerUuids} = get_new_uuids(Server),
-    do_get_uuids(Server, Count, Acc, [ServerUuids]);
-do_get_uuids(Server, Count, Acc, [#server_uuids{uuids=Uuids}]) ->
-    case Uuids of
-        [] ->
-            {ok, ServerUuids} = get_new_uuids(Server),
-            do_get_uuids(Server, Count, Acc, [ServerUuids]);
-        _ ->
-            {Acc1, Uuids1} = do_get_uuids1(Acc, Uuids, Count),
-            #server{host=Host, port=Port} = Server,
-            ServerUuids = #server_uuids{host_port={Host,Port},
-                uuids=Uuids1},
-            ets:insert(couchbeam_uuids, ServerUuids),
-            do_get_uuids(Server, Count, Acc1, [ServerUuids])
-    end.
-
-
-
-do_get_uuids1(Acc, Uuids, 0) ->
-    {Acc, Uuids};
-do_get_uuids1(Acc, [Uuid|Rest], Count) ->
-    do_get_uuids1([Uuid|Acc], Rest, Count-1).
-
-
-get_new_uuids(Server=#server{host=Host, port=Port, options=IbrowseOptions}) ->
-    Url = make_url(Server, "_uuids", [{"count", "1000"}]),
-    case couchbeam_httpc:request(get, Url, ["200"], IbrowseOptions) of
-        {ok, _Status, _Headers, Body} ->
-            {[{<<"uuids">>, Uuids}]} = ejson:decode(Body),
-            ServerUuids = #server_uuids{host_port={Host,
-                        Port}, uuids=Uuids},
-                ets:insert(couchbeam_uuids, ServerUuids),
-            {ok, ServerUuids};
-        Error ->
-            Error
-    end.
-
 
 
