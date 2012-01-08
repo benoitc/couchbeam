@@ -40,9 +40,7 @@
         delete_attachment/4, put_attachment/4, put_attachment/5,
         all_docs/1, all_docs/2, view/2, view/3,
         ensure_full_commit/1, ensure_full_commit/2,
-        compact/1, compact/2,
-        changes/1, changes/2, changes_wait/2, changes_wait/3,
-        changes_wait_once/1, changes_wait_once/2]).
+        compact/1, compact/2]).
 
 
 %% --------------------------------------------------------------------
@@ -775,85 +773,6 @@ compact(#db{server=Server, options=IbrowseOpts}=Db, DesignName) ->
             Error
     end.
 
-
-%% @doc get all changes. Do not use this function for longpolling,
-%% instead use  ```changes_wait_once''' or continuous, use
-%% ```wait_once'''
-%% @equiv changes(Db, [])
-%% @deprecated Use {@link couchbeam_changes:fetch/1} instead.
-changes(Db) ->
-    changes(Db, []).
-
-%% @doc get all changes. Do not use this function for longpolling,
-%%      instead use  ```changes_wait_once''' or continuous, use
-%%      ```wait_once'''
-%% See [http://wiki.apache.org/couchdb/HTTP_database_API#Changes] for more informations.
-%%
-%% @spec changes(Db::db(), Options::changesoptions()) -> term()
-%%       changesoptions() = [changeoption()]
-%%       changeoption() = {include_docs, string()} |
-%%                  {filter, string()} |
-%%                  {since, integer()|string()} |
-%%                  {heartbeat, string()|boolean()}
-%% @deprecated Use {@link couchbeam_changes:fetch/2} instead.
-changes(#db{server=Server, options=IbrowseOpts}=Db, Options) ->
-    ?DEPRECATED(<<"couchbeam:changes and couchbeam:changes_wait_once">>,
-        <<"couchbeam_changes:fetch">>,
-        <<"in version 0.8">>),
-    Url = make_url(Server, [db_url(Db), "/_changes"], Options),
-    case couchbeam_httpc:request_stream({self(), once}, get, Url, IbrowseOpts) of
-        {ok, ReqId} ->
-            couchbeam_changes:wait_for_change(ReqId);
-        {error, Error} -> {error, Error}
-    end.
-
-%% @doc wait for longpoll changes
-%% @equiv changes_wait_once(Db, [])
-%% @deprecated Use {@link couchbeam_changes:fetch/1}  instead.
-changes_wait_once(Db) ->
-    changes_wait_once(Db, []).
-
-%% @doc wait for longpoll changes
-%% @deprecated Use {@link couchbeam_changes:fetch/2} instead.
-changes_wait_once(Db, Options) ->
-    Options1 = [{"feed", "longpoll"}|Options],
-    changes(Db, Options1).
-
-%% @doc wait for continuous changes
-%% @equiv changes_wait(Db, ClientPid, [])
-%% @deprecated Use {@link couchbeam_changes:stream/2}  instead.
-changes_wait(Db, ClientPid) ->
-    changes_wait(Db, ClientPid, []).
-
-%% @doc wait for continuous changes to a Pid. Messages sent to the Pid
-%%      will be of the form `{reference(), message()}',
-%%      where `message()' is one of:
-%%      <dl>
-%%          <dt>done</dt>
-%%              <dd>You got all the changes</dd>
-%%          <dt>{change, term()}</dt>
-%%              <dd>Change row</dd>
-%%          <dt>{last_seq, binary()}</dt>
-%%              <dd>last sequence</dd>
-%%          <dt>{error, term()}</dt>
-%%              <dd>n error occurred</dd>
-%%      </dl>
-%% @spec changes_wait(Db::db(), Pid::pid(), Options::changeoptions()) -> term()
-%% @deprecated Use {@link couchbeam_changes:stream/3} instead.
-changes_wait(#db{server=Server, options=IbrowseOpts}=Db, ClientPid, Options) ->
-    ?DEPRECATED(<<"couchbeam:changes_wait">>,
-        <<"couchbeam_changes:stream">>,
-        <<"in version 0.8">>),
-    Options1 = [{"feed", "continuous"}|Options],
-    Url = make_url(Server, [db_url(Db), "/_changes"], Options1),
-    StartRef = make_ref(),
-    Pid = proc_lib:spawn_link(couchbeam_changes, continuous_acceptor, [ClientPid, StartRef]),
-    case couchbeam_httpc:request_stream({Pid, once}, get, Url, IbrowseOpts) of
-        {ok, ReqId}    ->
-            Pid ! {ibrowse_req_id, StartRef, ReqId},
-            {ok, StartRef};
-        {error, Error} -> {error, Error}
-    end.
 
 %% --------------------------------------------------------------------
 %% Utilities functions.
