@@ -58,17 +58,7 @@ encode_query_value(K, V) when is_atom(K) ->
     encode_query_value(atom_to_list(K), V);
 encode_query_value(K, V) when is_binary(K) ->
     encode_query_value(binary_to_list(K), V);
-encode_query_value(K, V) ->
-    case K of
-        "key" -> encode_value(V);
-        "startkey" -> encode_value(V);
-        "endkey" -> encode_value(V);
-        _ -> V
-    end.
-
-encode_value(V) ->
-    V1 = ejson:encode(V),
-    binary_to_list(iolist_to_binary(V1)).
+encode_query_value(_K, V) -> V.
 
 % build oauth header
 oauth_header(Url, Action, OauthProps) ->
