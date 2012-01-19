@@ -354,6 +354,9 @@ parse_view_options([descending|Rest], #view_query_args{options=Opts}=Args) ->
 parse_view_options([group|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"group", "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{group_level, Level}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{"group_level", Level}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([inclusive_end|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"inclusive_end", "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
