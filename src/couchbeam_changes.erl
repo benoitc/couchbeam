@@ -20,7 +20,7 @@
 }).
 
 
--spec stream(Db::db(), Client::pid()) -> {ok, StartRef::term(),
+-spec stream(Db::db(), Client::pid() | function()) -> {ok, StartRef::term(),
         ChangesPid::pid()} | {error, term()}.
 %% @equiv stream(Db, Client, [])
 stream(Db, Client) ->
@@ -28,7 +28,7 @@ stream(Db, Client) ->
 
 
 
--spec stream(Db::db() | function(), Client::pid() | function(),
+-spec stream(Db::db(), Client::pid() | function(),
      Options::changes_options()) -> {ok, StartRef::term(), ChangesPid::pid()} |
         {ok, ChangesPid::pid()} | {error, term()}.
 %% @doc Stream changes to a pid
