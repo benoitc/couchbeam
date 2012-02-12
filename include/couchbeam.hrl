@@ -35,10 +35,10 @@
 
 -type ejson_key() :: binary() | atom().
 
--type ejson_term() :: ejson_array() 
-    | ejson_object() 
-    | ejson_string() 
-    | ejson_number() 
+-type ejson_term() :: ejson_array()
+    | ejson_object()
+    | ejson_string()
+    | ejson_number()
     | true | false | null.
 
 -type ejson_string() :: binary().
@@ -124,6 +124,7 @@
 
 -record(changes_args, {
         type = normal,
+        since = 0,
         http_options = []}).
 -type changes_args() :: #changes_args{}.
 
@@ -135,8 +136,8 @@
     modstate,
     db,
     options}).
-    
+
 -define(USER_AGENT, "couchbeam/0.7.0").
 
--define(DEPRECATED(Old, New, When), 
+-define(DEPRECATED(Old, New, When),
     couchbeam_util:deprecated(Old, New, When)).

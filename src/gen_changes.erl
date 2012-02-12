@@ -68,12 +68,14 @@ init([Module, Db, Options, InitArgs]) ->
             {ok, StartRef, ChangesPid} ->
                 erlang:monitor(process, ChangesPid),
                 unlink(ChangesPid),
+                LastSeq = proplists:get_value(since, Options, 0),
                 {ok, #gen_changes_state{start_ref=StartRef,
                                         changes_pid=ChangesPid,
                                         mod=Module,
                                         modstate=ModState,
                                         db=Db,
-                                        options=Options}};
+                                        options=Options,
+                                        last_seq=LastSeq}};
             {error, Error} ->
                 Module:terminate(Error, ModState),
                 {stop, Error}

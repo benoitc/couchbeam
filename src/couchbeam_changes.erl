@@ -177,7 +177,8 @@ parse_changes_options([include_docs|Rest], #changes_args{http_options=Opts} = Ar
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([{since, Since}|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"since", Since}|Opts],
-    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+    parse_changes_options(Rest,
+        Args#changes_args{since=Since, http_options=Opts1});
 parse_changes_options([{timeout, Timeout}|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"timeout", Timeout}|Opts],
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
@@ -214,7 +215,10 @@ parse_changes_options([_|Rest], Args) ->
 
 -spec changes_loop(Args::changes_args(), UserFun::function(),
     Params::{Url::string(), IbrowseOpts::list()}) -> ok.
-changes_loop(Args, UserFun, Params) ->
+changes_loop(#changes_args{since=Since}=Args, UserFun, Params) ->
+    %% initialize last_seq /
+    put(last_seq, Since),
+
     Callback = case Args#changes_args.type of
         continuous ->
             fun(200, _Headers, DataStreamFun) ->
@@ -241,6 +245,7 @@ do_stream(Db, UserFun, Options) ->
 
 do_stream(#db{server=Server, options=IbrowseOpts}=Db, UserFun, Options,
         StartRef) ->
+
     Args = parse_changes_options(Options),
     Url = couchbeam:make_url(Server, [couchbeam:db_url(Db), "/_changes"],
         Args#changes_args.http_options),
