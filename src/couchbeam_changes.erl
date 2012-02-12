@@ -205,6 +205,10 @@ parse_changes_options([{style, Style}|Rest], #changes_args{http_options=Opts} = 
 parse_changes_options([descending|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"descending", "true"}|Opts],
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{Key, Val}|Rest], #changes_args{http_options=Opts} = Args)
+  when is_list(Key) andalso is_list(Val) ->
+    Opts1 = [{Key, Val}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([_|Rest], Args) ->
     parse_changes_options(Rest, Args).
 
