@@ -8,17 +8,10 @@
 -include("couchbeam.hrl").
 -include_lib("ibrowse/src/ibrowse.hrl").
 
--export([wait_for_change/1, continuous_acceptor/2]).
-
 -export([stream/2, stream/3,
          fetch/1, fetch/2,
          parse_changes_options/1,
          changes_loop/3]).
-
--record(state, {
-    partial_chunk = <<"">>
-}).
-
 
 -spec stream(Db::db(), Client::pid() | function()) -> {ok, StartRef::term(),
         ChangesPid::pid()} | {error, term()}.
