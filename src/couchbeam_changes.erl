@@ -8,7 +8,7 @@
 -include("couchbeam.hrl").
 -include_lib("ibrowse/src/ibrowse.hrl").
 
--export([wait_for_change/1, continuous_acceptor/2]).
+% -export([wait_for_change/1, continuous_acceptor/2]).
 
 -export([stream/2, stream/3,
          fetch/1, fetch/2,
