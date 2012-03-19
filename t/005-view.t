@@ -2,7 +2,7 @@
 %% -*- erlang -*-
 %%! -pa ./ebin -pa ./t
 %%
-%% This file is part of couchbeam released under the MIT license. 
+%% This file is part of couchbeam released under the MIT license.
 %% See the NOTICE for more information.
 
 
@@ -26,14 +26,14 @@ start_app() ->
     catch couchbeam:delete_db(Server, "couchbeam_testdb"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
-    
+
 stop_test() ->
     Server = couchbeam:server_connection(),
 
     catch couchbeam:delete_db(Server, "couchbeam_testdb"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     ok.
-    
+
 
 test() ->
     Server = couchbeam:server_connection(),
@@ -75,8 +75,8 @@ test() ->
     {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},
         [include_docs]),
     {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
-    
-    etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>, 
+
+    etap:is(proplists:get_value(<<"type">>, Doc1), <<"test">>,
         "first with include docs ok"),
 
 
@@ -90,16 +90,29 @@ test() ->
     couchbeam:save_docs(Db, Docs),
     couchbeam:ensure_full_commit(Db),
 
-    {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-        [{start_key, <<"test">>}]),
+    case os:get_env("TRAVIS") of
+    false ->
+        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+            [{start_key, <<"test">>}]),
 
-    etap:is(length(Rst3), 4, "total_rows with start_key ok"),
+        etap:is(length(Rst3), 4, "total_rows with start_key ok"),
 
-    {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-        [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
+        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+            [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
 
-    etap:is(length(Rst4), 3, "total_rows with end_keys ok"),
+        etap:is(length(Rst4), 3, "total_rows with end_keys ok");
+    _ ->
 
+        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+            [{startkey, <<"test">>}]),
+
+        etap:is(length(Rst3), 4, "total_rows with start_key ok"),
+
+        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+            [{startkey, <<"test">>}, {endkey, <<"test3">>}]),
+
+        etap:is(length(Rst4), 3, "total_rows with end_keys ok")
+    end,
 
 
     ok.
