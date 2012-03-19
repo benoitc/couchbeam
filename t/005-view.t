@@ -90,7 +90,7 @@ test() ->
     couchbeam:save_docs(Db, Docs),
     couchbeam:ensure_full_commit(Db),
 
-    case os:get_env("TRAVIS") of
+    case os:getenv("TRAVIS") of
     false ->
         {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
             [{start_key, <<"test">>}]),
