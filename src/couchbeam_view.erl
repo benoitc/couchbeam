@@ -337,6 +337,12 @@ parse_view_options([{start_key, Value}|Rest], #view_query_args{options=Opts}=Arg
 parse_view_options([{end_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"end_key", ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{startkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{"startkey", ejson:encode(Value)}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{endkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{"endkey", ejson:encode(Value)}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{limit, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"limit", Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
