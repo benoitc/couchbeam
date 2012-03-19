@@ -1,0 +1,10 @@
+language: erlang
+otp_release:
+   - R15B
+   - R14B04
+   - R14B03
+   - R14B02
+before_script:
+  - curl -X PUT localhost:5984/couchbeam_testdb
+  - curl -X PUT localhost:5984/couchbeam_testdb2
+  - curl -X PUT localhost:5984/couchbeam_testdb3
