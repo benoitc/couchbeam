@@ -76,6 +76,9 @@ do_get_uuids(Server, Count, Acc, [#server_uuids{uuids=Uuids}]) ->
         [] ->
             {ok, ServerUuids} = get_new_uuids(Server),
             do_get_uuids(Server, Count, Acc, [ServerUuids]);
+        _ when length(Uuids) < Count ->
+            {ok, ServerUuids} = get_new_uuids(Server, Uuids),
+            do_get_uuids(Server, Count, Acc, [ServerUuids]);
         _ ->
             {Acc1, Uuids1} = do_get_uuids1(Acc, Uuids, Count),
             #server{host=Host, port=Port} = Server,
@@ -93,13 +96,18 @@ do_get_uuids1(Acc, [Uuid|Rest], Count) ->
     do_get_uuids1([Uuid|Acc], Rest, Count-1).
 
 
-get_new_uuids(Server=#server{host=Host, port=Port, options=IbrowseOptions}) ->
-    Url = couchbeam:make_url(Server, "_uuids", [{"count", "1000"}]),
+get_new_uuids(Server) ->
+    get_new_uuids(Server, []).
+
+get_new_uuids(Server=#server{host=Host, port=Port,
+                             options=IbrowseOptions}, Acc) ->
+    Count = integer_to_list(1000 - length(Acc)),
+    Url = couchbeam:make_url(Server, "_uuids", [{"count", Count}]),
     case couchbeam_httpc:request(get, Url, ["200"], IbrowseOptions) of
         {ok, _Status, _Headers, Body} ->
             {[{<<"uuids">>, Uuids}]} = ejson:decode(Body),
             ServerUuids = #server_uuids{host_port={Host,
-                        Port}, uuids=Uuids},
+                        Port}, uuids=(Acc ++ Uuids)},
                 ets:insert(couchbeam_uuids, ServerUuids),
             {ok, ServerUuids};
         Error ->
