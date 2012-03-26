@@ -5,7 +5,7 @@
 
 -module(couchbeam_httpc).
 
--include_lib("ibrowse/src/ibrowse.hrl").
+-include_lib("ibrowse/include/ibrowse.hrl").
 
 -export([request/4, request/5, request/6,
         request_stream/4, request_stream/5, request_stream/6,
