@@ -13,7 +13,7 @@ deps:
 	@./rebar get-deps
 
 doc:
-	@rebar doc	
+	@./rebar doc	
 	
 
 test: all	
