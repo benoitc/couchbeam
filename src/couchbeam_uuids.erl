@@ -105,7 +105,7 @@ get_new_uuids(Server=#server{host=Host, port=Port,
     Url = couchbeam:make_url(Server, "_uuids", [{"count", Count}]),
     case couchbeam_httpc:request(get, Url, ["200"], IbrowseOptions) of
         {ok, _Status, _Headers, Body} ->
-            {[{<<"uuids">>, Uuids}]} = ejson:decode(Body),
+            {[{<<"uuids">>, Uuids}]} = couchbeam_ejson:decode(Body),
             ServerUuids = #server_uuids{host_port={Host,
                         Port}, uuids=(Acc ++ Uuids)},
                 ets:insert(couchbeam_uuids, ServerUuids),

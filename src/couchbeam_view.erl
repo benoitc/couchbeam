@@ -165,7 +165,7 @@ stream(#db{options=IbrowseOpts}=Db, ViewName, ClientPid, Options) ->
             get ->
                 couchbeam_httpc:request_stream({ViewPid, once}, get, Url, IbrowseOpts);
             post ->
-                Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+                Body = couchbeam_ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
                 Headers = [{"Content-Type", "application/json"}],
                 couchbeam_httpc:request_stream({ViewPid, once}, post, Url,
                     IbrowseOpts, Headers, Body)
@@ -201,14 +201,14 @@ count(#db{options=IbrowseOpts}=Db, ViewName, Options)->
             get ->
                 couchbeam_httpc:request(get, Url, ["200"], IbrowseOpts);
             post ->
-                Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+                Body = couchbeam_ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
                 Headers = [{"Content-Type", "application/json"}],
                 couchbeam_httpc:request_stream(post, Url, ["200"],
                     IbrowseOpts, Headers, Body)
         end,
         case Result of
             {ok, _, _, RespBody} ->
-                {Props} = ejson:decode(RespBody),
+                {Props} = couchbeam_ejson:decode(RespBody),
                 case proplists:get_value("limit",
                         Args#view_query_args.options, 0) of
                 0 ->
@@ -323,7 +323,7 @@ parse_view_options(Options) ->
 parse_view_options([], Args) ->
     Args;
 parse_view_options([{key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"key", ejson:encode(Value)}|Opts],
+    Opts1 = [{"key", couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{start_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"start_docid", Value}|Opts],
@@ -332,16 +332,16 @@ parse_view_options([{end_docid, Value}|Rest], #view_query_args{options=Opts}=Arg
     Opts1 = [{"end_docid", Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{start_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"start_key", ejson:encode(Value)}|Opts],
+    Opts1 = [{"start_key", couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{end_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"end_key", ejson:encode(Value)}|Opts],
+    Opts1 = [{"end_key", couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{startkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"startkey", ejson:encode(Value)}|Opts],
+    Opts1 = [{"startkey", couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{endkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"endkey", ejson:encode(Value)}|Opts],
+    Opts1 = [{"endkey", couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{limit, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{"limit", Value}|Opts],
@@ -542,7 +542,7 @@ do_redirect(Headers, UserFun, Callback, {Args, Url, IbrowseOpts}) ->
         get ->
             couchbeam_httpc:request_stream({self(), once}, get, RedirectUrl, IbrowseOpts);
         post ->
-            Body = ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+            Body = couchbeam_ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
             Headers = [{"Content-Type", "application/json"}],
             couchbeam_httpc:request_stream({self(), once}, get, RedirectUrl,
                 IbrowseOpts, Headers, Body)
