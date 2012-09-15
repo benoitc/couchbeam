@@ -1,6 +1,8 @@
 language: erlang
 script: "make && make verbose-test"
 env: DB=couchdb
+services:
+    - couchdb
 otp_release:
    - R15B
    - R14B04
