@@ -18,6 +18,8 @@ encode(D) ->
         jiffy:encode(D, [uescape])
     catch
         error:{not_loaded, _} ->
+            erl_encode(D);
+        error:{load_failed, _} ->
             erl_encode(D)
     end.
 
@@ -29,6 +31,8 @@ decode(D) ->
         jiffy:decode(D)
     catch
         error:{not_loaded, _} ->
+            erl_decode(D);
+        error:{load_failed, _} ->
             erl_decode(D);
         throw:Error ->
             throw({invalid_json, Error})
