@@ -6,34 +6,35 @@
 
 -module(couchbeam_ejson).
 
--export([encode/1, decode/1]).
+-export([encode/1, decode/1,
+         erl_encode/1, erl_decode/1]).
 
 -include("couchbeam.hrl").
 
+
+-ifndef('WITH_MOCHIJSON').
+-define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).
+-define(JSON_DECODE(D), jiffy:decode(D)).
+-else.
+-define(JSON_ENCODE(D), erl_encode(D)).
+-define(JSON_DECODE(D), erl_decode(D)).
+-endif.
+
+
 -spec encode(ejson()) -> binary().
+
 %% @doc encode an erlang term to JSON. Throw an exception if there is
 %% any error.
 encode(D) ->
-    try
-        jiffy:encode(D, [uescape])
-    catch
-        error:{not_loaded, _} ->
-            erl_encode(D);
-        error:{load_failed, _} ->
-            erl_encode(D)
-    end.
+    ?JSON_ENCODE(D).
 
 -spec decode(binary()) -> ejson().
 %% @doc decode a binary to an EJSON term. Throw an exception if there is
 %% any error.
 decode(D) ->
     try
-        jiffy:decode(D)
+        ?JSON_DECODE(D)
     catch
-        error:{not_loaded, _} ->
-            erl_decode(D);
-        error:{load_failed, _} ->
-            erl_decode(D);
         throw:Error ->
             throw({invalid_json, Error})
     end.
