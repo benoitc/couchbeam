@@ -262,14 +262,14 @@ first(Db, ViewName, Options) ->
             Error
     end.
 
--spec fold(Function::function(), Acc::list(), Db::db(),
+-spec fold(Function::function(), Acc::any(), Db::db(),
         ViewName::'all_docs' | {DesignName::string(), ViewName::string()})
     -> list(term()) | {error, term()}.
 %% @equiv fold(Function, Acc, Db, ViewName, [])
 fold(Function, Acc, Db, ViewName) ->
     fold(Function, Acc, Db, ViewName, []).
 
--spec fold(Function::function(), Acc::list(), Db::db(),
+-spec fold(Function::function(), Acc::any(), Db::db(),
         ViewName::'all_docs' | {DesignName::string(),
         ViewName::string()}, Options::view_options())
     -> list(term()) | {error, term()}.
