@@ -14,8 +14,9 @@
 -export([get_value/2, get_value/3]).
 -export([deprecated/3, shutdown_sync/1]).
 -export([start_app_deps/1, get_app_env/2]).
+-export([encode_docid1/1, encode_docid_noop/1]).
 
--define(ENCODE_DOCID, true).
+-define(ENCODE_DOCID_FUNC, encode_docid1).
 
 encode_att_name(Name) when is_binary(Name) ->
     encode_att_name(xmerl_ucs:from_utf8(Name));
@@ -28,10 +29,7 @@ encode_att_name(Name) ->
 encode_docid(DocId) when is_binary(DocId) ->
     encode_docid(binary_to_list(DocId));
 encode_docid(DocId)->
-    case ?ENCODE_DOCID of
-        true -> encode_docid1(DocId);
-        false -> DocId
-    end.
+    ?ENCODE_DOCID_FUNC(DocId).
 
 encode_docid1(DocId) ->
     case DocId of
@@ -41,6 +39,9 @@ encode_docid1(DocId) ->
         _ ->
             ibrowse_lib:url_encode(DocId)
     end.
+
+encode_docid_noop(DocId) ->
+    DocId.
 
 %% @doc Encode needed value of Query proplists in json
 encode_query([]) ->
