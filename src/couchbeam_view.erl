@@ -323,75 +323,75 @@ parse_view_options(Options) ->
 parse_view_options([], Args) ->
     Args;
 parse_view_options([{key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"key", couchbeam_ejson:encode(Value)}|Opts],
+    Opts1 = [{key, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{start_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"start_docid", Value}|Opts],
+    Opts1 = [{start_docid, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{end_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"end_docid", Value}|Opts],
+    Opts1 = [{end_docid, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{start_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"start_key", couchbeam_ejson:encode(Value)}|Opts],
+    Opts1 = [{start_key, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{end_key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"end_key", couchbeam_ejson:encode(Value)}|Opts],
+    Opts1 = [{end_key, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{startkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"startkey", couchbeam_ejson:encode(Value)}|Opts],
+    Opts1 = [{startkey, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{endkey, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"endkey", couchbeam_ejson:encode(Value)}|Opts],
+    Opts1 = [{endkey, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{limit, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"limit", Value}|Opts],
+    Opts1 = [{limit, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, ok}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"stale", "ok"}|Opts],
+    Opts1 = [{stale, "ok"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, update_after}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"stale", "update_after"}|Opts],
+    Opts1 = [{stale, "update_after"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, _}|_Rest], _Args) ->
     {error, "invalid stale value"};
 parse_view_options([descending|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"descending", "true"}|Opts],
+    Opts1 = [{descending, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([group|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"group", "true"}|Opts],
+    Opts1 = [{group, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{group_level, Level}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"group_level", Level}|Opts],
+    Opts1 = [{group_level, Level}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([inclusive_end|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"inclusive_end", "true"}|Opts],
+    Opts1 = [{inclusive_end, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{inclusive_end, true}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"inclusive_end", "true"}|Opts],
+    Opts1 = [{inclusive_end, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{inclusive_end, false}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"inclusive_end", "false"}|Opts],
+    Opts1 = [{inclusive_end, "false"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([reduce|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"reduce", "true"}|Opts],
+    Opts1 = [{reduce, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{reduce, true}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"reduce", "true"}|Opts],
+    Opts1 = [{reduce, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{reduce, false}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"reduce", "false"}|Opts],
+    Opts1 = [{reduce, "false"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([include_docs|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"include_docs", "true"}|Opts],
+    Opts1 = [{include_docs, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([conflicts|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"conflicts", "true"}|Opts],
+    Opts1 = [{conflicts, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{skip, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"skip", Value}|Opts],
+    Opts1 = [{skip, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{list, Value}|Rest], #view_query_args{options=Opts}=Args) ->
-    Opts1 = [{"list", Value}|Opts],
+    Opts1 = [{list, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{keys, Value}|Rest], Args) ->
     parse_view_options(Rest, Args#view_query_args{method=post,
