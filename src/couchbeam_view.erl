@@ -423,24 +423,20 @@ view_loop(UserFun, Params) ->
 %% @private
 
 make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
-    case parse_view_options(Options) of
-        {error, _} = Error ->
-            Error;
-        Args ->
-            case ViewName of
-                'all_docs' ->
-                    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                            "/_all_docs"],
-                            Args#view_query_args.options),
-                    Fun(Args, Url);
-                {DName, VName} ->
-                    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
-                            "/_design/", DName, "/_view/", VName],
-                            Args#view_query_args.options),
-                    Fun(Args, Url);
-                _ ->
-                    {error, invalid_view_name}
-            end
+    Args = parse_view_options(Options),
+    case ViewName of
+        'all_docs' ->
+            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
+                    "/_all_docs"],
+                    Args#view_query_args.options),
+            Fun(Args, Url);
+        {DName, VName} ->
+            Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
+                    "/_design/", DName, "/_view/", VName],
+                    Args#view_query_args.options),
+            Fun(Args, Url);
+        _ ->
+            {error, invalid_view_name}
     end.
 
 collect_view_first(Ref, Pid) ->
