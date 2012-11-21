@@ -172,11 +172,13 @@ replicate(#server{options=IbrowseOpts}=Server, RepObj) ->
     Headers = [{"Content-Type", "application/json"}],
     JsonObj = couchbeam_ejson:encode(RepObj),
 
-    case couchbeam_httpc:request_stream({self(), once}, post, Url, IbrowseOpts, Headers,
-            JsonObj) of
-        {ok, ReqId} ->
-            couchbeam_changes:wait_for_change(ReqId);
-        {error, Error} -> {error, Error}
+     case couchbeam_httpc:request(post, Url, ["200", "201"], IbrowseOpts,
+                                  Headers, JsonObj) of
+        {ok, _, _, Body} ->
+            Res = couchbeam_ejson:decode(Body),
+            {ok, Res};
+        Error ->
+            Error
     end.
 
 %% @doc Handle replication.
