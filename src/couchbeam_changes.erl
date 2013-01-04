@@ -50,18 +50,22 @@ stream(Db, Client) ->
 %%    | include_docs | {since, integer()}
 %%    | {timeout, integer()}
 %%    | heartbeat | {heartbeat, integer()}
-%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()}</pre>
+%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()})}
+%%    | {view, string()}]</pre>
 %%
 %%   <ul>
 %%      <li><code>continuous | longpoll | normal</code>: set the type of changes
 %%          feed to get</li>
 %%      <li><code>include_doc</code>: if you want to include the doc in the line of
 %%          change</li>
-%%      <li><code>{timeout, Timeout::integer()}</code>:: timeout</li>
+%%      <li><code>{timeout, Timeout::integer()}</code>: timeout</li>
 %%      <li><code>heartbeat | {heartbeat, Heartbeat::integer()}</code>: set couchdb
 %%          to send a heartbeat to maintain connection open</li>
 %%      <li><code>{filter, FilterName} | {filter, FilterName, Args::list({key,
-%%          value})</code>: set the filter to use with optional arguments</li>
+%%          value})}</code>: set the filter to use with optional arguments</li>
+%%      <li><code>{view, ViewName}</code>: use a view function as filter. Note
+%%          that it requires to set filter special value <code>"_view"</code>
+%%          to enable this feature.</li>
 %%   </ul></p>
 %%
 %% <p> Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
@@ -112,7 +116,7 @@ stream(Db, Fun, Options) ->
 fetch(Db) ->
     fetch(Db, []).
 
--spec fetch(Db::db(), Options::changes_options1()) -> {ok,
+-spec fetch(Db::db(), Options::changes_options()) -> {ok,
         LastSeq::integer(), Rows::list()} | {error,  LastSeq::integer(),
         Error::term()}.
 %% @doc Collect Changes. Could be used to make a blocking call to a
@@ -122,7 +126,7 @@ fetch(Db) ->
 %%    | include_docs | {since, integer()}
 %%    | {timeout, integer()}
 %%    | heartbeat | {heartbeat, integer()}
-%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()}</pre>
+%%    | {filter, string()} | {filter, string(), list({string(), string() | integer()})}]</pre>
 %%
 %%   <ul>
 %%      <li><code>longpoll | normal</code>: set the type of changes
@@ -134,9 +138,12 @@ fetch(Db) ->
 %%          to send a heartbeat to maintain connection open</li>
 %%      <li><code>{filter, FilterName} | {filter, FilterName, Args::list({key,
 %%          value})</code>: set the filter to use with optional arguments</li>
+%%      <li><code>{view, ViewName}</code>: use a view function as filter. Note
+%%          that it requires to set filter special value <code>"_view"</code>
+%%          to enable this feature.</li>
 %%   </ul></p>
 %%
-%% <p>Resut: <code>{ok, LastSeq::integer(), Rows::list()}</code> or
+%% <p>Result: <code>{ok, LastSeq::integer(), Rows::list()}</code> or
 %% <code>{error, LastSeq, Error}</code>. LastSeq is the last sequence of changes.</p>
 fetch(Db, Options) ->
     case stream(Db, self(), Options) of
@@ -180,6 +187,9 @@ parse_changes_options([{heartbeat, Heartbeat}|Rest], #changes_args{http_options=
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([heartbeat|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"heartbeat", "true"}|Opts],
+    parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
+parse_changes_options([{view, ViewName}|Rest], #changes_args{http_options=Opts} = Args) ->
+    Opts1 = [{"view", ViewName}|Opts],
     parse_changes_options(Rest, Args#changes_args{http_options=Opts1});
 parse_changes_options([{filter, FilterName}|Rest], #changes_args{http_options=Opts} = Args) ->
     Opts1 = [{"filter", FilterName}|Opts],
