@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(28),
+    etap:plan(30),
     start_app(),
     case (catch test()) of
         ok ->
@@ -117,5 +117,11 @@ test() ->
     
     etap:is(couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc13)), 
         {error, not_found}, "bulk docs delete ok"),
+
+    Doc15 = {[{<<"a">>, 1}, {<<"b">>, 2}]},
+    Doc16 = {[{<<"b">>, 2}]},
+    etap:is(couchbeam_doc:take_value(<<"c">>, Doc15), {undefined, Doc15}, "take non-existing key ok"),
+    etap:is(couchbeam_doc:take_value(<<"a">>, Doc15), {1, Doc16}, "take existing key ok"),
+
     ok.
     
