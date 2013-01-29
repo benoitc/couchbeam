@@ -81,9 +81,11 @@ extend(Key, Value, JsonObj) ->
 
 %% @spec extend(Prop::property(), JsonObj::json_obj()) -> json_obj()
 %% @type property() = json_obj() | tuple()
-%% @doc extend a jsonobject by a property or list of property
+%% @doc extend a jsonobject by a property, list of property or another jsonobject
 extend([], JsonObj) ->
     JsonObj;
+extend({List}, JsonObj) when is_list(List)  ->
+    extend(List, JsonObj);
 extend([Prop|R], JsonObj)->
     NewObj = extend(Prop, JsonObj),
     extend(R, NewObj);
