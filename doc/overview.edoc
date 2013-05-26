@@ -10,8 +10,8 @@ couchdb Nodes. Useful modules are:
     <dt>{@link couchbeam}</dt>
     <dd>The `couchbeam' module is the main interface for interaction
     with this application. It includes functions for managing
-connections to CouchDB servers and Couchdb Databases and for performings
-documents creations, updates, deletes, views...</dd>
+connections to CouchDB servers and Couchdb Databases and for performing
+document creations, updates, deletes, views...</dd>
 
     <dt>{@link couchbeam_doc}</dt>
     <dd>Module to manipulate Documents structures. You can set values,
@@ -41,7 +41,7 @@ file to get last changelog.
 Download the sources from our <a
 href="http://github.com/benoitc/couchbeam">Github repository</a>.
 
-To buildd the application simply run 'make'. This should build .beam, .app
+To build the application simply run 'make'. This should build .beam, .app
 files and documentation.
 
 To run tests run 'make test'.
@@ -251,7 +251,7 @@ ViewName = "viewname",
 ViewFun(StartRef3, ViewFun).
 '''
 
-<h3>9. Put,Fetch and Delete documents attachments</h3>
+<h3>9. Put, Fetch and Delete documents attachments</h3>
 
 You can add attachments to any CouchDB documents. Attachments could be
 anything.
@@ -266,9 +266,9 @@ Options = []
 {ok, _Result} = couchbeam:put_attachment(Db, DocId, AttName, Att, Options).
 '''
 
-All attachments are streamed to CoucDB. `Att' could be also be an iolist
+All attachments are streamed to CouchDB. `Att' could be also be an iolist
 or functions, see {@link couchbeam:put_attachment/5} for more
-informations.
+information.
 
 To fetch an attachment:
 
@@ -326,7 +326,7 @@ ChangesFun(StartRef, ChangesFun).
 <h3>Authentication/ Connections options</h3>
 
 
-You can authentication to the database or CouchDB server by filling options to the Option
+You can authenticate to the database or CouchDB server by filling options to the Option
 list in {@link couchbeam:server_connection/4} for the server or in {@link couchbeam:create_db/3},  
 {@link couchbeam:open_db/3}, {@link couchbeam:wopen_or_create_db/3}
 functions. 
@@ -347,7 +347,7 @@ S1 = couchbeam:server_connection(Host, Port, Prefix, Options).
 
 Couchbeam support SSL, OAuth, Basic Authentication, and Proxy. You can
 also set a cookie. For more informations about the options have a look
-in {@link couchbeam:server_connection/4} documentation.
+in the {@link couchbeam:server_connection/4} documentation.
 
 
 <h2>Get involved</h2>
