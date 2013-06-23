@@ -10,7 +10,7 @@
   {registered, [
     couchbeam_sup
   ]},
-  {applications, [kernel, stdlib, crypto, public_key, ssl, sasl,
+  {applications, [kernel, stdlib, asn1, crypto, public_key, ssl, sasl,
         ibrowse]},
   {env, []},
   {mod, { couchbeam_app, []}}

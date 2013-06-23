@@ -224,7 +224,7 @@ ensure_started(App) ->
     end.
 
 get_app_env(Env, Default) ->
-    case application:get_env(couch, Env) of
+    case application:get_env(couchbeam, Env) of
         {ok, Val} -> Val;
         undefined -> Default
     end.
