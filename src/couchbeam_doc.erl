@@ -7,7 +7,8 @@
 -author('Benoît Chesneau <benoitc@e-engura.org>').
 -include("couchbeam.hrl").
 
--export([set_value/3, get_value/2, get_value/3,
+-export([set_value/3, get_value/2, get_value/3, 
+         take_value/2, take_value/3,
          delete_value/2, extend/2, extend/3]).
 -export([get_id/1, get_rev/1, get_idrev/1, is_saved/1]).
 
@@ -64,6 +65,31 @@ get_value(Key, JsonObj, Default) when is_list(Key) ->
 get_value(Key, JsonObj, Default) when is_binary(Key) ->
     {Props} = JsonObj,
     proplists:get_value(Key, Props, Default).
+
+
+%% @spec take_value(Key::key_val(), JsonObj::json_obj()) -> {term(), json_obj()}
+%% @type key_val() = list() | binary()
+%% @doc Returns the value of a simple key/value property in json object and deletes
+%% it form json object
+%% Equivalent to take_value(Key, JsonObj, undefined).
+take_value(Key, JsonObj) ->
+    take_value(Key, JsonObj, undefined).
+
+
+%% @spec take_value(Key::key_val() | binary(), JsonObj::json_obj(),
+%% Default::term()) ->  {term(), json_obj()}
+%% @doc Returns the value of a simple key/value property in json object and deletes
+%% it from json object
+take_value(Key, JsonObj, Default) when is_list(Key) ->
+    get_value(list_to_binary(Key), JsonObj, Default);
+take_value(Key, JsonObj, Default) when is_binary(Key) ->
+    {Props} = JsonObj,
+    case lists:keytake(Key, 1, Props) of 
+        {value, {Key, Value}, Rest} -> 
+            {Value, {Rest}};
+        false ->
+            {Default, JsonObj}
+    end.
 
 %% @spec delete_value(Key::key_val(), JsonObj::json_obj()) -> json_obj()
 %% @doc Deletes all entries associated with Key in json object.
