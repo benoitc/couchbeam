@@ -15,7 +15,7 @@
          all/1, all/2,
          fold/4, fold/5,
          foreach/3, foreach/4,
-         view_loop/2, parse_view_options/1]).
+         view_loop/2, list_loop/2, parse_view_options/1]).
 
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @doc fetch all docs
@@ -158,7 +158,10 @@ stream(#db{options=IbrowseOpts}=Db, ViewName, ClientPid, Options) ->
                 ClientPid ! {row, StartRef, Row}
         end,
         Params = {Args, Url, IbrowseOpts},
-        ViewPid = spawn_link(couchbeam_view, view_loop, [UserFun, Params]),
+        ViewPid = case Args#view_query_args.mode of
+            views -> spawn_link(couchbeam_view, view_loop, [UserFun, Params]);
+            lists -> spawn_link(couchbeam_view, list_loop, [UserFun, Params])
+        end,
 
         %% if we send multiple keys, we do a Post
         Result = case Args#view_query_args.method of
@@ -419,6 +422,21 @@ view_loop(UserFun, Params) ->
         UserFun({error, timeout})
     end.
 
+list_loop(UserFun, Params) ->
+    Callback = fun(200, _Headers, DataStreamFun) ->
+            EventFun = fun(Ev) ->
+                    list_ev_loop(Ev, UserFun)
+            end,
+            couchbeam_json_stream:events(DataStreamFun, EventFun)
+    end,
+
+    receive
+        {ibrowse_req_id, ReqId} ->
+            process_view_results(ReqId, Params, UserFun, Callback)
+    after ?DEFAULT_TIMEOUT ->
+        UserFun({error, timeout})
+    end.
+
 
 %% @private
 
@@ -437,7 +455,12 @@ make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
                     Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
                             "/_design/", DName, "/_view/", VName],
                             Args#view_query_args.options),
-                    Fun(Args, Url);
+                    Fun(Args#view_query_args{mode = views}, Url);
+                {DName, LName, VName} ->
+                    Url = couchbeam:make_url(Server, [couchbeam:db_url(Db),
+                            "/_design/", DName, "/_list/", LName, "/", VName],
+                            Args#view_query_args.options),
+                    Fun(Args#view_query_args{mode = lists}, Url);
                 _ ->
                     {error, invalid_view_name}
             end
@@ -581,4 +604,15 @@ view_ev_loop(array_end, UserFun) ->
 
 view_ev_done() ->
     fun(_Ev) -> view_ev_done() end.
+
+
+list_ev_loop(object_start, UserFun) ->
+    fun(Ev) ->
+        couchbeam_json_stream:collect_object(Ev,
+            fun(Obj) ->
+                UserFun(Obj),
+                UserFun(done),
+                fun(Ev2) -> list_ev_loop(Ev2, UserFun) end
+            end)
+    end.
 

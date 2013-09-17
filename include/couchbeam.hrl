@@ -81,6 +81,7 @@
 
 -record(view_query_args, {
         method = get :: atom(),
+        mode = views :: atom(),
         options = [] :: view_options(),
         keys = [] :: list(binary())}).
 
