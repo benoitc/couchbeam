@@ -5,6 +5,8 @@
 
 -module(couchbeam_util).
 
+-include_lib("hackney.hrl").
+
 -export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
@@ -63,15 +65,16 @@ encode_query_value(_K, V) -> V.
 
 % build oauth header
 oauth_header(Url, Action, OauthProps) ->
-    {_, _, _, QS, _} = mochiweb_util:urlsplit(Url),
-    QSL = mochiweb_util:parse_qs(QS),
+    #hackney_url{qs=QS} = hackney_url:parse_url(Url),
+    QSL = [{binary_to_list(K), binary_to_list(V)} || {K,V} <-
+                                                     hackney:qs(QS)],
 
     % get oauth paramerers
     ConsumerKey = to_list(get_value(consumer_key, OauthProps)),
     Token = to_list(get_value(token, OauthProps)),
     TokenSecret = to_list(get_value(token_secret, OauthProps)),
     ConsumerSecret = to_list(get_value(consumer_secret, OauthProps)),
-    SignatureMethodStr = to_list(get_value(signature_method,
+    Signatur§eMethodStr = to_list(get_value(signature_method,
             OauthProps, "HMAC-SHA1")),
 
     SignatureMethodAtom = case SignatureMethodStr of
@@ -90,9 +93,10 @@ oauth_header(Url, Action, OauthProps) ->
         put -> "PUT";
         head -> "HEAD"
     end,
-    Params = oauth:sign(Method, Url, QSL, Consumer, Token, TokenSecret)
-    -- QSL,
-    {"Authorization", "OAuth " ++ oauth:header_params_encode(Params)}.
+    Params = oauth:sign(Method, Url, QSL, Consumer, Token, TokenSecret) -- QSL,
+
+    Realm = "OAuth " ++ oauth:header_params_encode(Params),
+    {<<"Authorization">>, list_to_binary(Realm)}.
 
 
 %% @doc merge 2 proplists. All the Key - Value pairs from both proplists

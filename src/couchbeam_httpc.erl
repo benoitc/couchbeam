@@ -5,52 +5,32 @@
 
 -module(couchbeam_httpc).
 
--include_lib("ibrowse/include/ibrowse.hrl").
+-export([request/5,
+         db_request/5, db_request/6,
+         json_body/1,
+         db_resp/2,
+         make_headers/4,
+         maybe_oauth_header/4]).
 
--export([request/4, request/5, request/6,
-        request_stream/4, request_stream/5, request_stream/6,
-        clean_mailbox_req/1,
-        redirect_url/2]).
+request(Method, Url, Headers, Body, Options) ->
+    {FinalHeaders, FinalOpts} = make_headers(Method, Url, Headers,
+                                             Options),
+    hackney:request(Method, Url , FinalHeaders, Body, FinalOpts).
 
--define(TIMEOUT, infinity).
+db_request(Method, Url, Headers, Body, Options) ->
+    db_request(Method, Url, Headers, Body, Options, []).
 
-%% @doc send an ibrowse request
-request(Method, Url, Expect, Options) ->
-    request(Method, Url, Expect, Options, [], []).
-request(Method, Url, Expect, Options, Headers) ->
-    request(Method, Url, Expect, Options, Headers, []).
-request(Method, Url, Expect, Options, Headers, Body) ->
-    Accept = {"Accept", "application/json, */*;q=0.9"},
-    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers, Options),
-    case ibrowse:send_req(Url, [Accept|Headers1], Method, Body,
-            [{response_format, binary}|Options1], ?TIMEOUT) of
-        Resp={ok, Status, _, _} ->
-            case lists:member(Status, Expect) of
-                true -> Resp;
-                false -> {error, Resp}
-            end;
-        Error -> Error
-    end.
+db_request(Method, Url, Headers, Body, Options, Expect) ->
+    Resp = request(Method, Url, Headers, Body, Options),
+    db_resp(Resp, Expect).
 
-%% @doc stream an ibrowse request
-request_stream(Pid, Method, Url, Options) ->
-    request_stream(Pid, Method, Url, Options, []).
-request_stream(Pid, Method, Url, Options, Headers) ->
-    request_stream(Pid, Method, Url, Options, Headers, []).
-request_stream(Pid, Method, Url, Options, Headers, Body) ->
-    {Headers1, Options1} = maybe_oauth_header(Method, Url, Headers,
-        Options),
-    {ok, ReqPid} = ibrowse_http_client:start_link(Url),
-    case ibrowse:send_req_direct(ReqPid, Url, Headers1, Method, Body,
-                          [{stream_to, Pid},
-                           {response_format, binary},
-                           {inactivity_timeout, infinity}|Options1],
-                           ?TIMEOUT) of
-        {ibrowse_req_id, ReqId} ->
-            {ok, ReqId};
-        Error ->
-            Error
-    end.
+json_body(Ref) ->
+    {ok, Body} = hackney:body(Ref),
+    couchbeam_ejson:decode(Body).
+
+make_headers(Method, Url, Headers, Options) ->
+    Headers1 = [{<<"Accept">>, <<"application/json, */*;q=0.9">>} | Headers],
+    maybe_oauth_header(Method, Url, Headers1, Options).
 
 maybe_oauth_header(Method, Url, Headers, Options) ->
     case couchbeam_util:get_value(oauth, Options) of
@@ -61,42 +41,25 @@ maybe_oauth_header(Method, Url, Headers, Options) ->
             {[Hdr|Headers], proplists:delete(oauth, Options)}
     end.
 
-
-clean_mailbox_req(ReqId) ->
-    receive
-    {ibrowse_async_response, ReqId, _} ->
-        clean_mailbox_req(ReqId);
-    {ibrowse_async_response_end, ReqId} ->
-        clean_mailbox_req(ReqId)
-    after 0 ->
-        ok
-    end.
-
-redirect_url(RespHeaders, OrigUrl) ->
-    MochiHeaders = mochiweb_headers:make(RespHeaders),
-    Location = mochiweb_headers:get_value("Location", MochiHeaders),
-    #url{
-        host = Host,
-        host_type = HostType,
-        port = Port,
-        path = Path,  % includes query string
-        protocol = Proto
-    } = ibrowse_lib:parse_url(Location),
-    #url{
-        username = User,
-        password = Passwd
-    } = ibrowse_lib:parse_url(OrigUrl),
-    Creds = case is_list(User) andalso is_list(Passwd) of
-    true ->
-        User ++ ":" ++ Passwd ++ "@";
-    false ->
-        []
-    end,
-    HostPart = case HostType of
-    ipv6_address ->
-        "[" ++ Host ++ "]";
-    _ ->
-        Host
-    end,
-    atom_to_list(Proto) ++ "://" ++ Creds ++ HostPart ++ ":" ++
-        integer_to_list(Port) ++ Path.
+db_resp({ok, Ref}=Resp, _Expect) when is_reference(Ref) ->
+    Resp;
+db_resp({ok, 404, _, Ref}, _Expect) ->
+    hackney:skip_body(Ref),
+    {error, not_found};
+db_resp({ok, 409, _, Ref}, _Expect) ->
+    hackney:skip_body(Ref),
+    {error, conflict};
+db_resp({ok, 412, _, Ref}, _Expect) ->
+    hackney:skip_body(Ref),
+    {error, precondition_failed};
+db_resp({ok, _, _, _}=Resp, []) ->
+    Resp;
+db_resp({ok, Status, Headers, Ref}=Resp, Expect) ->
+    case lists:member(Status, Expect) of
+        true -> Resp;
+        false ->
+            {ok, Body} = hackney:body(Ref),
+            {error, {bad_response, {Status, Headers, Body}}}
+    end;
+db_resp(Error, _Expect) ->
+    Error.
