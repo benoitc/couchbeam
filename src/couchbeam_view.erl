@@ -456,11 +456,9 @@ fold_view_results(Ref, Fun, Acc) ->
 collect_view_results(Ref, Acc) ->
     receive
         {Ref, done} ->
-            io:format("done~n", []),
             Rows = lists:reverse(Acc),
             {ok, Rows};
         {Ref, {row, Row}} ->
-            io:format("get row~p~n", [Row]),
             collect_view_results(Ref, [Row|Acc]);
         {Ref, {error, Error}} ->
             %% in case we got some results

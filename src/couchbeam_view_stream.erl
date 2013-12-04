@@ -85,7 +85,6 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
                                              Args#view_query_args.keys}]}),
             hackney:request(post, Url, [], Body, FinalOpts)
     end,
-    io:format("received ~n", []),
     receive
         {Ref, {status, 200, _}} ->
             #state{parent=Parent,

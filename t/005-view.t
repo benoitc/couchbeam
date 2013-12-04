@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(5),
+    etap:plan(6),
     start_app(),
     case (catch test()) of
         ok ->
@@ -70,6 +70,10 @@ test() ->
 
     {ok, Rst2} = couchbeam_view:fetch(Db, {"couchbeam", "test"}),
     etap:is(length(Rst2), 2, "total_rows ok"),
+
+    Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
+    etap:is(Count, 2, "count  ok"),
+
 
 
     {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},

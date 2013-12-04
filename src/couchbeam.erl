@@ -475,7 +475,6 @@ save_docs(Db, Docs) ->
 %% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
-    io:format("want to save ~p~n", [Docs1]),
     Options1 = couchbeam_util:parse_options(Options),
     {Options2, Body} = case couchbeam_util:get_value("all_or_nothing",
             Options1, false) of
