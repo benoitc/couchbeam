@@ -276,7 +276,7 @@ collect_object(end_object, {_, NestCount, [Object, {key, Key},
 
 collect_object(end_object, {_, 0, [[], Last|Terms], ViewSt}) ->
     [[Row]] = [[{[{}]}] ++ Last] ++ Terms,
-    send_row({Row}, ViewSt);
+    send_row(Row, ViewSt);
 
 collect_object(end_object, {_, NestCount, [[], Last|Terms], ViewSt}) ->
     {collect_object, NestCount - 1, [[{[{}]}] ++ Last] ++ Terms, ViewSt};
