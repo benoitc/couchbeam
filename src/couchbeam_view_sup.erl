@@ -19,11 +19,12 @@ start_link() ->
 %% supervisor.
 
 init([]) ->
-    %% define a stream spec
-    Stream = {coucbeam_view_stream, {coucbeam_view_stream, start_link, []},
-              transient, 5000, worker, [coucbeam_view_stream]},
 
     %% start table to keep async streams ref
-    ets:new(view_streams, [set, public, named_table]),
+    ets:new(couchbeam_view_streams, [set, public, named_table]),
 
-    {ok, {{simple_one_for_one, 10, 10}, [Stream]}}.
+    %% define a stream spec
+    Stream = {couchbeam_view_stream, {couchbeam_view_stream, start_link, []},
+              temporary, infinity, worker, [couchbeam_view_stream]},
+
+    {ok, {{simple_one_for_one, 10, 3600}, [Stream]}}.

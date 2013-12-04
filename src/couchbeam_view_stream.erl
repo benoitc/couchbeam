@@ -43,6 +43,8 @@
 -define(TIMEOUT, 10000).
 -define(DEFAULT_CHANGES_POLL, 5000). % we check every 5secs
 
+
+
 start_link(Owner, StreamRef, {Db, Url, Args}, StreamOptions) ->
     proc_lib:start_link(?MODULE, init_stream, [self(), Owner, StreamRef,
                                                {Db, Url, Args},
@@ -50,6 +52,7 @@ start_link(Owner, StreamRef, {Db, Url, Args}, StreamOptions) ->
 
 init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
             StreamOptions) ->
+
 
     Async = proplists:get_value(async, StreamOptions, normal),
 
@@ -64,8 +67,10 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
 
     %% register the stream
     ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
+
     %% tell to the parent that we are ok
     proc_lib:init_ack(Parent, {ok, self()}),
+
     %% start the loop
     loop(State).
 
@@ -80,7 +85,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
                                              Args#view_query_args.keys}]}),
             hackney:request(post, Url, [], Body, FinalOpts)
     end,
-
+    io:format("received ~n", []),
     receive
         {Ref, {status, 200, _}} ->
             #state{parent=Parent,
@@ -90,8 +95,8 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
 
             DecoderFun = jsx:decoder(?MODULE, [Parent, Owner, StreamRef,
                                                Ref, Async], [explicit_end]),
-            {ok, #state{client_ref=Ref,
-                        decoder=DecoderFun}};
+            {ok, State#state{client_ref=Ref,
+                             decoder=DecoderFun}};
 
         {error, Reason} ->
             exit(Reason)
@@ -103,7 +108,8 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
 loop(#state{owner=Owner,
             ref=StreamRef,
             client_ref=ClientRef,
-            decoder=DecoderFun}=State) ->
+            decoder=DecodeFun}=State) ->
+
 
     hackney:stream_next(ClientRef),
     receive
@@ -111,34 +117,42 @@ loop(#state{owner=Owner,
             loop(State);
         {ClientRef, done} ->
             %% unregister the stream
-                ets:delete(couchbeam_view_streams, StreamRef),
+            ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done};
         {ClientRef, Data} when is_binary(Data) ->
-            case DecoderFun(Data) of
-                {incomplete, DecoderFun2} ->
-                    maybe_continue(State#state{decoder=DecoderFun2});
-                badarg ->
-                    exit(badarg);
-                done ->
-                    %% stop the request
-                    ok = hackney:stop_async(ClientRef),
-                    %% skip the rest of the body so the socket is
-                    %% replaced in the pool
-                    hackney:skip_body(ClientRef),
-                    %% unregister the stream
-                    ets:delete(couchbeam_view_streams, StreamRef),
-                    %% tell to the owner that we are done and exit,
-                    Owner ! {StreamRef, done}
-            end;
+            decode_data(DecodeFun, Data, State);
         {ClientRef, Error} ->
+            ets:delete(couchbeam_view_streams, StreamRef),
             %% report the error
             report_error(Error, StreamRef, Owner),
             exit(Error)
     end.
 
+decode_data(DecodeFun, Data, #state{owner=Owner,
+                                    ref=StreamRef,
+                                    client_ref=ClientRef}=State) ->
+    case DecodeFun(Data) of
+        {incomplete, DecodeFun2} ->
+            maybe_continue(State#state{decoder=DecodeFun2});
+        badarg ->
+            exit(badarg);
+        done ->
+            %% stop the request
+            ok = hackney:stop_async(ClientRef),
+            %% skip the rest of the body so the socket is
+            %% replaced in the pool
+            hackney:skip_body(ClientRef),
+            %% unregister the stream
+            ets:delete(couchbeam_view_streams, StreamRef),
+            %% tell to the owner that we are done and exit,
+            Owner ! {StreamRef, done}
+    end.
+
+
 maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref,
                       async=once}=State) ->
+
     receive
         {Ref, stream_next} ->
             loop(State);
@@ -201,7 +215,7 @@ system_continue(_, _, {loop, State}) ->
 -spec system_terminate(any(), _, _, _) -> no_return().
 system_terminate(Reason, _, _, #state{ref=StreamRef}) ->
     %% unregister the stream
-    ets:delete(couchbeam_view_streams, StreamRef),
+    catch ets:delete(couchbeam_view_streams, StreamRef),
     exit(Reason).
 
 system_code_change(Misc, _, _, _) ->
@@ -224,6 +238,7 @@ handle_event(Event, {Fun, _, _, _}=St) ->
     ?MODULE:Fun(Event, St).
 
 
+
 wait_rows(start_object, St) ->
     St;
 wait_rows(end_object, St) ->
@@ -240,8 +255,8 @@ wait_val({_, _}, {_, _, _, ViewSt}) ->
 
 wait_rows1(start_array, {_, _, _, ViewSt}) ->
     {wait_rows1, 0, [[]], ViewSt};
-wait_rows1(start_object, {_, _, _, ViewSt}) ->
-    {collect_object, 0, [[]], ViewSt};
+wait_rows1(start_object, {_, _, Terms, ViewSt}) ->
+    {collect_object, 0, [[]|Terms], ViewSt};
 wait_rows1(end_array, {_, _, _, ViewSt}) ->
     {wait_rows, 0, [[]], ViewSt}.
 
@@ -261,7 +276,7 @@ collect_object(end_object, {_, NestCount, [Object, {key, Key},
 
 collect_object(end_object, {_, 0, [[], Last|Terms], ViewSt}) ->
     [[Row]] = [[{[{}]}] ++ Last] ++ Terms,
-    send_row(Row, ViewSt);
+    send_row({Row}, ViewSt);
 
 collect_object(end_object, {_, NestCount, [[], Last|Terms], ViewSt}) ->
     {collect_object, NestCount - 1, [[{[{}]}] ++ Last] ++ Terms, ViewSt};

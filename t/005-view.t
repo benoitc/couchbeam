@@ -90,29 +90,16 @@ test() ->
     couchbeam:save_docs(Db, Docs),
     couchbeam:ensure_full_commit(Db),
 
-    case os:getenv("TRAVIS") of
-    false ->
-        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-            [{start_key, <<"test">>}]),
 
-        etap:is(length(Rst3), 4, "total_rows with start_key ok"),
+    {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+        [{start_key, <<"test">>}]),
 
-        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-            [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
+    etap:is(length(Rst3), 4, "total_rows with start_key ok"),
 
-        etap:is(length(Rst4), 3, "total_rows with end_keys ok");
-    _ ->
+    {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
+        [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
 
-        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-            [{startkey, <<"test">>}]),
-
-        etap:is(length(Rst3), 4, "total_rows with start_key ok"),
-
-        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"},
-            [{startkey, <<"test">>}, {endkey, <<"test3">>}]),
-
-        etap:is(length(Rst4), 3, "total_rows with end_keys ok")
-    end,
+    etap:is(length(Rst4), 3, "total_rows with end_keys ok"),
 
 
     ok.

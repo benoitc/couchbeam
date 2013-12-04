@@ -14,7 +14,7 @@
 -export([start/0, stop/0, version/0]).
 
 %% utilities urls
--export([uuids_url/1, db_url/1, doc_url/2]).
+-export([uuids_url/1, db_url/1, doc_url/2, server_url/1]).
 
 %% API urls
 -export([server_connection/0, server_connection/1,
@@ -37,7 +37,6 @@
          fetch_attachment/3, fetch_attachment/4, stream_attachment/1,
          delete_attachment/3, delete_attachment/4,
          put_attachment/4, put_attachment/5, send_attachment/2,
-         all_docs/1, all_docs/2, view/2, view/3,
          ensure_full_commit/1, ensure_full_commit/2,
          compact/1, compact/2]).
 
@@ -176,7 +175,7 @@ get_uuids(Server, Count) ->
 %%          -> {ok, Result}|{error, Error}
 replicate(#server{url=ServerUrl, options=Opts}, RepObj) ->
     Url = hackney_url:make_url(ServerUrl, "_replicate", []),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
     JsonObj = couchbeam_ejson:encode(RepObj),
 
      case couchbeam_httpc:request(post, Url, Headers, JsonObj, Opts) of
@@ -476,6 +475,7 @@ save_docs(Db, Docs) ->
 %% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
+    io:format("want to save ~p~n", [Docs1]),
     Options1 = couchbeam_util:parse_options(Options),
     {Options2, Body} = case couchbeam_util:get_value("all_or_nothing",
             Options1, false) of
@@ -617,12 +617,15 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
 
     Headers = couchbeam_util:get_value(headers, Options, []),
 
+
     FinalHeaders = lists:foldl(fun(Option, Acc) ->
                 case Option of
                         {content_length, V} ->
-                            [{<<"Content-Length">>, V}|Acc];
+                            V1 = couchbeam_util:to_binary(V),
+                            [{<<"Content-Length">>, V1}|Acc];
                         {content_type, V} ->
-                            [{<<"Content-Type">>, V}|Acc];
+                            V1 = couchbeam_util:to_binary(V),
+                            [{<<"Content-Type">>, V1}|Acc];
                         _ ->
                             Acc
                 end
@@ -703,100 +706,6 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
             end
     end.
 
-%% @doc get all documents from a CouchDB database.
-%% @equiv all_docs(Db, [])
-%% @deprecated use new api in {@link couch_view}.
-all_docs(Db) ->
-    all_docs(Db, []).
-
-%% @doc get all documents from a CouchDB database. It return a
-%% #view{} record that you can use with couchbeam_oldview functions:
-%% <ul>
-%%      <li>{@link couchbeam_oldview:count/1. couchbeam_oldview:count/1}</li>
-%%      <li>{@link couchbeam_oldview:fetch/1. couchbeam_oldview:fetch/1}</li>
-%%      <li>{@link couchbeam_oldview:first/1. couchbeam_oldview:first/1}</li>
-%%      <li>{@link couchbeam_oldview:fold/1. couchbeam_oldview:fold/1}</li>
-%%      <li>{@link couchbeam_oldview:foreach/1. couchbeam_oldview:foreach/1}</li>
-%% </ul>
-%%
-%% @spec all_docs(Db::db(), Options::list())
-%%              -> {ok, View::view()}|{error, term()}
-%% @deprecated use new api in {@link couch_view}.
-all_docs(Db, Options) ->
-    view(Db, "_all_docs", Options).
-
-%% @doc  get view results from database
-%% @equiv view(Db, ViewName, [])
-%% @deprecated use new api in {@link couch_view}.
-view(Db, ViewName) ->
-    view(Db, ViewName, []).
-
-%% @doc get view results from database. viewname is generally
-%% a tupple like {DesignName::string(), ViewName::string()} or string
-%% like "designname/viewname". It return a #view{} record  that you can use
-%% with couchbeam_oldview functions:
-%%
-%% <ul>
-%%      <li>{@link couchbeam_oldview:count/1. couchbeam_oldview:count/1}</li>
-%%      <li>{@link couchbeam_oldview:fetch/1. couchbeam_oldview:fetch/1}</li>
-%%      <li>{@link couchbeam_oldview:first/1. couchbeam_oldview:first/1}</li>
-%%      <li>{@link couchbeam_oldview:fold/1. couchbeam_oldview:fold/1}</li>
-%%      <li>{@link couchbeam_oldview:foreach/1. couchbeam_oldview:foreach/1}</li>
-%% </ul>
-%%
-%% Options are CouchDB view parameters
-%%
-%% See [http://wiki.apache.org/couchdb/HTTP_view_API] for more informations.
-%%
-%% @spec view(Db::db(), ViewName::string(), Options::list())
-%%          -> {ok, View::view()}|{error, term()}
-%% @deprecated use new api in {@link couch_view}.
-
-view(#db{server=Server}=Db, ViewName, Options) ->
-    ViewName1 = couchbeam_util:to_list(ViewName),
-    Options1 = couchbeam_util:parse_options(Options),
-    Path = case ViewName1 of
-        {DName, VName} ->
-            [db_url(Db), "/_design/", DName, "/_view/", VName];
-        "_all_docs" ->
-            [db_url(Db), "/_all_docs"];
-        _Else ->
-            case string:tokens(ViewName1, "/") of
-            [DName, VName] ->
-                [db_url(Db), "/_design/", DName, "/_view/", VName];
-            _ ->
-                undefined
-            end
-    end,
-    case Path of
-    undefined ->
-        {error, invalid_view_name};
-    _ ->
-        {Method, Options2, Body} = case couchbeam_util:get_value("keys",
-                Options1) of
-            undefined ->
-                {get, Options1, []};
-            Keys ->
-                Body1 = couchbeam_ejson:encode({[{<<"keys">>, Keys}]}),
-                {post, proplists:delete("keys", Options1), Body1}
-            end,
-        Headers = case Method of
-            post -> [{"Content-Type", "application/json"}];
-            _ -> []
-        end,
-        NewView = #view{
-            db = Db,
-            name = ViewName,
-            options = Options2,
-            method = Method,
-            body = Body,
-            headers = Headers,
-            url_parts = Path,
-            url = hackney_url:make_url(server_url(Server), Path, Options2)
-        },
-        {ok, NewView}
-    end.
-
 %% @doc commit all docs in memory
 %% @equiv ensure_full_commit(Db, [])
 ensure_full_commit(Db) ->
@@ -809,7 +718,7 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Url = hackney_url:make_url(server_url(Server), [db_url(Db),
                                                     "/_ensure_full_commit"],
                                Options),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [201]) of
         {ok, _, _, Ref} ->
             {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
@@ -825,7 +734,7 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 compact(#db{server=Server, options=Opts}=Db) ->
     Url = hackney_url:make_url(server_url(Server), [db_url(Db), "/_compact"],
                                []),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [202]) of
         {ok, _, _, Ref} ->
             hackney:skip_body(Ref),
@@ -840,7 +749,7 @@ compact(#db{server=Server, options=Opts}=Db) ->
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
     Url = hacney_url:make_url(server_url(Server), [db_url(Db), "/_compact/",
                                                    DesignName], []),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [202]) of
         {ok, _, _, Ref} ->
             hackney:skip_body(Ref),
@@ -858,7 +767,7 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
 maybe_docid(Server, {DocProps}) ->
     case couchbeam_util:get_value(<<"_id">>, DocProps) of
         undefined ->
-            DocId = [get_uuid(Server)],
+            [DocId] = get_uuid(Server),
             {[{<<"_id">>, DocId}|DocProps]};
         _DocId ->
             {DocProps}

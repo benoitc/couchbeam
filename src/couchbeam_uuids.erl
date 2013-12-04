@@ -46,7 +46,7 @@ init(_) ->
 handle_call({get_uuids, #server{url=Url}=Server, Count},
         _From, State) ->
     {ok, Uuids} = do_get_uuids(Server, Count, [],
-    ets:lookup(couchbeam_uuids, Url)),
+                               ets:lookup(couchbeam_uuids, Url)),
     {reply, Uuids, State}.
 
 
