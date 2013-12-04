@@ -5,7 +5,7 @@
 
 -module(couchbeam_util).
 
--include_lib("hackney.hrl").
+-include_lib("hackney/include/hackney.hrl").
 
 -export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).
@@ -28,18 +28,18 @@ encode_att_name(Name) ->
        end, [], string:tokens(Name, "/")),
     lists:flatten(Parts).
 
-encode_docid(DocId) when is_binary(DocId) ->
-    encode_docid(binary_to_list(DocId));
+encode_docid(DocId) when is_list(DocId) ->
+    encode_docid(list_to_binary(DocId));
 encode_docid(DocId)->
     ?ENCODE_DOCID_FUNC(DocId).
 
 encode_docid1(DocId) ->
     case DocId of
-        "_design/" ++ Rest ->
-            Rest1 = encode_docid(Rest),
-            "_design/" ++ Rest1;
+        << "_design/", Rest/binary >> ->
+            Rest1 = hackney_url:urlencode(Rest),
+            <<"_design/", Rest1 >>;
         _ ->
-            ibrowse_lib:url_encode(DocId)
+            hackney_url:urlencode(DocId)
     end.
 
 encode_docid_noop(DocId) ->
@@ -74,7 +74,7 @@ oauth_header(Url, Action, OauthProps) ->
     Token = to_list(get_value(token, OauthProps)),
     TokenSecret = to_list(get_value(token_secret, OauthProps)),
     ConsumerSecret = to_list(get_value(consumer_secret, OauthProps)),
-    Signatur§eMethodStr = to_list(get_value(signature_method,
+    SignatureMethodStr = to_list(get_value(signature_method,
             OauthProps, "HMAC-SHA1")),
 
     SignatureMethodAtom = case SignatureMethodStr of

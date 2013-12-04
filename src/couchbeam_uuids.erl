@@ -99,8 +99,8 @@ get_new_uuids(Server) ->
     get_new_uuids(Server, []).
 
 get_new_uuids(#server{url=ServerUrl, options=Opts}, Acc) ->
-    Count = integer_to_list(1000 - length(Acc)),
-    Url = hackney_url:make_url(ServerUrl, "_uuids", [{"count", Count}]),
+    Count = list_to_binary(integer_to_list(1000 - length(Acc))),
+    Url = hackney_url:make_url(ServerUrl, "_uuids", [{<<"count">>, Count}]),
     case couchbeam_httpc:request(get, Url, [], <<>>, Opts) of
         {ok, 200, _, Ref} ->
             {ok, Body} = hackney:body(Ref),

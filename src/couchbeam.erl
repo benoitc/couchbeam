@@ -230,7 +230,7 @@ all_dbs(#server{url=ServerUrl, options=Opts}) ->
 %% @spec db_exists(server(), string()) -> boolean()
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, DbName, []),
-    case couchbeam_httpc:request(head, Url, [], <<>>, Opts, [200]) of
+    case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, _, Ref} ->
             hackney:skip_body(Ref),
             true;
@@ -263,12 +263,12 @@ create_db(#server{url=ServerUrl, options=Opts}=Server, DbName, Options,
           Params) ->
     Options1 = couchbeam_util:propmerge1(Options, Opts),
     Url = hackney_url:make_url(ServerUrl, dbname(DbName), Params),
-    Resp = couchbeam_httpc:request(put, Url, [], <<>>, Options1, [201]),
+    Resp = couchbeam_httpc:db_request(put, Url, [], <<>>, Options1, [201]),
     case Resp of
         {ok, _Status, _Headers, Ref} ->
             hackney:skip_body(Ref),
             {ok, #db{server=Server, name=DbName, options=Options1}};
-        {error,  {bad_response, {412, _, _}}} ->
+        {error, precondition_failed} ->
             {error, db_exists};
        Error ->
           Error
@@ -410,7 +410,7 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Options) ->
     end,
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId), Options),
     Body = couchbeam_ejson:encode(Doc),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
 
     case couchbeam_httpc:db_request(put, Url, Headers, Body, Opts,
                                     [200, 201]) of
@@ -449,8 +449,7 @@ delete_docs(Db, Docs) ->
 %% members.
 %% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 delete_docs(Db, Docs, Options) ->
-    Empty = couchbeam_util:get_value("empty_on_delete", Options,
-        false),
+    Empty = couchbeam_util:get_value("empty_on_delete", Options, false),
 
     {FinalDocs, FinalOptions} = case Empty of
         true ->
@@ -494,7 +493,7 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Url = hackney_url:make_url(server_url(Server),
                                [db_url(Db), "/", "_bulk_docs"],
                                Options2),
-    Headers = [{"Content-Type", "application/json"}],
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, Body, Opts, [201]) of
         {ok, _, _, Ref} ->
             {ok, couchbeam_httpc:json_body(Ref)};
@@ -511,7 +510,7 @@ lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, Headers, _} ->
             HeadersDict = hackney_headers:new(Headers),
-            re:replace(hackney_headers:get_value("etag", HeadersDict),
+            re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
                 <<"\"">>, <<>>, [global, {return, binary}]);
         Error ->
             Error
@@ -563,9 +562,13 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
             hackney:body(Ref);
         {ok, 200, _, Ref} ->
             {ok, Ref};
+        {ok, 404, _, Ref} ->
+            hackney:skip_body(Ref),
+            {error, not_found};
         {ok, Status, Headers, Ref} ->
             {ok, Body} = hackney:body(Ref),
             {error, {bad_response, {Status, Headers, Body}}};
+
         Error ->
             Error
     end.
@@ -605,19 +608,23 @@ put_attachment(Db, DocId, Name, Body)->
 %%       body() = [] | string() | binary() | fun_arity_0() |
 %%       {fun_arity_1(), initial_state(), stream}
 %%       initial_state() = term()
-put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body, Options) ->
+put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
+               Options) ->
     QueryArgs = case couchbeam_util:get_value(rev, Options) of
         undefined -> [];
-        Rev -> [{"rev", couchbeam_util:to_list(Rev)}]
+        Rev -> [{<<"rev">>, couchbeam_util:to_binary(Rev)}]
     end,
 
     Headers = couchbeam_util:get_value(headers, Options, []),
 
     FinalHeaders = lists:foldl(fun(Option, Acc) ->
                 case Option of
-                    {content_length, V} -> [{"Content-Length", V}|Acc];
-                    {content_type, V} -> [{"Content-Type", V}|Acc];
-                    _ -> Acc
+                        {content_length, V} ->
+                            [{<<"Content-Length">>, V}|Acc];
+                        {content_type, V} ->
+                            [{<<"Content-Type">>, V}|Acc];
+                        _ ->
+                            Acc
                 end
         end, Headers, Options),
 
@@ -660,7 +667,8 @@ delete_attachment(Db, Doc, Name) ->
 
 %% @doc delete a document attachment
 %% @spec(db(), string()|list(), string(), list() -> {ok, Result} | {error, Error}
-delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name, Options) ->
+delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
+                  Options) ->
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
         {Props} ->
@@ -677,7 +685,7 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name, Options
         _ ->
             Options2 = case couchbeam_util:get_value("rev", Options1) of
                 undefined ->
-                    [{"rev", Rev}|Options1];
+                    [{<<"rev">>, couchbeam_util:to_binary(Rev)}|Options1];
                 _ ->
                     Options1
             end,
@@ -851,7 +859,7 @@ maybe_docid(Server, {DocProps}) ->
     case couchbeam_util:get_value(<<"_id">>, DocProps) of
         undefined ->
             DocId = [get_uuid(Server)],
-            {[{<<"_id">>, list_to_binary(DocId)}|DocProps]};
+            {[{<<"_id">>, DocId}|DocProps]};
         _DocId ->
             {DocProps}
     end.
@@ -875,7 +883,7 @@ db_url(#db{name=DbName}) ->
     [DbName].
 
 doc_url(Db, DocId) ->
-    [db_url(Db), "/", DocId].
+    iolist_to_binary([db_url(Db), "/", DocId]).
 
 
 

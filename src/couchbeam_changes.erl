@@ -6,7 +6,6 @@
 -module(couchbeam_changes).
 
 -include("couchbeam.hrl").
--include_lib("ibrowse/include/ibrowse.hrl").
 
 -export([stream/2, stream/3,
          fetch/1, fetch/2,

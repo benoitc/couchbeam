@@ -17,7 +17,11 @@ start_link() ->
 
 init([]) ->
     Uuids = {couchbeam_uuids,
-                {couchbeam_uuids, start_link, []},
-	            permanent,2000,worker, [couchbeam_uuids]},
+             {couchbeam_uuids, start_link, []},
+             permanent,2000,worker, [couchbeam_uuids]},
 
-    {ok, {{one_for_one, 10, 3600}, [Uuids]}}.
+    ViewSup = {couchbeam_view_sup,
+               {couchbeam_view_sup, start_link, []},
+               permanent, 2000, supervisor, [couchbeam_view_sup]},
+
+    {ok, {{one_for_one, 10, 3600}, [Uuids, ViewSup]}}.
