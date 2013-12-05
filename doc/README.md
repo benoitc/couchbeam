@@ -58,11 +58,12 @@ Or add it to your rebar config
     ....
     {couchbeam, ".*", {git, "git://github.com/benoitc/couchbeam.git", {branch, "master"}}}
 ]}.
+```
 
 Note to compile with jiffy you need to define in the erlang options the
-variable `WITH_JIFFY'.
+variable `WITH_JIFFY`.
 
-if you use rebar, add to your `rebar.config':
+if you use rebar, add to your `rebar.config`:
 
 ```
 {erl_opts, [{d, WITH_JIFFY}]}.
