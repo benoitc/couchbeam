@@ -43,13 +43,36 @@ to get last changelog.
 
 ## Installation
 
-Download the sources from our [Github repository](http://github.com/benoitc/couchbeam).
+Download the sources from our [Github repository](http://github.com/benoitc/couchbeam)
 
-To build the application simply run `make`. This should build .beam, .app
+To build the application simply run 'make'. This should build .beam, .app
 files and documentation.
 
-To run tests run `make test`.
-To generate doc, run `make doc`.
+To run tests run 'make test'.
+To generate doc, run 'make doc'.
+
+Or add it to your rebar config
+
+```
+{deps, [
+    ....
+    {couchbeam, ".*", {git, "git://github.com/benoitc/couchbeam.git", {branch, "master"}}}
+]}.
+
+Note to compile with jiffy you need to define in the erlang options the
+variable `WITH_JIFFY'.
+
+if you use rebar, add to your `rebar.config':
+
+```
+{erl_opts, [{d, WITH_JIFFY}]}.
+```
+
+or use the `rebar` command with the `-D` options:
+
+```
+rebar compile -DWITH_JIFFY
+```
 
 ## Basic Usage
 

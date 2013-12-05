@@ -10,7 +10,7 @@
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#decode-1">decode/1</a></td><td>decode a binary to an EJSON term.</td></tr><tr><td valign="top"><a href="#encode-1">encode/1</a></td><td>encode an erlang term to JSON.</td></tr><tr><td valign="top"><a href="#erl_decode-1">erl_decode/1</a></td><td></td></tr><tr><td valign="top"><a href="#erl_encode-1">erl_encode/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#decode-1">decode/1</a></td><td>decode a binary to an EJSON term.</td></tr><tr><td valign="top"><a href="#encode-1">encode/1</a></td><td>encode an erlang term to JSON.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -45,17 +45,3 @@ encode(D::<a href="#type-ejson">ejson()</a>) -&gt; binary()
 
 encode an erlang term to JSON. Throw an exception if there is
 any error.
-<a name="erl_decode-1"></a>
-
-### erl_decode/1 ###
-
-`erl_decode(D) -> any()`
-
-
-<a name="erl_encode-1"></a>
-
-### erl_encode/1 ###
-
-`erl_encode(D) -> any()`
-
-
