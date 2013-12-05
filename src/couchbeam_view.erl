@@ -105,7 +105,7 @@ stream(Db, ViewName) ->
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}
-%%    | `{stream_to, Pid}`: the pid where the changes will be sent,
+%%    | `{stream_to, Pid}': the pid where the changes will be sent,
 %%      by default the current pid. Used for continuous and longpoll
 %%      connections</pre>
 %%

@@ -64,7 +64,7 @@ follow(Db) ->
 %%      <li><code>{view, ViewName}</code>: use a view function as filter. Note
 %%          that it requires to set filter special value <code>"_view"</code>
 %%          to enable this feature.</li>
-%%      <li>>`{stream_to, Pid}`: the pid where the changes will be sent,
+%%      <li>>`{stream_to, Pid}': the pid where the changes will be sent,
 %%      by default the current pid. Used for continuous and longpoll
 %%      connections</li>
 %%   </ul></p>

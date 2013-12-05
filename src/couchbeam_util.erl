@@ -112,7 +112,7 @@ propmerge(F, L1, L2) ->
 propmerge1(L1, L2) ->
     propmerge(fun(_, V1, _) -> V1 end, L1, L2).
 
-%% @replace a value in a proplist
+%% @doc replace a value in a proplist
 force_param(Key, Value, Options) ->
     case couchbeam_util:get_value(Key, Options) of
         undefined ->

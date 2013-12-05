@@ -524,7 +524,7 @@ fetch_attachment(Db, DocId, Name) ->
 %% Options are
 %% <ul>
 %% <li>`stream': to start streaming an attachment. the function return
-%% `{ok, Ref}` where is a ref to the attachment</li>
+%% `{ok, Ref}' where is a ref to the attachment</li>
 %% <li>Other options that can be sent using the REST API</li>
 %% </ul>
 %%
