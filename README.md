@@ -10,7 +10,7 @@ __Version:__ 0.9.0
 
 Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
 
-Main features:
+#### Main features:
 
 - Complete support of the CouchDB API
 - Stream view results to your app
@@ -21,54 +21,19 @@ Main features:
 - support [Jiffy](http://github.com/davisp/jiffy) a JSON encoder/decoder
 in C.
 
-## Useful modules are:
+#### Useful modules are:
 
-
-<dt><code>couchbeam</code></dt>
-
-
-
-<dd>The <code>couchbeam</code> module is the main interface for interaction
+- [`couchbeam`](http://github.com/benoitc/couchbeam/blob/hackney/doc/couchbeam.md): The `couchbeam` module is the main interface for interaction
 with this application. It includes functions for managing connections to
 CouchDB servers and Couchdb Databases and for performing document
-creations, updates, deletes, views...</dd>
-
-
-
-<dt><code>couchbeam_doc</code></dt>
-
-
-
-<dd>Module to manipulate Documents structures. You can set values,
-updates keys, ..</dd>
-
-
-
-<dt><code>couchbeam_attachments</code></dt>
-
-
-
-<dd>Module to manipulate attachments. You can add, remove
-attachments in a Document structure (inline attachments).</dd>
-
-
-
-<dt><code>couchbeam_view</code></dt>
-
-
-
-<dd>Module to manage view results.</dd>
-
-
-
-<dt><code>couchbeam_changes</code></dt>
-
-
-
-<dd>Module to manage changes feeds in couchdb. Follow continuously
-the changes in a db or get all changes at once.</dd>
-
-
+creations, updates, deletes, views...
+- [`couchbeam_doc`](http://github.com/benoitc/couchbeam/blob/hackney/doc/couchbeam_doc.md) Module to manipulate Documents structures. You can set values,
+updates keys, ...
+- [`couchbeam_attachments`](http://github.com/benoitc/couchbeam/blob/hackney/doc/couchbeam_attachments.md): Module to manipulate attachments. You can add, remove
+attachments in a Document structure (inline attachments).
+- [`couchbeam_view`](http://github.com/benoitc/couchbeam/blob/hackney/doc/couchbeam_view.md): Module to manage view results.
+- [`couchbeam_changes`](http://github.com/benoitc/couchbeam/blob/hackney/doc/couchbeam_changes.md): Module to manage changes feeds in couchdb. Follow continuously
+the changes in a db or get all changes at once.
 
 The goal of Couchbeam is to give all access to CouchDB 1.0 and sup API via
 HTTP in erlang.

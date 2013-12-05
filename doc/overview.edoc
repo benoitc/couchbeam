@@ -15,7 +15,7 @@
 
 Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
 
-Main features:
+#### Main features:
 
 - Complete support of the CouchDB API
 - Stream view results to your app
@@ -27,29 +27,19 @@ Main features:
   in C.
 
 
-## Useful modules are:
+#### Useful modules are:
 
-<dl>
-    <dt>`couchbeam'</dt>
-    <dd>The `couchbeam' module is the main interface for interaction
+- {@link couchbeam}: The `couchbeam' module is the main interface for interaction
 with this application. It includes functions for managing connections to
 CouchDB servers and Couchdb Databases and for performing document
-creations, updates, deletes, views...</dd>
-    <dt>`couchbeam_doc'</dt>
-    <dd>Module to manipulate Documents structures. You can set values,
-updates keys, ..</dd>
-
-    <dt>`couchbeam_attachments'</dt>
-    <dd>Module to manipulate attachments. You can add, remove
-attachments in a Document structure (inline attachments).</dd>
-
-    <dt>`couchbeam_view'</dt>
-    <dd>Module to manage view results.</dd>
-
-     <dt>`couchbeam_changes'</dt>
-    <dd>Module to manage changes feeds in couchdb. Follow continuously
-the changes in a db or get all changes at once.</dd>
-</dl>
+creations, updates, deletes, views...
+- {@link couchbeam_doc} Module to manipulate Documents structures. You can set values,
+updates keys, ...
+- {@link couchbeam_attachments}: Module to manipulate attachments. You can add, remove
+attachments in a Document structure (inline attachments).
+- {@link couchbeam_view}: Module to manage view results.
+- {@link couchbeam_changes}: Module to manage changes feeds in couchdb. Follow continuously
+the changes in a db or get all changes at once.
 
 
 The goal of Couchbeam is to give all access to CouchDB 1.0 and sup API via
