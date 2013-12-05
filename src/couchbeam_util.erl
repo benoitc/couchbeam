@@ -38,7 +38,7 @@ encode_docid1(DocId) ->
     case DocId of
         << "_design/", Rest/binary >> ->
             Rest1 = hackney_url:urlencode(Rest),
-            <<"_design/", Rest1 >>;
+            <<"_design/", Rest1/binary >>;
         _ ->
             hackney_url:urlencode(DocId)
     end.
