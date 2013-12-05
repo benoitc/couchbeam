@@ -29,6 +29,7 @@
                 owner,
                 req,
                 ref,
+                mref,
                 client_ref=nil,
                 decoder,
                 async=normal}).
@@ -36,6 +37,7 @@
 -record(viewst, {parent,
                  owner,
                  ref,
+                 mref,
                  client_ref,
                  async=false}).
 
@@ -56,10 +58,14 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
 
     Async = proplists:get_value(async, StreamOptions, normal),
 
+    %% monitor the process receiving§ the messages
+    MRef = erlang:monitor(process, Owner),
+
     InitState = #state{parent=Parent,
                        owner=Owner,
                        req=Req,
                        ref=StreamRef,
+                       mref=MRef,
                        async=Async},
 
     %% connect to the view
@@ -72,9 +78,12 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
     proc_lib:init_ack(Parent, {ok, self()}),
 
     %% start the loop
-    loop(State).
+    loop(State),
+    %% stop to monitor the parent
+    erlang:demonitor(MRef),
+    ok.
 
-do_init_stream({#db{options=Opts}, Url, Args}, State) ->
+do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
     %% we are doing the request asynchronously
     FinalOpts = [{async, once} | Opts],
     {ok, Ref} = case Args#view_query_args.method of
@@ -86,6 +95,9 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
             hackney:request(post, Url, [], Body, FinalOpts)
     end,
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {Ref, {status, 200, _}} ->
             #state{parent=Parent,
                    owner=Owner,
@@ -93,7 +105,8 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
                    async=Async} = State,
 
             DecoderFun = jsx:decoder(?MODULE, [Parent, Owner, StreamRef,
-                                               Ref, Async], [explicit_end]),
+                                               MRef, Ref, Async],
+                                     [explicit_end]),
             {ok, State#state{client_ref=Ref,
                              decoder=DecoderFun}};
 
@@ -106,12 +119,16 @@ do_init_stream({#db{options=Opts}, Url, Args}, State) ->
 
 loop(#state{owner=Owner,
             ref=StreamRef,
+            mref=MRef,
             client_ref=ClientRef,
             decoder=DecodeFun}=State) ->
 
 
     hackney:stream_next(ClientRef),
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {ClientRef, {headers, _Headers}} ->
             loop(State);
         {ClientRef, done} ->
@@ -149,10 +166,13 @@ decode_data(DecodeFun, Data, #state{owner=Owner,
     end.
 
 
-maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref,
+maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref, mref=MRef,
                       async=once}=State) ->
 
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {Ref, stream_next} ->
             loop(State);
         {Ref, cancel} ->
@@ -174,8 +194,14 @@ maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref,
     after 0 ->
             loop(State)
     end;
-maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref}=State) ->
+maybe_continue(#state{parent=Parent,
+                      owner=Owner,
+                      ref=Ref,
+                      mref=MRef}=State) ->
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {Ref, cancel} ->
             maybe_close(State),
             %% unregister the stream
@@ -223,10 +249,11 @@ system_code_change(Misc, _, _, _) ->
 
 %%% json decoder %%%
 
-init([Parent, Owner, StreamRef, ClientRef, Async]) ->
+init([Parent, Owner, StreamRef, MRef, ClientRef, Async]) ->
     InitialState = #viewst{parent=Parent,
                            owner=Owner,
                            ref=StreamRef,
+                           mref=MRef,
                            client_ref=ClientRef,
                            async=Async},
     {wait_rows, 0, [[]], InitialState}.
@@ -318,9 +345,13 @@ send_row(Row, #viewst{owner=Owner, ref=Ref}=ViewSt) ->
 maybe_continue_decoding(#viewst{parent=Parent,
                                 owner=Owner,
                                 ref=Ref,
+                                mref=MRef,
                                 client_ref=ClientRef,
                                 async=once}=ViewSt) ->
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {Ref, stream_next} ->
             {wait_rows1, 0, [[]], ViewSt};
         {Ref, cancel} ->
@@ -348,8 +379,12 @@ maybe_continue_decoding(#viewst{parent=Parent,
 maybe_continue_decoding(#viewst{parent=Parent,
                                 owner=Owner,
                                 ref=Ref,
+                                mref=MRef,
                                 client_ref=ClientRef}=ViewSt) ->
     receive
+        {'DOWN', MRef, _, _, _} ->
+            %% parent exited there is no need to continue
+            exit(normal);
         {Ref, cancel} ->
             hackney:close(ClientRef),
             Owner ! {Ref, ok},
