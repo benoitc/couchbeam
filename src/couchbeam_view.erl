@@ -8,7 +8,7 @@
 
 -include("couchbeam.hrl").
 
--export([stream/2, stream/3, stream/4,
+-export([stream/2, stream/3,
          cancel_stream/1, stream_next/1,
          fetch/1, fetch/2, fetch/3,
          count/1, count/2, count/3,
@@ -64,7 +64,7 @@ fetch(Db, ViewName) ->
 %% options.</p>
 %% <p>Return: {ok, Rows} or {error, Rows, Error}</p>
 fetch(Db, ViewName, Options) ->
-    case stream(Db, ViewName, self(), Options) of
+    case stream(Db, ViewName, Options) of
         {ok, Ref} ->
             collect_view_results(Ref, []);
         Error ->
@@ -72,22 +72,15 @@ fetch(Db, ViewName, Options) ->
     end.
 
 
--spec stream(Db::db(), Client::pid()) -> {ok, StartRef::term(),
-        ViewPid::pid()} | {error, term()}.
-%% @equiv stream(Db, 'all_docs', Client, [])
-stream(Db, Client) ->
-    stream(Db, 'all_docs', Client, []).
-
-
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
-        ViewName::string()}, Client::pid()) -> {ok, StartRef::term(),
+        ViewName::string()}) -> {ok, StartRef::term(),
         ViewPid::pid()} | {error, term()}.
 %% @equiv stream(Db, ViewName, Client, [])
-stream(Db, ViewName, Client) ->
-    stream(Db, ViewName, Client, []).
+stream(Db, ViewName) ->
+    stream(Db, ViewName, []).
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
-        ViewName::string()}, Client::pid(), Options::view_options())
+        ViewName::string()}, Options::view_options())
     -> {ok, StartRef::term(), ViewPid::pid()} | {error, term()}.
 %% @doc stream view results to a pid
 %%  <p>Db: a db record</p>
@@ -111,7 +104,10 @@ stream(Db, ViewName, Client) ->
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}</pre>
+%%    | {keys, list(binary())}
+%%    | `{stream_to, Pid}`: the pid where the changes will be sent,
+%%      by default the current pid. Used for continuous and longpoll
+%%      connections</pre>
 %%
 %%  <ul>
 %%      <li><code>{key, Key}</code>: key value</li>
@@ -147,11 +143,17 @@ stream(Db, ViewName, Client) ->
 %% used to disctint all changes from this pid. ViewPid is the pid of
 %% the view loop process. Can be used to monitor it or kill it
 %% when needed.</p>
-stream(Db, ViewName, ClientPid, Options) ->
-    make_view(Db, ViewName, Options, fun(Args, Url) ->
+stream(Db, ViewName, Options) ->
+    {To, Options1} = case proplists:get_value(stream_to, Options) of
+        undefined ->
+            {self(), Options};
+        Pid ->
+            {Pid, proplists:delete(stream_to, Options)}
+    end,
+    make_view(Db, ViewName, Options1, fun(Args, Url) ->
                 Ref = make_ref(),
                 Req = {Db, Url, Args},
-                case supervisor:start_child(couchbeam_view_sup, [ClientPid,
+                case supervisor:start_child(couchbeam_view_sup, [To,
                                                                  Ref,
                                                                  Req,
                                                                  Options]) of
@@ -292,7 +294,7 @@ fold(Function, Acc, Db, ViewName, Options) ->
     %% make sure we stream item by item so we can stop at any time.
     Options1 = couchbeam_util:force_param(async, once, Options),
     %% start iterrating the view results
-    case stream(Db, ViewName, self(), Options1) of
+    case stream(Db, ViewName, Options1) of
         {ok, Ref} ->
             fold_view_results(Ref, Function, Acc);
         Error ->
