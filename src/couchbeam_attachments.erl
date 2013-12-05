@@ -10,65 +10,8 @@
 
 -include("couchbeam.hrl").
 
--export([wait_for_attachment/2, attachment_acceptor/3]).
 -export([add_inline/3, add_inline/4,
         delete_inline/2]).
-
-%% @doc collect all attachments chunks
-wait_for_attachment(ReqId, Timeout) ->
-    wait_for_attachment(ReqId, Timeout, []).
-
-wait_for_attachment(ReqId, Timeout, Acc) ->
-    receive
-        {ReqId, done} ->
-            {ok, iolist_to_binary(lists:reverse(Acc))};
-        {ReqId, {ok, Data}} ->
-            wait_for_attachment(ReqId, Timeout, [Data|Acc]);
-
-        {ReqId, {error, Reason}} ->
-            case Reason of
-            {"404", _} ->
-                {error, not_found};
-            {"412", _} ->
-                {error, precondition_failed};
-            _ ->
-                {error, Reason}
-            end
-    after Timeout ->
-        {error, {timeout, Acc}}
-    end.
-
-%% @doc initiate attachment fetching
-attachment_acceptor(Pid, PidRef, Timeout) ->
-    receive
-        {ibrowse_req_id, PidRef, IbrowseRef} ->
-            attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef)
-    after Timeout ->
-        Pid ! {PidRef, {error, {timeout, []}}}
-    end.
-
-%% @doc main ibrowse loop to fetch attachments
-attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef) ->
-    receive
-        {ibrowse_async_response_end, IbrowseRef} ->
-            Pid ! {PidRef, done};
-        {ibrowse_async_response, IbrowseRef, {error,Error}} ->
-            Pid ! {PidRef, {error, Error}};
-        {ibrowse_async_response, IbrowseRef, Data} ->
-            Pid ! {PidRef, {ok, Data}},
-            attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef),
-            ibrowse:stream_next(IbrowseRef);
-
-        {ibrowse_async_headers, IbrowseRef, Status, Headers} ->
-            if Status =/= "200" ->
-                    Pid ! {PidRef, {error, {Status, Headers}}};
-                true ->
-                    ibrowse:stream_next(IbrowseRef),
-                    attachment_acceptor(Pid, PidRef, Timeout, IbrowseRef)
-            end
-    after Timeout ->
-        Pid ! {PidRef, {error, timeout}}
-    end.
 
 %% @spec add_inline(Doc::json_obj(),Content::attachment_content(),
 %%      AName::string()) -> json_obj()

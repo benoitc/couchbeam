@@ -1,93 +1,112 @@
-@title Couchbeam - simple erlang CouchDB framework.
-@copyright 2009-2012 (c) Benoit Chesneau <benoitc@e-engura.org>
-@version 0.7.3
-
-@doc couchbeam is a simple erlang <a href="http://couchdb.apache.org">CouchDB</a> framework. 
-couchbeam provides you a full featured and easy client to access and manage multiple
-couchdb Nodes. Useful modules are:
-
-<dl>
-    <dt>{@link couchbeam}</dt>
-    <dd>The `couchbeam' module is the main interface for interaction
-    with this application. It includes functions for managing
-connections to CouchDB servers and Couchdb Databases and for performing
-document creations, updates, deletes, views...</dd>
-
-    <dt>{@link couchbeam_doc}</dt>
-    <dd>Module to manipulate Documents structures. You can set values,
-updates keys, ..</dd>
-
-    <dt>{@link couchbeam_attachments}</dt>
-    <dd>Module to manipulate attachments. You can add, remove
-attachments in a Document structure (inline attachments).</dd>
-    
-    <dt>{@link couchbeam_view}</dt>
-    <dd>Module to manage view results you get from `couchbeam:view' and
-`couchbeam:all_docs' functions. You can count results, fetch all, get
-the first result of a view, fold between them or execute a function on
-each rows.</dd>
-</dl>
+%% -*- erlang -*-
+%%
+%% This file is part of couchbeam released under the MIT license.
+%% See the NOTICE for more information.
 
 
-The goal of couchbeam is to give all access to CouchDB >0.10 API via
-HTTP in erlang. 
 
-Read the <a
-href="https://raw.github.com/benoitc/couchbeam/master/NEWS">NEWS</a>
-file to get last changelog.
+@copyright 2009-2013 Benoît Chesneau.
+@version 0.9.0
+@title Couchbeam - simple erlang CouchDB library.
 
-<h2>Installation</h2>
+@doc
 
-Download the sources from our <a
-href="http://github.com/benoitc/couchbeam">Github repository</a>.
+# couchbeam
 
-To build the application simply run 'make'. This should build .beam, .app
+Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
+
+#### Main features:
+
+- Complete support of the CouchDB API
+- Stream view results to your app
+- Stream changes feeds
+- reduced memory usage
+- fetch and send attachments in a streaming fashion
+- by default use the JSX module to encode/decode JSON
+- support [Jiffy](http://github.com/davisp/jiffy) a JSON encoder/decoder
+  in C.
+
+
+#### Useful modules are:
+
+- {@link couchbeam}: The `couchbeam' module is the main interface for interaction
+with this application. It includes functions for managing connections to
+CouchDB servers and Couchdb Databases and for performing document
+creations, updates, deletes, views...
+- {@link couchbeam_doc} Module to manipulate Documents structures. You can set values,
+updates keys, ...
+- {@link couchbeam_attachments}: Module to manipulate attachments. You can add, remove
+attachments in a Document structure (inline attachments).
+- {@link couchbeam_view}: Module to manage view results.
+- {@link couchbeam_changes}: Module to manage changes feeds in couchdb. Follow continuously
+the changes in a db or get all changes at once.
+
+
+The goal of Couchbeam is to give all access to CouchDB 1.0 and sup API via
+HTTP in erlang.
+
+Read the [NEWS](https://raw.github.com/benoitc/couchbeam/master/NEWS) file
+to get last changelog.
+
+## Installation
+
+Download the sources from our [Github repository](http://github.com/benoitc/couchbeam).
+
+To build the application simply run `make'. This should build .beam, .app
 files and documentation.
 
-To run tests run 'make test'.
-To generate doc, run 'make doc'.
+To run tests run `make test'.
+To generate doc, run `make doc'.
 
-<h2>Basic Usage</h2>
+## Basic Usage
 
-The basic pattern of use of couchbeam is:
+### Start couchbeam
 
-<h3>1. Start couchbeam</h3>
+Couchbeam is an [OTP](http://www.erlang.org/doc/design_principles/users_guide.html)
+application. You have to start it first before using any of the
+functions. The couchbeam application will start the default socket pool
+for you.
 
-Couchbeam is an <a
-href="http://www.erlang.org/doc/design_principles/users_guide.html">OTP</a>
-application. You have to start it first before using all the functions.
-couchbeam applications will manage for you connections to CouchDB via
-ibrowse and will maintain a collections of unique ids from CouchDB to
-reduce the number of HTTP connections.
+To start in the console run:
+
 
 ```
-application:start(sasl),
-application:start(ibrowse),
+$ erl -pa ebin
+1> couchbeam:start().
+ok
+'''
+
+
+It will start hackney and all of the application it depends on:
+
+```
+application:start(crypto),
+application:start(asn1),
+application:start(public_key),
+application:start(ssl),
+application:start(hackney),
 application:start(couchbeam).
 '''
 
-Note if you want to use <strong>ssl</strong>, you will need to start
-crypto, public_key and ssl applications too. 
+Or add couchbeam to the applications property of your .app in a release
 
-<h3>2. Create a connection to the server</h3>
+### Create a connection to the server
 
 To create a connection to a server machine:
 
 ```
-Host = "localhost",
-Port = 5984,
-Prefix = "",
+Url = "http://localhost:5984",
 Options = [],
-S = couchbeam:server_connection(Host, Port, Prefix, Options).
+S = couchbeam:server_connection(Url, Options).
 '''
 
-Test the connection with {@link couchbeam:server_info/1}:
+Test the connection with `couchbeam:server_info/1' :
 
 ```
 {ok, _Version} = couchbeam:server_info(S).
 '''
 
-<h3>3. Open or Create a database</h3>
+### Open or Create a database
 
 All CouchDB document operations are done in databases. To open a
 database simply do:
@@ -97,17 +116,17 @@ Options = [],
 {ok, Db} = couchbeam:open_db(Server, "testdb", Options).
 '''
 
-To create a new one :
+To create a new one:
 
 ```
 Options = [],
 {ok, Db} = couchbeam:create_db(Server, "testdb", Options).
 '''
 
-You can also use the shorcut {@link couchbeam:open_or_create_db/3.} that
-will create a database if it doesn't exist.
+You can also use the shorcut `couchbeam:open_or_create_db/3'. that
+will create a database if it does not exist.
 
-<h3>4. Make a new document</h3>
+### Make a new document
 
 Make a new document:
 
@@ -124,12 +143,12 @@ And save it to the database:
 {ok, Doc1} = couchbeam:save_doc(Db, Doc).
 '''
 
-The {@link couchbeam:save_doc/2} return a new document with updated
-revision and if you don't specify the _id, a unique document id.
+The `couchbeam:save_doc/2' return a new document with updated
+revision and if you do not specify the _id, a unique document id.
 
-To change an document property use functions from {@link couchbeam_doc}.
+To change an document property use functions from `couchbeam_doc'.
 
-<h3>5. Retrieve a document</h3>
+### Retrieve a document
 
 To retrieve a document do:
 
@@ -148,15 +167,14 @@ Options = [{rev, Rev}],
 Here we get the revision from the document we previously stored. Any
 options from the CouchDB API can be used.
 
-
-<h3>6. Get all documents</h3>
+### Get all documents
 
 To get all documents you have first to create an object
 that will keep all informations.
 
 ```
 Options = [include_docs],
-{ok, AllDocs} = couchbeam_view:fetch(Db, 'all_docs', Options).
+{ok, AllDocs} = couchbeam_view:all(Db, Options).
 '''
 
 
@@ -173,24 +191,23 @@ Ex of results:
         ]}.
 '''
 
-All functions to manipulate these results are in {@link couchbeam_view}
-module.
+All functions to manipulate these results are in the `couchbeam_view' module.
 
-<h3>7. Couchdb views - Map/Reduce</h3>
+### Couch DB views
 
 Views are workin like all_docs. You have to create a View object before
 doing anything.
 
 ```
 Options = [],
-DesignNam = "designname",
+DesignName = "designname",
 ViewName = "viewname",
-{ok, ViewResults} = couchbeam_view:fetch(Db, {DesignNam, ViewName}, Options).
+{ok, ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName}, Options).
 '''
 
 Like the `all_docs' function, use the functions
-from {@link couchbeam_view} module to manipulate results. You can pass
-any querying options from the <a href="http://wiki.apache.org/couchdb/HTTP_view_API">view API</a>.
+from `couchbeam_view' module to manipulate results. You can pass
+any querying options from the [view API](http://wiki.apache.org/couchdb/HTTP_view_API).
 
 Design doc are created like any documents:
 
@@ -216,19 +233,18 @@ DesignDoc = {[
 You can also use <a href="http://github.com/couchapp/couchapp">couchapp</a> to manage them
 more easily.
 
-<h3>8. Stream View results</h3>
+### Stream View results
 
-<strong>New feature in couchbeam 0.7</strong>. While you can get
-results using {@link couchbeam_views:fetch/2}i, you can also retrieve
+While you can get results using `couchbeam_views:fetch/2', you can also retrieve
 all rows in a streaming fashion:
 
 ```
 ViewFun = fun(Ref, F) ->
     receive
-        {row, Ref, done} ->
+        {Ref, done} ->
             io:format("done", []),
             done;
-        {row, Ref, Row} ->
+        {Ref, {row, Row}} ->
             io:format("got ~p~n", [Row]),
             F(Ref, F);
         {error, Ref, Error} ->
@@ -236,10 +252,10 @@ ViewFun = fun(Ref, F) ->
     end
 end,
 
-{ok, StartRef, _ViewPid} = couchbeam_view:stream(Db, 'all_docs', self()),
+{ok, StreamRef} = couchbeam_view:stream(Db, 'all_docs'),
 ViewFun(StartRef, ViewFun),
-{ok, StartRef2, _ViewPid2} = couchbeam_view:stream(Db, 'all_docs', self(), [include_docs]),
-ViewFun(StartRef2, ViewFun).
+{ok, StreamRef2} = couchbeam_view:stream(Db, 'all_docs', [include_docs]),
+ViewFun(StreamRef2, ViewFun).
 '''
 
 You can of course do the same with a view:
@@ -247,11 +263,11 @@ You can of course do the same with a view:
 ```
 DesignNam = "designname",
 ViewName = "viewname",
-{ok, StartRef3, _ViewPid3} = couchbeam_view:stream(Db, {DesignNam, ViewName}, self(), [include_docs]),
-ViewFun(StartRef3, ViewFun).
+{ok, StreamRef3} = couchbeam_view:stream(Db, {DesignNam, ViewName}, [include_docs]),
+ViewFun(StreamRef3, ViewFun).
 '''
 
-<h3>9. Put, Fetch and Delete documents attachments</h3>
+### Put, Fetch and Delete documents attachments
 
 You can add attachments to any CouchDB documents. Attachments could be
 anything.
@@ -267,7 +283,7 @@ Options = []
 '''
 
 All attachments are streamed to CouchDB. `Att' could be also be an iolist
-or functions, see {@link couchbeam:put_attachment/5} for more
+or functions, see `couchbeam:put_attachment/5' for more
 information.
 
 To fetch an attachment:
@@ -276,7 +292,7 @@ To fetch an attachment:
 {ok Att1} = couchbeam:fetch_attachment(Db, DocId, AttName).
 '''
 
-You can use {@link couchbeam:stream_fetch_attachment/6} for the stream
+You can use `couchbeam:stream_fetch_attachment/6' for the stream
 fetch.
 
 To delete an attachment:
@@ -286,78 +302,79 @@ To delete an attachment:
 ok = couchbeam:delete_attachment(Db, Doc4, AttName).
 '''
 
-<h3>10. Changes</h3>
+### Changes
 
 CouchDB provides a means to get a list of changes made to documents in
-the database. With couchbeam you can get changes using {@link couchbeam_changes:fetch/2}. 
+the database. With couchbeam you can get changes using `couchbeam_changes:follow_once/2'.
 This function returns all changes immediately. But you can also retrieve
 all changes rows using longpolling :
 
 ```
 Options = [],
-{ok, LastSeq, Rows} = couchbeam_changes:fetch(Db, Options).
+{ok, LastSeq, Rows} = couchbeam_changes:follow_once(Db, Options).
 '''
 
 Options can be any Changes query parameters. See
-[http://wiki.apache.org/couchdb/HTTP_database_API#Changes] for more
+the [change API](http://docs.couchdb.org/en/latest/api/database/changes.html) for more
 informations.
 
-You can also get <a href="http://wiki.apache.org/couchdb/HTTP_database_API#Continuous_.28Non-Polling.29_Feed">continuous</a> changes:
+You can also get [continuous](http://docs.couchdb.org/en/latest/api/database/changes.html#continuous):
 
 ```
-ChangesFun = fun(ReqId, F) ->
+ChangesFun = fun(StreamRef, F) ->
     receive
-        {change, StartRef, {done, LastSeq}} ->
+        {StreamRef, {done, LastSeq}} ->
             io:format("stopped, last seq is ~p~n", [LastSeq]),
             ok;
-        {change, StartRef, Row} ->
-            io:format("change row ~p ~n", [Row]),
-            F(StartRef, F);    
-        {error, StartRef, LastSeq, Error}->
-            io:format("error ? ~p ~n, last seq: ~p~n", [Error, LastSeq])
-    end 
+        {StreamRef, {change, Change}} ->
+            io:format("change row ~p ~n", [Change]),
+            F(StreamRef, F);
+        {StreamRef, Error}->
+            io:format("error ? ~p ~n,", [Error])
+    end
 end,
-Pid = self(),
 Options = [continuous, heartbeat],
-{ok, StartRef, _ChangePid} = couchbeam_changes:stream(Db, Pid, Options),
-ChangesFun(StartRef, ChangesFun).
+{ok, StreamRef} = couchbeam_changes:follow(Db, Options),
+ChangesFun(StreamRef, ChangesFun).
 '''
 
-<h3>Authentication/ Connections options</h3>
+### Authentication/ Connections options
 
-
-You can authenticate to the database or CouchDB server by filling options to the Option
-list in {@link couchbeam:server_connection/4} for the server or in {@link couchbeam:create_db/3},  
-{@link couchbeam:open_db/3}, {@link couchbeam:wopen_or_create_db/3}
-functions. 
+You can authenticate to the database or CouchDB server by filling
+options to the Option list in `couchbeam:server_connection/4' for the
+server or in `couchbeam:create_db/3', `couchbeam:open_db/3',
+`couchbeam:wopen_or_create_db/3' functions.
 
 To set basic_auth on a server:
 
 ```
-
-```
-Host = "localhost",
-Port = 5984,
-Prefix = "",
-UserName = "guest", 
+UserName = "guest",
 Password = "test",
+Url = "http://localhost:5984",
 Options = [{basic_auth, {UserName, Password}}],
-S1 = couchbeam:server_connection(Host, Port, Prefix, Options).
+S1 = couchbeam:server_connection(Url, Options).
 '''
 
 Couchbeam support SSL, OAuth, Basic Authentication, and Proxy. You can
 also set a cookie. For more informations about the options have a look
-in the {@link couchbeam:server_connection/4} documentation.
+in the `couchbeam:server_connection/2' documentation.
 
 
-<h2>Get involved</h2>
+## Contribute
 
-If you have any question don't hesitate to join us on <a
-href="http://webchat.freenode.net/?channels=couchdbkit">#couchdbkit IRC
-channel</a> or on the <a
-href="http://groups.google.com/group/couchdbkit">mailing-list</a>.
+For issues, comments or feedback please [create an
+issue](http://github.com/benoitc/couchbeam/issues).
 
-Report bugs and make feature requests on the <a
-href="http://github.com/benoitc/couchbeam/issues">ticket system</a>.
+### Notes for developers
+
+If you want to contribute patches or improve the docs, you will need to
+build couchbeam using the `rebar_dev.config'  file. It can also be built
+using the **Makefile**:
+
+```
+$ make dev ; # compile & get deps
+$ make devclean ; # clean all files
+'''
 
 
+@end
