@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(6),
+    etap:plan(7),
     start_app(),
     case (catch test()) of
         ok ->
@@ -105,5 +105,12 @@ test() ->
 
     etap:is(length(Rst4), 3, "total_rows with end_keys ok"),
 
+
+    Rst5 = couchbeam_view:fold(fun(Row, Acc) ->
+                    [Row | Acc]
+            end, [], Db, {"couchbeam", "test"}, [{start_key, <<"test">>},
+                                                 {end_key,<<"test3">>}]),
+
+    etap:is(length(Rst5), 3, "fold total_rows with end_keys ok"),
 
     ok.

@@ -171,8 +171,8 @@ maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref,
             %% report the error
             report_error(Else, Ref, Owner),
             exit(Else)
-    after 5000 ->
-            erlang:hibernate(?MODULE, maybe_continue, [State])
+    after 0 ->
+            loop(State)
     end;
 maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref}=State) ->
     receive

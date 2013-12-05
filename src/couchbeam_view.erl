@@ -441,7 +441,7 @@ fold_view_results(Ref, Fun, Acc) ->
             Acc;
         {Ref, {row, Row}} ->
             case Fun(Row, Acc) of
-                done ->
+                stop ->
                     cancel_stream(Ref),
                     Acc;
                 Acc1 ->
