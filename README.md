@@ -66,7 +66,7 @@ variable `WITH_JIFFY`.
 if you use rebar, add to your `rebar.config`:
 
 ```
-{erl_opts, [{d, WITH_JIFFY}]}.
+{erl_opts, [{d, 'WITH_JIFFY'}]}.
 ```
 
 or use the `rebar` command with the `-D` options:
@@ -417,4 +417,3 @@ $ make devclean ; # clean all files
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_stream.md" class="module">couchbeam_view_stream</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_sup.md" class="module">couchbeam_view_sup</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/gen_changes.md" class="module">gen_changes</a></td></tr></table>
-
