@@ -1,27 +1,48 @@
 couchbeam NEWS
 --------------
 
+version 0.9.0 / 2013-12-05
+--------------------------
+
+This is a major release pre-1.0. API is now frozen and won't change much
+until the version 1.0.
+
+- replaced the use of `ibrowse` by `hackney` to handle HTTP connections
+- new [streaming
+  API](https://github.com/benoitc/couchbeam#stream-view-results) in view
+- breaking change: remobe
+- breaking change: remove deprecated view API. Everything is now managed in the
+  [couch_view](https://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view.md) module.
+- replace `couchbeam_changes:stream` and `couchbeam_changes:fetch`
+  functions by `couchbeam_changes/follow` and `couchbeam_changes:follow_once`.
+- breaking change: new attachment API
+- new: JSX a pure erlang JSON encoder/decoder is now the default. Jiffy
+  can be set at the compilation by defining `WITH_JIFFY` in the Erlang
+options.
+- removed mochiweb dependency.
+
+
 version 0.7.0 / 2011-07-05
 --------------------------
 
 This release contains backwards incompatible changes.
 
- * New and more efficient couchbeam_changes API, we now parse json
-   stream instead of the try catch steps we used before. 
- * New and more efficient couchbeam_view API. we now parse json
-   stream instead of getting all results. New couchbeam_view:stream and
-   couchbeam_view fetch functions have been added. We also don't use
-   any more a view record in other functions
- * HTTP functions have been moved to couchbeam_httpc modules
- * gen_changes behaviour has been updated to use the couchbeam_changes
-   API. It's also abble to restart a lost connection for longpoll and
-   continuous feeds.
+- New and more efficient couchbeam_changes API, we now parse json stream
+  instead of the try catch steps we used before.
+- New and more efficient couchbeam_view API. we now parse json stream
+  instead of getting all results. New couchbeam_view:stream and
+couchbeam_view fetch functions have been added. We also don't use any
+more a view record in other functions
+- HTTP functions have been moved to couchbeam_httpc modules
+- gen_changes behaviour has been updated to use the couchbeam_changes
+  API. It's also abble to restart a lost connection for longpoll and
+continuous feeds.
 
 Breaking Changes:
 
- * couchbeam:view and couchbeam:all_docs have been deprecated. Old views
-   functions using the #view{} record from these functions have been
-   moved in couchbeam_oldview module.
- * couchbeam:wait_changes, couchbeam:wait_changes_once,
-   couchbeam:changes functions have been deprecated and are now replaced
-   by couchbeam_changes:stream and couchbeam_changes:fetch functions.
+- couchbeam:view and couchbeam:all_docs have been deprecated. Old views
+  functions using the #view{} record from these functions have been
+moved in couchbeam_oldview module.
+- couchbeam:wait_changes, couchbeam:wait_changes_once, couchbeam:changes
+  functions have been deprecated and are now replaced by
+couchbeam_changes:stream and couchbeam_changes:fetch functions.
