@@ -17,6 +17,7 @@
 -export([deprecated/3, shutdown_sync/1]).
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
+-export([force_param/3]).
 
 -define(ENCODE_DOCID_FUNC, encode_docid1).
 
@@ -111,6 +112,14 @@ propmerge(F, L1, L2) ->
 propmerge1(L1, L2) ->
     propmerge(fun(_, V1, _) -> V1 end, L1, L2).
 
+%% @replace a value in a proplist
+force_param(Key, Value, Options) ->
+    case couchbeam_util:get_value(Key, Options) of
+        undefined ->
+            [{Key, Value} | Options];
+        _ ->
+            lists:keystore(Key, 1, Options, {Key, Value})
+    end.
 
 %% @doc emulate proplists:get_value/2,3 but use faster lists:keyfind/3
 -spec(get_value/2 :: (Key :: term(), Prop :: [term()] ) -> term()).

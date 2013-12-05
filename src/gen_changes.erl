@@ -63,14 +63,10 @@ start_link(Module, Db, Options, InitArgs) ->
 init([Module, Db, Options, InitArgs]) ->
     case Module:init(InitArgs) of
         {ok, ModState} ->
-            Self = self(),
-            case couchbeam_changes:stream(Db, Self, Options) of
-            {ok, StartRef, ChangesPid} ->
-                erlang:monitor(process, ChangesPid),
-                unlink(ChangesPid),
+            case couchbeam_changes:follow(Db, Options) of
+            {ok, StreamRef} ->
                 LastSeq = proplists:get_value(since, Options, 0),
-                {ok, #gen_changes_state{start_ref=StartRef,
-                                        changes_pid=ChangesPid,
+                {ok, #gen_changes_state{stream_ref=StreamRef,
                                         mod=Module,
                                         modstate=ModState,
                                         db=Db,
@@ -123,15 +119,15 @@ handle_cast(Msg, State=#gen_changes_state{mod=Module, modstate=ModState}) ->
     end.
 
 
-handle_info({change, Ref, Msg},
+handle_info({Ref, Msg},
         State=#gen_changes_state{mod=Module, modstate=ModState,
-            start_ref=Ref}) ->
+            stream_ref=Ref}) ->
 
     State2 = case Msg of
         {done, LastSeq} ->
             State#gen_changes_state{last_seq=LastSeq};
-        Row ->
-            Seq = couchbeam_doc:get_value(<<"seq">>, Row),
+        {change, Change} ->
+            Seq = couchbeam_doc:get_value(<<"seq">>, Change),
             State#gen_changes_state{last_seq=Seq}
     end,
 
@@ -145,43 +141,9 @@ handle_info({change, Ref, Msg},
     end;
 
 
-handle_info({error, Ref, LastSeq, Error},
-        State=#gen_changes_state{start_ref=Ref}) ->
-    handle_info({error, {LastSeq, Error}}, State);
-
-handle_info({'DOWN', MRef, process, Pid, _},
-        State=#gen_changes_state{changes_pid=Pid, options=Options,
-            last_seq=LastSeq, db=Db}) ->
-
-    %% stop monitoring db
-    erlang:demonitor(MRef, [flush]),
-
-    %% we restart the connection if we are using longpolling or
-    %% continuous feeds
-    Longpoll = proplists:get_value(longpoll, Options) ,
-    Continuous = proplists:get_value(continuous, Options),
-    if
-        Longpoll == true orelse Continuous == true ->
-            Self = self(),
-            Options1 = case proplists:get_value(since, Options) of
-                undefined ->
-                    [{since, LastSeq}|Options];
-                _ ->
-                    [{since, LastSeq}|proplists:delete(since, Options)]
-            end,
-            case couchbeam_changes:stream(Db, Self, Options1) of
-            {ok, StartRef, ChangesPid} ->
-                erlang:monitor(process, ChangesPid),
-                unlink(ChangesPid),
-                {noreply, State#gen_changes_state{start_ref=StartRef,
-                                        changes_pid=ChangesPid,
-                                        options=Options1}};
-            Error ->
-                {stop, Error, State}
-        end;
-        true ->
-            {stop, done, State}
-    end;
+handle_info({Ref, {error, Error}},
+        State=#gen_changes_state{stream_ref=Ref, last_seq=LastSeq}) ->
+    handle_info({error, [Error, {last_seq, LastSeq}]}, State);
 
 handle_info(Info, State=#gen_changes_state{mod=Module, modstate=ModState}) ->
     case Module:handle_info(Info, ModState) of
@@ -197,8 +159,8 @@ code_change(_OldVersion, State, _Extra) ->
     %% TODO:  support code changes?
     {ok, State}.
 
-terminate(Reason, #gen_changes_state{changes_pid=Pid,
+terminate(Reason, #gen_changes_state{stream_ref=Ref,
         mod=Module, modstate=ModState}) ->
     Module:terminate(Reason, ModState),
-    catch exit(Pid, normal),
+    couchbeam_changes:cancel_stream(Ref),
     ok.

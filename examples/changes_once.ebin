@@ -1,0 +1,20 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -pa ./ebin
+
+-module(changes).
+
+main(_) ->
+    couchbeam:start(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:open_or_create_db(Server, "testdb"),
+    {ok, LastSeq, Changes} = couchbeam_changes:follow_once(Db, [longpoll]),
+    io:format("longpoll changes ~p~n", [Changes]),
+    io:format("now wait until the next change...~n", []),
+    {ok, _, Changes2} = couchbeam_changes:follow_once(Db,
+                                                      [longpoll,
+                                                       {since, LastSeq}]),
+    io:format("longpoll changes 2 ~p~n", [Changes2]),
+
+    {ok, _, Changes3} = couchbeam_changes:follow_once(Db),
+    io:format("normal changes ~p~n", [Changes3]).

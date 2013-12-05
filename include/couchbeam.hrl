@@ -63,6 +63,20 @@
     | conflicts | {style, string()} | descending.
 -type changes_options1() :: list(changes_option1()).
 
+-type changes_stream_option() :: continuous | longpoll | normal
+    | include_docs
+    | {since, integer()}
+    | {timeout, integer()}
+    | heartbeat | {heartbeat, integer()}
+    | {filter, string() | binary()}
+    | {filter, string() | binary(), list({string(), string() | integer()})}
+    | conflicts
+    | {style, string() | binary()}
+    | descending
+    | {view, string() | binary()}
+    | {doc_ids, list()}.
+-type changes_stream_options() :: list(changes_stream_option()).
+
 -type stale() :: ok | update_after.
 
 -type view_option() :: {key, binary()} | {start_docid, binary()}
@@ -127,15 +141,14 @@
 -type changes_args() :: #changes_args{}.
 
 -record(gen_changes_state, {
-    start_ref,
-    changes_pid,
+    stream_ref,
     last_seq=0,
     mod,
     modstate,
     db,
     options}).
 
--define(USER_AGENT, "couchbeam/0.7.0").
+-define(USER_AGENT, "couchbeam/0.9.0").
 
 -define(DEPRECATED(Old, New, When),
     couchbeam_util:deprecated(Old, New, When)).

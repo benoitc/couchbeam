@@ -3,7 +3,7 @@
 %%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
--module(couchbeam_view_sup).
+-module(couchbeam_changes_sup).
 
  -behaviour(supervisor).
 
@@ -26,10 +26,11 @@ start_link() ->
 init([]) ->
 
     %% start table to keep async streams ref
-    ets:new(couchbeam_view_streams, [set, public, named_table]),
+    ets:new(couchbeam_changes_streams, [set, public, named_table]),
 
     %% define a stream spec
-    Stream = {couchbeam_view_stream, {couchbeam_view_stream, start_link, []},
-              temporary, infinity, worker, [couchbeam_view_stream]},
+    Stream = {couchbeam_changes_stream,
+              {couchbeam_changes_stream, start_link, []},
+              temporary, infinity, worker, [couchbeam_changes_stream]},
 
     {ok, {{simple_one_for_one, 10, 3600}, [Stream]}}.

@@ -204,7 +204,7 @@ count(Db, ViewName) ->
 count(Db, ViewName, Options)->
     %% make sure we set the limit to 0 here so we don't have to get all
     %% the results to count them...
-    Options1 = force_param(limit, 0, Options),
+    Options1 = couchbeam_util:force_param(limit, 0, Options),
 
     %% make the request
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
@@ -252,7 +252,7 @@ first(Db, ViewName) ->
 first(Db, ViewName, Options) ->
     %% we only want 1 result so force the limit to 1. no need to fetch
     %% all the results
-    Options1 = force_param(limit, 1, Options),
+    Options1 = couchbeam_util:force_param(limit, 1, Options),
 
     %% make the request
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
@@ -290,7 +290,7 @@ fold(Function, Acc, Db, ViewName) ->
 %% '''
 fold(Function, Acc, Db, ViewName, Options) ->
     %% make sure we stream item by item so we can stop at any time.
-    Options1 = force_param(async, once, Options),
+    Options1 = couchbeam_util:force_param(async, once, Options),
     %% start iterrating the view results
     case stream(Db, ViewName, self(), Options1) of
         {ok, Ref} ->
@@ -480,15 +480,6 @@ view_request(#db{options=Opts}, Url, Args) ->
             couchbeam_httpc:db_request(post, Url, Hdrs, Body,
                                        Opts, [200])
     end.
-
-force_param(Key, Value, Options) ->
-    case couchbeam_util:get_value(Key, Options) of
-        undefined ->
-            [{Key, Value} | Options];
-        _ ->
-            lists:keystore(Key, 1, Options, {Key, Value})
-    end.
-
 
 with_view_stream(Ref, Fun) ->
     case ets:lookup(couchbeam_view_streams, Ref) of
