@@ -17,7 +17,7 @@
 %%      AName::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
-    ContentType = mochiweb_util:guess_mime(AName),
+    ContentType = hackney_util:content_type(AName),
     add_inline(Doc, Content, AName, ContentType).
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
