@@ -373,7 +373,6 @@ server or in `couchbeam:create_db/3`, `couchbeam:open_db/3`,
 To set basic_auth on a server:
 
 ```
-```
 UserName = "guest",
 Password = "test",
 Url = "http://localhost:5984",
