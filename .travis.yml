@@ -4,9 +4,6 @@ env: DB=couchdb
 services:
     - couchdb
 otp_release:
-   - R15B
-   - R15B01
-   - R15B02
    - R15B03
    - R16B
    - R16B01
