@@ -363,6 +363,12 @@ Options = [continuous, heartbeat],
 ChangesFun(StreamRef, ChangesFun).
 '''
 
+> **Note**: a `gen_changes' behaviour exists in couchbeam that you can
+use to create your own specific gen_server receiving changes. Have a
+look in the
+[example](https://github.com/benoitc/couchbeam/blob/master/examples/test_gen_changes.erl)
+for more info.
+
 ### Authentication/ Connections options
 
 You can authenticate to the database or CouchDB server by filling
