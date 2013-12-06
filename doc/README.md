@@ -66,7 +66,7 @@ variable `WITH_JIFFY`.
 if you use rebar, add to your `rebar.config`:
 
 ```
-{erl_opts, [{d, WITH_JIFFY}]}.
+{erl_opts, [{d, 'WITH_JIFFY'}]}.
 ```
 
 or use the `rebar` command with the `-D` options:
