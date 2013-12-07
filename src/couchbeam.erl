@@ -314,7 +314,7 @@ open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
         {ok, _Status, _Headers, Ref} ->
             hackney:skip_body(Ref),
             open_db(Server, DbName, Options);
-        {error, {bad_response, {404, _, _}}} ->
+        {error, not_found} ->
             create_db(Server, DbName, Options, Params);
         Error ->
             Error
@@ -345,7 +345,7 @@ db_info(#db{server=Server, name=DbName, options=Opts}) ->
         {ok, _Status, _Headers, Ref} ->
             Infos = couchbeam_httpc:json_body(Ref),
             {ok, Infos};
-        {error, {{bad_response, {404, _, _}}}} ->
+        {error, not_found} ->
             {error, db_not_found};
        Error ->
           Error

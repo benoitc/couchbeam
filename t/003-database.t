@@ -1,14 +1,14 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ./ebin -pa ./t 
+%%! -pa ./ebin -pa ./t
 %%
-%% This file is part of couchbeam released under the MIT license. 
+%% This file is part of couchbeam released under the MIT license.
 %% See the NOTICE for more information.
 
 
 
 main(_) ->
-    etap:plan(10),
+    etap:plan(11),
     start_app(),
     case (catch test()) of
         ok ->
@@ -28,14 +28,14 @@ start_app() ->
     catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb3"),
     ok.
-    
+
 stop_test() ->
     Server = couchbeam:server_connection(),
     catch couchbeam:delete_db(Server, "couchbeam_testdb"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
     catch couchbeam:delete_db(Server, "couchbeam_testdb3"),
     ok.
-    
+
 test() ->
     Server = couchbeam:server_connection(),
     etap:is(case couchbeam:create_db(Server, "couchbeam_testdb") of
@@ -58,9 +58,12 @@ test() ->
         _ -> false
     end,  true, "delete couchbeam_testdb2 ok"),
     {ok, AllDbs1} = couchbeam:all_dbs(Server),
-    etap:not_ok(lists:member(<<"couchbeam_testdb2">>, AllDbs1), 
+    etap:not_ok(lists:member(<<"couchbeam_testdb2">>, AllDbs1),
             "couchbeam_testdb2 don't exists ok"),
-    etap:not_ok(couchbeam:db_exists(Server, "couchbeam_testdb2"), 
+    etap:not_ok(couchbeam:db_exists(Server, "couchbeam_testdb2"),
         "is_db2not exists ok "),
-
+    etap:is(case couchbeam:open_or_create_db(Server, "couchbeam_testdb2") of
+        {ok, _} -> true;
+        _ -> false
+    end, true, "db2 created ok"),
     ok.
