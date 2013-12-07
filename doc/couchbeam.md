@@ -30,7 +30,7 @@ database if needed.</td></tr><tr><td valign="top"><a href="#open_or_create_db-3"
 database if needed.</td></tr><tr><td valign="top"><a href="#open_or_create_db-4">open_or_create_db/4</a></td><td>Create a client for connecting to a database and create the
 database if needed.</td></tr><tr><td valign="top"><a href="#put_attachment-4">put_attachment/4</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#put_attachment-5">put_attachment/5</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#replicate-2">replicate/2</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-3">replicate/3</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-4">replicate/4</a></td><td>handle Replication.</td></tr><tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a document.</td></tr><tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td>save a document
 A document is a Json object like this one:.</td></tr><tr><td valign="top"><a href="#save_docs-2">save_docs/2</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#save_docs-3">save_docs/3</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#send_attachment-2">send_attachment/2</a></td><td>send an attachment chunk
-Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#server_connection-0">server_connection/0</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-1">server_connection/1</a></td><td></td></tr><tr><td valign="top"><a href="#server_connection-2">server_connection/2</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-4">server_connection/4</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_info-1">server_info/1</a></td><td>Get Information from the server.</td></tr><tr><td valign="top"><a href="#server_url-1">server_url/1</a></td><td>Asemble the server URL for the given client.</td></tr><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Start the couchbeam process.</td></tr><tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>Stop the couchbeam process.</td></tr><tr><td valign="top"><a href="#stream_attachment-1">stream_attachment/1</a></td><td>fetch an attachment chunk.</td></tr><tr><td valign="top"><a href="#uuids_url-1">uuids_url/1</a></td><td></td></tr><tr><td valign="top"><a href="#version-0">version/0</a></td><td>Return the version of the application.</td></tr></table>
+Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#server_connection-0">server_connection/0</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-1">server_connection/1</a></td><td></td></tr><tr><td valign="top"><a href="#server_connection-2">server_connection/2</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-4">server_connection/4</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_info-1">server_info/1</a></td><td>Get Information from the server.</td></tr><tr><td valign="top"><a href="#server_url-1">server_url/1</a></td><td>Asemble the server URL for the given client.</td></tr><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Start the couchbeam process.</td></tr><tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>Stop the couchbeam process.</td></tr><tr><td valign="top"><a href="#stream_attachment-1">stream_attachment/1</a></td><td>fetch an attachment chunk.</td></tr><tr><td valign="top"><a href="#version-0">version/0</a></td><td>Return the version of the application.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -430,7 +430,7 @@ database if needed.
 
 
 <pre><code>
-open_or_create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::list(), Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}
+open_or_create_db(Server::<a href="#type-server">server()</a>, DbName0::string(), Options::list(), Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}
 </code></pre>
 
 <br></br>
@@ -722,13 +722,6 @@ This function return the following response:
 <dd>n error occurred</dd>
 
 
-
-
-<a name="uuids_url-1"></a>
-
-### uuids_url/1 ###
-
-`uuids_url(Server) -> any()`
 
 
 <a name="version-0"></a>
