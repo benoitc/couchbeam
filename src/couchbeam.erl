@@ -412,7 +412,6 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Options) ->
     end,
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
                                Options),
-    io:format("url = ~p~n", [Url]),
     Body = couchbeam_ejson:encode(Doc),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
 
