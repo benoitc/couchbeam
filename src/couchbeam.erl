@@ -259,10 +259,11 @@ create_db(Server, DbName, Options) ->
 %%
 %% @spec create_db(Server::server(), DbName::string(),
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}}
-create_db(#server{url=ServerUrl, options=Opts}=Server, DbName, Options,
+create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0, Options,
           Params) ->
+    DbName = dbname(DbName0),
     Options1 = couchbeam_util:propmerge1(Options, Opts),
-    Url = hackney_url:make_url(ServerUrl, dbname(DbName), Params),
+    Url = hackney_url:make_url(ServerUrl, DbName, Params),
     Resp = couchbeam_httpc:db_request(put, Url, [], <<>>, Options1, [201]),
     case Resp of
         {ok, _Status, _Headers, Ref} ->
@@ -339,7 +340,7 @@ delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
 %% @doc get database info
 %% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
 db_info(#db{server=Server, name=DbName, options=Opts}) ->
-    Url = hackney_url:make_url(server_url(Server), DbName, []),
+    Url = hackney_url:make_url(server_url(Server), dbname(DbName), []),
     case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]) of
         {ok, _Status, _Headers, Ref} ->
             Infos = couchbeam_httpc:json_body(Ref),
@@ -409,7 +410,9 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Options) ->
         DocId1 ->
             couchbeam_util:encode_docid(DocId1)
     end,
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId), Options),
+    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
+                               Options),
+    io:format("url = ~p~n", [Url]),
     Body = couchbeam_ejson:encode(Doc),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
 
@@ -792,10 +795,10 @@ dbname(DbName) ->
     erlang:error({illegal_database_name, DbName}).
 
 db_url(#db{name=DbName}) ->
-    dbname(DbName).
+    DbName.
 
 doc_url(Db, DocId) ->
-    [db_url(Db), DocId].
+    iolist_to_binary([db_url(Db), <<"/">>, DocId]).
 
 reply_att(ok) ->
     ok;
