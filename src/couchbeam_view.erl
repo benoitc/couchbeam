@@ -423,13 +423,13 @@ make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
     case ViewName of
         'all_docs' ->
             Url = hackney_url:make_url(couchbeam:server_url(Server),
-                                       [couchbeam:db_url(Db), "/_all_docs"],
+                                       [couchbeam:db_url(Db), <<"_all_docs">>],
                                        Args#view_query_args.options),
             Fun(Args, Url);
         {DName, VName} ->
             Url = hackney_url:make_url(couchbeam:server_url(Server),
-                                       [couchbeam:db_url(Db),"/_design/",
-                                        DName, "/_view/", VName],
+                                       [couchbeam:db_url(Db), <<"_design">>,
+                                        DName, <<"_view">>, VName],
                                        Args#view_query_args.options),
             Fun(Args, Url);
         _ ->

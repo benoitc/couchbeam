@@ -121,7 +121,7 @@ do_init_stream(#state{mref=MRef,
 
     %% make the changes url
     Url = hackney_url:make_url(couchbeam:server_url(Server),
-                               [couchbeam:db_url(Db), "/_changes"],
+                               [couchbeam:db_url(Db), <<"_changes">>],
                                Options1),
 
     {ok, ClientRef} = case DocIds of

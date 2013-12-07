@@ -14,7 +14,7 @@
 -export([start/0, stop/0, version/0]).
 
 %% utilities urls
--export([uuids_url/1, db_url/1, doc_url/2, server_url/1]).
+-export([db_url/1, doc_url/2, server_url/1]).
 
 %% API urls
 -export([server_connection/0, server_connection/1,
@@ -70,10 +70,11 @@ version() ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
-    #server{url="http://127.0.0.1:5984", options=[]}.
+    #server{url = <<"http://127.0.0.1:5984">>,
+            options = []}.
 
 server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
-    #server{url=URL, options=[]}.
+    #server{url=hackney_url:fix_path(URL), options=[]}.
 
 
 
@@ -124,14 +125,14 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%
 server_connection(Host, Port, Prefix, Options)
         when is_integer(Port), Port =:=443 ->
-    Url = iolist_to_binary(["https://", Host, ":",
-                            integer_to_list(Port),
-                            "/", Prefix]),
+    BaseUrl = iolist_to_binary(["https://", Host, ":",
+                                integer_to_list(Port)]),
+    Url = hackney_url:make_url(BaseUrl, [Prefix], []),
     #server{url=Url, options=Options};
 server_connection(Host, Port, Prefix, Options) ->
-    Url = iolist_to_binary(["http://", Host, ":",
-                            integer_to_list(Port),
-                            "/", Prefix]),
+    BaseUrl = iolist_to_binary(["https://", Host, ":",
+                                integer_to_list(Port)]),
+    Url = hackney_url:make_url(BaseUrl, [Prefix], []),
     #server{url=Url, options=Options}.
 
 %% @doc Get Information from the server
@@ -215,7 +216,7 @@ replicate(Server, Source, Target, {Prop}) ->
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
 all_dbs(#server{url=ServerUrl, options=Opts}) ->
-    Url = hackney_url:make_url(ServerUrl, "_all_dbs", []),
+    Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, []),
     Resp = couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]),
     case Resp of
         {ok, _, _, Ref} ->
@@ -228,7 +229,7 @@ all_dbs(#server{url=ServerUrl, options=Opts}) ->
 %% @doc test if db with dbname exists on the CouchDB node
 %% @spec db_exists(server(), string()) -> boolean()
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
-    Url = hackney_url:make_url(ServerUrl, DbName, []),
+    Url = hackney_url:make_url(ServerUrl, dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, _, Ref} ->
             hackney:skip_body(Ref),
@@ -301,9 +302,10 @@ open_or_create_db(Server, DbName, Options) ->
 %% @doc Create a client for connecting to a database and create the
 %%      database if needed.
 %% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
-open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName,
+open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
                   Options, Params) ->
 
+    DbName = dbname(DbName0),
     Url = hackney_url:make_url(ServerUrl, DbName, []),
     Opts1 = couchbeam_util:propmerge1(Options, Opts),
     Resp = couchbeam_httpc:request(get, Url, [], <<>>, Opts1),
@@ -490,7 +492,7 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
             {Options1, Body1}
         end,
     Url = hackney_url:make_url(server_url(Server),
-                               [db_url(Db), "/", "_bulk_docs"],
+                               [db_url(Db), <<"_bulk_docs">>],
                                Options2),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, Body, Opts, [201]) of
@@ -505,7 +507,8 @@ lookup_doc_rev(Db, DocId) ->
 
 lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1), Params),
+    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
+                               Params),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, Headers, _} ->
             HeadersDict = hackney_headers:new(Headers),
@@ -554,7 +557,8 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
 
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = hackney_url:make_url(server_url(Server),
-                               [db_url(Db), "/", DocId1, "/", Name],
+                               [db_url(Db), DocId1,
+                                Name],
                                Options2),
     case hackney:get(Url, Headers, <<>>, Opts) of
         {ok, 200, _, Ref} when Stream /= true ->
@@ -632,8 +636,8 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
 
     DocId1 = couchbeam_util:encode_docid(DocId),
     AttName = couchbeam_util:encode_att_name(Name),
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db), "/",
-                                                    DocId1,"/", AttName],
+    Url = hackney_url:make_url(server_url(Server), [db_url(Db), DocId1,
+                                                    AttName],
                                QueryArgs),
 
     case couchbeam_httpc:db_request(put, Url, FinalHeaders, Body, Opts,
@@ -691,8 +695,9 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                 _ ->
                     Options1
             end,
-            Url = hackney_url:make_url(server_url(Server), [db_url(Db), "/",
-                                                            DocId, "/", Name],
+            Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+                                                            DocId,
+                                                            Name],
                                        Options2),
 
             case couchbeam_httpc:db_request(delete, Url, [], <<>>, Opts,
@@ -715,7 +720,7 @@ ensure_full_commit(Db) ->
 %%                      -> {ok, term()}|{error, term()}
 ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Url = hackney_url:make_url(server_url(Server), [db_url(Db),
-                                                    "/_ensure_full_commit"],
+                                                    <<"_ensure_full_commit">>],
                                Options),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [201]) of
@@ -731,7 +736,8 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 %% See [http://wiki.apache.org/couchdb/Compaction] for more informations
 %% @spec compact(Db::db()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db) ->
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db), "/_compact"],
+    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+                                                    <<"_compact">>],
                                []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [202]) of
@@ -746,7 +752,8 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
 %% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
-    Url = hacney_url:make_url(server_url(Server), [db_url(Db), "/_compact/",
+    Url = hacney_url:make_url(server_url(Server), [db_url(Db),
+                                                   <<"_compact">>,
                                                    DesignName], []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [202]) of
@@ -777,23 +784,18 @@ maybe_docid(Server, {DocProps}) ->
 server_url(#server{url=Url}) ->
     Url.
 
-uuids_url(Server) ->
-    binary_to_list(iolist_to_binary([server_url(Server), "/", "_uuids"])).
-
 dbname(DbName) when is_list(DbName) ->
-    DbName;
+    list_to_binary(DbName);
 dbname(DbName) when is_binary(DbName) ->
-    binary_to_list(DbName);
+    DbName;
 dbname(DbName) ->
     erlang:error({illegal_database_name, DbName}).
 
 db_url(#db{name=DbName}) ->
-    [DbName].
+    dbname(DbName).
 
 doc_url(Db, DocId) ->
-    iolist_to_binary([db_url(Db), "/", DocId]).
-
-
+    [db_url(Db), DocId].
 
 reply_att(ok) ->
     ok;

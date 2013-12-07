@@ -217,7 +217,7 @@ changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
 
     %% make url
     Url = hackney_url:make_url(couchbeam:server_url(Server),
-                               [couchbeam:db_url(Db), "/_changes"],
+                               [couchbeam:db_url(Db), <<"_changes">>],
                                Options1),
 
     %% do the request
