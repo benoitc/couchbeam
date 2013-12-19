@@ -17,6 +17,7 @@
                   public_key,
                   ssl,
                   mimetypes,
+                  hackney_lib,
                   hackney]},
   {env, []},
   {mod, { couchbeam_app, []}}
