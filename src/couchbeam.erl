@@ -504,6 +504,7 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
             Error
         end.
 
+%% @doc get the last revision of the document
 lookup_doc_rev(Db, DocId) ->
     lookup_doc_rev(Db, DocId, []).
 
