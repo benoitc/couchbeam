@@ -33,6 +33,7 @@
          open_doc/2, open_doc/3,
          delete_doc/2, delete_doc/3,
          save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
+         copy_doc/2, copy_doc/3,
          lookup_doc_rev/2, lookup_doc_rev/3,
          fetch_attachment/3, fetch_attachment/4, stream_attachment/1,
          delete_attachment/3, delete_attachment/4,
@@ -503,6 +504,69 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
         Error ->
             Error
         end.
+
+%% @doc duplicate a document using the doc API
+copy_doc(#db{server=Server}=Db, Doc) ->
+    [DocId] = get_uuid(Server),
+    copy_doc(Db, Doc, DocId).
+
+%% @doc copy a doc to a destination. If the destination exist it will
+%% use the last revision, in other case a new doc is created with the
+%% the current doc revision.
+copy_doc(Db, Doc, Dest) when is_binary(Dest) ->
+    Destination = case open_doc(Db, Dest) of
+        {ok, DestDoc} ->
+            Rev = couchbeam_doc:get_rev(DestDoc),
+            {Dest, Rev};
+        _ ->
+            {Dest, <<>>}
+    end,
+    do_copy(Db, Doc, Destination);
+copy_doc(Db, Doc, {Props}) ->
+    DocId = proplists:get_value(<<"_id">>, Props),
+    Rev = proplists:get_value(<<"_rev">>, Props, <<>>),
+    do_copy(Db, Doc, {DocId, Rev}).
+
+do_copy(Db, {Props}, Destination) ->
+    case proplists:get_value(<<"_id">>, Props) of
+        undefined ->
+            {error, invalid_source};
+        DocId ->
+            DocRev = proplists:get_value(<<"_rev">>, Props, nil),
+            do_copy(Db, {DocId, DocRev}, Destination)
+    end;
+do_copy(Db, DocId, Destination) when is_binary(DocId) ->
+    do_copy(Db, {DocId, nil}, Destination);
+do_copy(#db{server=Server, options=Opts}=Db, {DocId, DocRev},
+        {DestId, DestRev}) ->
+
+    Destination = case DestRev of
+        <<>> -> DestId;
+        _ -> << DestId/binary, "?rev=", DestRev/binary >>
+    end,
+    Headers = [{<<"Destination">>, Destination}],
+    {Headers1, Params} = case {DocRev, DestRev} of
+        {nil, _} ->
+            {Headers, []};
+        {_, <<>>} ->
+            {[{<<"If-Match">>, DocRev} | Headers], []};
+        {_, _} ->
+            {Headers, [{<<"rev">>, DocRev}]}
+    end,
+
+    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
+                               Params),
+
+    case couchbeam_httpc:db_request(copy, Url, Headers1, <<>>,
+                                    Opts, [201]) of
+        {ok, _, _, Ref} ->
+            {JsonProp} = couchbeam_httpc:json_body(Ref),
+            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
+            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+            {ok, NewDocId, NewRev};
+        Error ->
+            Error
+    end.
 
 %% @doc get the last revision of the document
 lookup_doc_rev(Db, DocId) ->

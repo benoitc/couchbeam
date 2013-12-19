@@ -7,7 +7,7 @@
 
 
 main(_) ->
-    etap:plan(30),
+    etap:plan(33),
     start_app(),
     case (catch test()) of
         ok ->
@@ -122,6 +122,18 @@ test() ->
     Doc16 = {[{<<"b">>, 2}]},
     etap:is(couchbeam_doc:take_value(<<"c">>, Doc15), {undefined, Doc15}, "take non-existing key ok"),
     etap:is(couchbeam_doc:take_value(<<"a">>, Doc15), {1, Doc16}, "take existing key ok"),
+
+    {ok, Doc17} = couchbeam:save_doc(Db, {[{<<"test">>, 1}]}),
+    {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, Doc17),
+    {ok, Doc18} = couchbeam:open_doc(Db, CopyId),
+    etap:is(couchbeam_doc:get_value(<<"test">>, Doc18), 1, "doc copy OK"),
+
+    {ok, Doc19} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test_copy">>}]}),
+    {ok, CopyId1, _} = couchbeam:copy_doc(Db, Doc17, <<"test_copy">>),
+    etap:is(CopyId1, <<"test_copy">>, "copy to existing doc OK"),
+    {ok, Doc20} = couchbeam:open_doc(Db, CopyId1),
+    etap:is(couchbeam_doc:get_value(<<"test">>, Doc20), 1,
+            "copy existing doc OK"),
 
     ok.
 
