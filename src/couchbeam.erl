@@ -841,6 +841,10 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
 
 
 %% @doc get missing revisions
+-spec get_missing_revs(#db{}, [{binary(), [binary()]}]) ->
+    {ok, [{DocId :: binary(), [MissingRev :: binary()], [
+                    PossibleAncestor :: binary()]}]}
+    | {error, term()}.
 get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
     Json = couchbeam_ejson:encode({IdRevs}),
     Url = hackney_url:make_url(server_url(Server), [db_url(Db),
