@@ -430,6 +430,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     {doc, doc()}
     | {att, Name :: binary(), doc_stream()}
     | {att_body, Name :: binary(), Chunk :: binary(), doc_stream()}
+    | {att_eof, Name :: binary(), doc_stream()}
     | eof
     | {error, term()}.
 stream_doc({_Ref, Cont}) ->
