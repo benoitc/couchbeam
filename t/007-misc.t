@@ -8,7 +8,7 @@
 
 
 main(_) ->
-    etap:plan(3),
+    etap:plan(4),
     start_app(),
     case (catch test()) of
         ok ->
@@ -68,6 +68,8 @@ test() ->
     etap:is(Missing, [{DocId11, [DocRev12, DocRev13], [DocRev11]}],
         "get missing revs OK"),
 
+    {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
+    etap:ok(is_binary(InstanceStartTime), "ensure full commit OK"),
     ok.
 
 

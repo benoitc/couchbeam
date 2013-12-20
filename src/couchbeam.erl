@@ -791,8 +791,9 @@ ensure_full_commit(Db) ->
     ensure_full_commit(Db, []).
 
 %% @doc commit all docs in memory
-%% @spec ensure_full_commit(Db::db(), Options::list())
-%%                      -> {ok, term()}|{error, term()}
+-spec ensure_full_commit(Db::db(), Options::list())
+    -> {ok, InstancestartTime :: binary()}
+    | {error, term()}.
 ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Url = hackney_url:make_url(server_url(Server), [db_url(Db),
                                                     <<"_ensure_full_commit">>],
@@ -800,8 +801,8 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [201]) of
         {ok, _, _, Ref} ->
-            {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
-            {ok, R};
+            {Props} = couchbeam_httpc:json_body(Ref),
+            {ok, proplists:get_value(<<"instance_start_time">>, Props)};
         Error ->
             Error
     end.
