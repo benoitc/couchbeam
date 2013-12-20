@@ -852,7 +852,6 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
                                     [200]) of
         {ok, _, _, Ref} ->
             {Props} = couchbeam_httpc:json_body(Ref),
-            io:format("got ~p~n", [Props]),
             Res = lists:map(fun({Id, {Result}}) ->
                             MissingRevs = proplists:get_value(
                                     <<"missing">>, Result
