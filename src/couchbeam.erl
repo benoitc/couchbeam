@@ -39,7 +39,8 @@
          delete_attachment/3, delete_attachment/4,
          put_attachment/4, put_attachment/5, send_attachment/2,
          ensure_full_commit/1, ensure_full_commit/2,
-         compact/1, compact/2]).
+         compact/1, compact/2,
+         get_missing_revs/2]).
 
 
 %% --------------------------------------------------------------------
@@ -176,7 +177,7 @@ get_uuids(Server, Count) ->
 %% @spec replicate(Server::server(), RepObj::{list()})
 %%          -> {ok, Result}|{error, Error}
 replicate(#server{url=ServerUrl, options=Opts}, RepObj) ->
-    Url = hackney_url:make_url(ServerUrl, "_replicate", []),
+    Url = hackney_url:make_url(ServerUrl, [<<"_replicate">>], []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     JsonObj = couchbeam_ejson:encode(RepObj),
 
@@ -195,21 +196,28 @@ replicate(#server{url=ServerUrl, options=Opts}, RepObj) ->
 %% @spec replicate(Server::server(), Source::string(), Target::target())
 %%          ->  {ok, Result}|{error, Error}
 replicate(Server, Source, Target) ->
-    replicate(Server, Source, Target, {[]}).
+    replicate(Server, Source, Target, []).
 
 %% @doc handle Replication. Allows to pass options with source and
 %% target.  Options is a Json object.
 %% ex:
 %% ```
-%% Options = {[{<<"create_target">>, true}]},
+%% Options = [{<<"create_target">>, true}]}
 %% couchbeam:replicate(S, "testdb", "testdb2", Options).
 %% '''
-replicate(Server, Source, Target, {Prop}) ->
+replicate(Server, Source, Target, {Props}) ->
+    replicate(Server, Source, Target, Props);
+replicate(Server, #db{name=Source}, Target, Options) ->
+    replicate(Server, Source, Target, Options);
+replicate(Server, Source, #db{name=Target}, Options) ->
+    replicate(Server, Source, Target, Options);
+replicate(Server, #db{name=Source}, #db{name=Target}, Options) ->
+    replicate(Server, Source, Target, Options);
+replicate(Server, Source, Target, Options) ->
     RepProp = [
         {<<"source">>, couchbeam_util:to_binary(Source)},
-        {<<"target">>, couchbeam_util:to_binary(Target)} |Prop
+        {<<"target">>, couchbeam_util:to_binary(Target)} | Options
     ],
-
     replicate(Server, {RepProp}).
 
 
@@ -819,7 +827,7 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
 %% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
-    Url = hacney_url:make_url(server_url(Server), [db_url(Db),
+    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
                                                    <<"_compact">>,
                                                    DesignName], []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
@@ -831,6 +839,33 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
             Error
     end.
 
+
+%% @doc get missing revisions
+get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
+    Json = couchbeam_ejson:encode({IdRevs}),
+    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+                                                   <<"_revs_diff">>],
+                              []),
+
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
+    case couchbeam_httpc:db_request(post, Url, Headers, Json, Opts,
+                                    [200]) of
+        {ok, _, _, Ref} ->
+            {Props} = couchbeam_httpc:json_body(Ref),
+            io:format("got ~p~n", [Props]),
+            Res = lists:map(fun({Id, {Result}}) ->
+                            MissingRevs = proplists:get_value(
+                                    <<"missing">>, Result
+                            ),
+                            PossibleAncestors = proplists:get_value(
+                                <<"possible_ancestors">>, Result, []
+                            ),
+                            {Id, MissingRevs, PossibleAncestors}
+                    end, Props),
+            {ok, Res};
+        Error ->
+            Error
+    end.
 
 %% --------------------------------------------------------------------
 %% Utilities functions.
