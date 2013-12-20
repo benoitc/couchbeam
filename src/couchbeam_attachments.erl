@@ -11,6 +11,7 @@
 -include("couchbeam.hrl").
 
 -export([add_inline/3, add_inline/4,
+         add_stub/3,
         delete_inline/2]).
 
 %% @spec add_inline(Doc::json_obj(),Content::attachment_content(),
@@ -41,6 +42,26 @@ add_inline(Doc, Content, AName, ContentType) ->
                 end
         end,
     couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc).
+
+
+add_stub({Props} = Doc, Name, ContentType) ->
+    Att = {couchbeam_util:to_binary(Name), {[
+                    {<<"content_type">>, couchbeam_util:to_binary(ContentType)}
+                ]}},
+
+    Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
+        undefined ->
+            [Att];
+        {Attachments} ->
+            case set_attachment(Attachments, [], Att) of
+                notfound ->
+                    [Att|Attachments];
+                A ->
+                    A
+                end
+        end,
+    couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc).
+
 
 %% @spec delete_inline(Doc::json_obj(), AName::string()) -> json_obj()
 %% @doc delete an attachment record in doc. This is different from delete_attachment

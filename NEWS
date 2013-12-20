@@ -1,6 +1,26 @@
 couchbeam NEWS
 --------------
 
+version 0.10.0 / 2013-12-21
+---------------------------
+
+- add `couchbeam:copy_doc/{2,3}` to support the COPY API
+- add `couchbeam:get_missing_revs/2` to get the list of missing
+  revisions
+- add support of the [multipart
+  API](http://docs.couchdb.org/en/latest/api/document/common.html#efficient-multiple-attachments-retrieving) when fetching a doc: This change make
+  `couchbeam:open_doc/3` return a multipart response `{ok, {multipart,
+Stream}}` when using the setting `attachments=true` option. A new option
+{`accept. <<"multipart/mixed">>}" can also be used with the options
+`open_revs` or `revs` to fetch the response as a multipart.
+- bump the [hackney](http://github.com/benoitc/hackney) version to
+  **0.9.1** .
+
+
+With this change you can now efficiently retrieve a doc with all of its
+attachments or a doc wit all its revisions.
+ master
+
 version 0.9.3 / 2013-12-07
 --------------------------
 
