@@ -31,6 +31,7 @@
          save_doc/2, save_doc/3,
          doc_exists/2,
          open_doc/2, open_doc/3,
+         stream_doc/1, end_doc_stream/1,
          delete_doc/2, delete_doc/3,
          save_docs/2, save_docs/3, delete_docs/2, delete_docs/3,
          copy_doc/2, copy_doc/3,
@@ -42,6 +43,8 @@
          compact/1, compact/2,
          get_missing_revs/2]).
 
+-opaque doc_stream() :: {atom(), any()}.
+-export_type([doc_stream/0]).
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -383,21 +386,67 @@ open_doc(Db, DocId) ->
 %%          -> {ok, Doc}|{error, Error}
 open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
+
+    %% is there any accepted content-type passed to the params?
+    {Accept, Params1} = case proplists:get_value(accept, Params) of
+        unefined -> {any, Params};
+        A -> {A, proplists:delete(accept, Params)}
+    end,
+    %% set the headers with the accepted content-type if needed
+    Headers = case {Accept, proplists:get_value("attachments", Params)} of
+        {any, true} ->
+            %% only use the more efficient method when we get the
+            %% attachments so we don't use much bandwidth.
+            [{<<"Accept">>, <<"multipart/related">>}];
+        {Accept, _} when is_binary(Accept) ->
+            %% accepted content-type has been forced
+            [{<<"Accept">>, Accept}];
+        _ ->
+            []
+    end,
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
-                               Params),
-    case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200, 201]) of
-        {ok, _, _, Ref} ->
-            {ok, couchbeam_httpc:json_body(Ref)};
+                               Params1),
+    case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
+                                    [200, 201]) of
+        {ok, _, RespHeaders, Ref} ->
+            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
+                {<<"multipart">>, _, _} ->
+                    %% we get a multipart request, start to parse it.
+                    InitialState =  {Ref, fun() ->
+                                    wait_mp_doc(Ref, <<>>)
+                            end},
+                    {ok, {multipart, InitialState}};
+                _ ->
+                    {ok, couchbeam_httpc:json_body(Ref)}
+            end;
         Error ->
             Error
     end.
+
+%% @doc stream the multipart response of the doc API. Use this function
+%% when you get `{ok, {multipart, State}}' from the function
+%% `couchbeam:open_doc/3'.
+-spec stream_doc(doc_stream()) ->
+    {doc, doc()}
+    | {att, Name :: binary(), doc_stream()}
+    | {att_body, Name :: binary(), Chunk :: binary(), doc_stream()}
+    | eof
+    | {error, term()}.
+stream_doc({_Ref, Cont}) ->
+    Cont().
+
+%% @doc stop to receive the multipart response of the doc api and close
+%% the connection.
+-spec end_doc_stream(doc_stream()) -> ok.
+end_doc_stream({Ref, _Cont}) ->
+    hackney:close(Ref).
 
 %% @doc save a document
 %% @equiv save_doc(Db, Doc, [])
 save_doc(Db, Doc) ->
     save_doc(Db, Doc, []).
 
-%% @doc save a document
+%% @doc save a *document
 %% A document is a Json object like this one:
 %%
 %%      ```{[
@@ -921,3 +970,94 @@ reply_att({ok, Status, Headers, Ref}) ->
     {error, {bad_response, {Status, Headers, Body}}};
 reply_att(Error) ->
     Error.
+
+wait_mp_doc(Ref, Buffer) ->
+    %% we are always waiting for the full doc
+    case hackney:stream_multipart(Ref) of
+        {headers, _} ->
+            wait_mp_doc(Ref, Buffer);
+        {body, Data} ->
+            NBuffer = << Buffer/binary, Data/binary >>,
+            wait_mp_doc(Ref, NBuffer);
+        end_of_part when Buffer =:= <<>> ->
+            %% end of part in multipart/mixed
+            wait_mp_doc(Ref, Buffer);
+        end_of_part ->
+            %% decode the doc
+            {Props} = Doc = couchbeam_ejson:decode(Buffer),
+            case couchbeam_util:get_value(<<"_attachments">>, Props, {[]}) of
+                {[]} ->
+                    %% not attachments wait for the eof or the next doc
+                    NState = {Ref, fun() -> wait_mp_doc(Ref, <<>>) end},
+                    {doc, Doc, NState};
+                {Atts} ->
+                    %% start to receive the attachments
+                    %% we get the list of attnames for the versions of
+                    %% couchdb that don't provide the att name in the
+                    %% header.
+                    AttNames = [AttName || {AttName, _} <- Atts],
+                    NState = {Ref, fun() ->
+                                    wait_mp_att(Ref, {nil, AttNames})
+                            end},
+                    {doc, Doc, NState}
+            end;
+        mp_mixed ->
+            %% we are starting a multipart/mixed (probably on revs)
+            %% continue
+            wait_mp_doc(Ref, Buffer);
+        mp_mixed_eof ->
+            %% end of multipar/mixed wait for the next doc
+            wait_mp_doc(Ref, Buffer);
+        eof ->
+            eof
+    end.
+
+wait_mp_att(Ref, {AttName, AttNames}) ->
+    case hackney:stream_multipart(Ref) of
+        {headers, Headers} ->
+            %% old couchdb api doesn't give the content-disposition
+            %% header so we have to use the list of att names given in
+            %% the doc. Hopefully the erlang parser keeps it in order.
+            case hackney_headers:get_value(<<"content-disposition">>,
+                                           hackney_headers:new(Headers)) of
+                undefined ->
+                    [Name | Rest] = AttNames,
+                    NState = {Ref, fun() ->
+                                    wait_mp_att(Ref, {Name, Rest})
+                            end},
+                    {att, Name, NState};
+                CDisp ->
+                    {_, Props} = content_disposition(CDisp),
+                    Name = proplists:get_value(<<"filename">>, Props),
+                    [_ | Rest] = AttNames,
+                    NState = {Ref, fun() ->
+                                    wait_mp_att(Ref, {Name, Rest})
+                            end},
+                    {att, Name, NState}
+            end;
+        {body, Data} ->
+            %% return the attachment par
+            NState = {Ref, fun() -> wait_mp_att(Ref, {AttName, AttNames}) end},
+            {att_body, AttName, Data, NState};
+        end_of_part ->
+            %% wait for the next attachment
+            NState = {Ref, fun() -> wait_mp_att(Ref, {nil, AttNames}) end},
+            {att_eof, AttName, NState};
+        mp_mixed_eof ->
+            %% wait for the next doc
+            wait_mp_doc(Ref, <<>>);
+        eof ->
+            %% we are done with the multipart request
+            eof
+    end.
+
+content_disposition(Data) ->
+    hackney_bstr:token_ci(Data, fun
+            (_Rest, <<>>) ->
+                {error, badarg};
+            (Rest, Disposition) ->
+                hackney_bstr:params(Rest, fun
+                        (<<>>, Params) -> {Disposition, Params};
+                        (_Rest2, _) -> {error, badarg}
+                    end)
+        end).

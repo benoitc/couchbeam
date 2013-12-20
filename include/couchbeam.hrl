@@ -45,6 +45,8 @@
 
 -type ejson_number() :: float() | integer().
 
+-type doc() :: ejson_object().
+
 -type changes_option() :: continuous | longpoll | normal
     | include_docs | {since, integer()}
     | {timeout, integer()}
