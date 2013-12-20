@@ -138,7 +138,6 @@ test() ->
 
     {ok, {multipart, Stream}} = Resp,
     Collected = collect_mp(couchbeam:stream_doc(Stream), []),
-    io:format("got ~p~n", [Collected]),
 
     etap:ok(proplists:is_defined(doc, Collected),
             "doc in multipart response OK"),
