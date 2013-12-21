@@ -8,7 +8,7 @@
 -include_lib("kernel/include/file.hrl").
 
 main(_) ->
-    etap:plan(23),
+    etap:plan(30),
     start_app(),
     case (catch test()) of
         ok ->
@@ -169,5 +169,49 @@ test() ->
             "attachment in mixed multipart response OK"),
     etap:is(proplists:get_value(<<"test">>, Collected1), <<"test">>,
             "attachment content in mixed multipart in response OK"),
+
+
+    RespMpDoc = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test4">>}]},
+                                   [{<<"test.txt">>, <<"test">>}], []),
+    etap:ok(case RespMpDoc of
+        {ok, {Props}} ->
+            case proplists:get_value(<<"_id">>, Props) of
+                <<"test4">> -> true;
+                _ -> false
+            end;
+        _ -> false
+    end, "save multipart doc  with id ok"),
+
+    {ok, MpAttachment1} = couchbeam:fetch_attachment(Db, <<"test4">>,
+                                                     <<"test.txt">>),
+    etap:is(MpAttachment1, <<"test">>,
+            "fetch attachment with multipart  doc ok"),
+
+
+
+    RespMpDoc1 = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test5">>}]},
+                                    [{<<"1M">>, {file, "t/1M"}}], []),
+
+    etap:ok(case RespMpDoc1 of
+        {ok, {Props1}} ->
+            case proplists:get_value(<<"_id">>, Props1) of
+                <<"test5">> -> true;
+                _ -> false
+            end;
+        _ -> false
+    end, "save multipart doc with file ok"),
+    {ok, Doc10} = couchbeam:open_doc(Db, <<"test5">>),
+    MpAttachments = couchbeam_doc:get_value(<<"_attachments">>, Doc10),
+    etap:isnt(MpAttachments, undefined, "file attachment with multipart
+             OK"),
+    MpAttachment2 = couchbeam_doc:get_value(<<"1M">>, MpAttachments),
+    etap:isnt(MpAttachment2, undefined,
+              "attachment 1M uploaded with mp dov OK"),
+    etap:is(couchbeam_doc:get_value(<<"length">>, MpAttachment2), FileSize,
+            "attachment 1M size ok"),
+
+    {ok, MpBin} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
+    etap:is(iolist_size(Bin), FileSize,
+            "fetch streammed attachment from mp doc OK"),
 
     ok.

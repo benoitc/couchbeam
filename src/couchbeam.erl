@@ -28,7 +28,7 @@
          open_or_create_db/2, open_or_create_db/3, open_or_create_db/4,
          delete_db/1, delete_db/2,
          db_info/1,
-         save_doc/2, save_doc/3,
+         save_doc/2, save_doc/3, save_doc/4,
          doc_exists/2,
          open_doc/2, open_doc/3,
          stream_doc/1, end_doc_stream/1,
@@ -46,6 +46,20 @@
 
 -opaque doc_stream() :: {atom(), any()}.
 -export_type([doc_stream/0]).
+
+-type mp_attachments() :: {Name :: binary(), Bin :: binary()}
+    | {Name :: binary(), Bin :: binary(), Encoding :: binary()}
+    | { Name :: binary(), Bin :: binary(), Type :: binary(), Encoding :: binary()}
+    | { Name :: binary(), {file, Path ::  string()}}
+    | { Name :: binary(), {file, Path ::  string()}, Encoding :: binary()}
+    | { Name :: binary(), Fun :: fun(), Length :: integer()}
+    | { Name :: binary(), Fun :: fun(), Length :: integer(), Encoding :: binary()}
+    | { Name :: binary(), Fun :: fun(), Length :: integer(), Type :: binary(), Encoding :: binary()}
+    | { Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer()}
+    | { Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Encoding :: binary()}
+    | { Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Type :: binary(), Encoding :: binary()}.
+
+
 
 %% --------------------------------------------------------------------
 %% Generic utilities.
@@ -462,7 +476,46 @@ save_doc(Db, Doc) ->
 %% the couchdb node.
 %%
 %% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
-save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Options) ->
+save_doc(Db, Doc, Options) ->
+    save_doc(Db, Doc, [], Options).
+
+
+%% @doc save a *document with all its attacjments
+%% A document is a Json object like this one:
+%%
+%%      ```{[
+%%          {<<"_id">>, <<"myid">>},
+%%          {<<"title">>, <<"test">>}
+%%      ]}'''
+%%
+%% Options are arguments passed to the request. This function return a
+%% new document with last revision and a docid. If _id isn't specified in
+%% document it will be created. Id is created by extracting an uuid from
+%% the couchdb node.
+%%
+%% If the attachments is not empty, the doc will be sent as multipart.
+%% Attachments are passed as a list of the following tupples:
+%%
+%% - `{Name :: binary(), Bin :: binary()}'
+%% - `{Name :: binary(), Bin :: binary(), Encoding :: binary()}'
+%% - `{ Name :: binary(), Bin :: binary(), Type :: binary(), Encoding :: binary()}'
+%% - `{ Name :: binary(), {file, Path ::  string()}}'
+%% - `{ Name :: binary(), {file, Path ::  string()}, Encoding :: binary()}'
+%% - `{ Name :: binary(), Fun :: fun(), Length :: integer()}'
+%% - `{ Name :: binary(), Fun :: fun(), Length :: integer(), Encoding :: binary()}'
+%% - `{Name :: binary(), Fun :: fun(), Length :: integer(), Type :: binary(), Encoding :: binary()}'
+%% - `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer()}'
+%% - `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Encoding :: binary()}'
+%% - `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Type :: binary(), Encoding :: binary()}.'
+%%
+%% where `Type` is the content-type of the attachments (detected in other
+%% case) and `Encoding` the encoding of the attachments:
+%% `<<"identity">>' if normal or `<<"gzip">>' if the attachments is
+%% gzipped.
+
+-spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
+    {ok, doc()} | {error, term()}.
+save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
     DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
         undefined ->
             [Id] = get_uuid(Server),
@@ -472,20 +525,43 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Options) ->
     end,
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
                                Options),
-    Body = couchbeam_ejson:encode(Doc),
-    Headers = [{<<"Content-Type">>, <<"application/json">>}],
-
-    case couchbeam_httpc:db_request(put, Url, Headers, Body, Opts,
+    case Atts of
+        [] ->
+            JsonDoc = couchbeam_ejson:encode(Doc),
+            Headers = [{<<"Content-Type">>, <<"application/json">>}],
+            case couchbeam_httpc:db_request(put, Url, Headers, JsonDoc, Opts,
                                     [200, 201]) of
-        {ok, _, _, Ref} ->
-            {JsonProp} = couchbeam_httpc:json_body(Ref),
-            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
-            Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
-                couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
-            {ok, Doc1};
-        Error ->
-            Error
+                {ok, _, _, Ref} ->
+                    {JsonProp} = couchbeam_httpc:json_body(Ref),
+                    NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
+                    NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+                    Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
+                        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
+                    {ok, Doc1};
+                Error ->
+                    Error
+            end;
+        _ ->
+            Boundary = couchbeam_uuids:random(),
+
+            %% for now couchdb can't received chunked multipart stream
+            %% so we have to calculate the content-length. It also means
+            %% that we need to know the size of each attachments. (Which
+            %% should be expected).
+            {CLen, JsonDoc, Doc2} = len_doc_to_mp_stream(Atts, Boundary, Doc),
+            CType = <<"multipart/related; boundary=\"",
+                      Boundary/binary, "\"" >>,
+
+            Headers = [{<<"Content-Type">>, CType},
+                       {<<"Content-Length">>, hackney_bstr:to_binary(CLen)}],
+
+            case couchbeam_httpc:request(put, Url, Headers, stream,
+                                         Opts) of
+                {ok, Ref} ->
+                    send_mp_doc(Atts, Ref, Boundary, JsonDoc, Doc2);
+                Error ->
+                    Error
+            end
     end.
 
 %% @doc delete a document
@@ -1063,3 +1139,151 @@ content_disposition(Data) ->
                         (_Rest2, _) -> {error, badarg}
                     end)
         end).
+
+len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
+    {AttsSize, Stubs} = lists:foldl(fun(Att, {AccSize, AccAtts}) ->
+                    {AttLen, Name, Type, Encoding, _Msg} = att_info(Att),
+                    AccSize1 = AccSize +
+                               4 + %% \r\n\r\n
+                               AttLen +
+                               byte_size(hackney_bstr:to_binary(AttLen)) +
+                               4 +  %% "\r\n--"
+                               byte_size(Boundary) +
+                               byte_size(Name) +
+                               byte_size(Type) +
+                               byte_size(<<"\r\nContent-Disposition: attachment; filename=\"\"">> ) +
+                               byte_size(<<"\r\nContent-Type: ">>) +
+                               byte_size(<<"\r\nContent-Length: ">>) +
+                               case Encoding of
+                                   <<"identity">> ->
+                                       0;
+                                   _ ->
+                                       byte_size(Encoding) +
+                                       byte_size(<<"\r\nContent-Encoding: ">>)
+                               end,
+                    AccAtts1 = [{Name, [{<<"content_type">>, Type},
+                                        {<<"length">>, AttLen},
+                                        {<<"follows">>, true},
+                                        {<<"encoding">>, Encoding}]}
+                                | AccAtts],
+                    {AccSize1, AccAtts1}
+
+            end, {0, []}, Atts),
+    Doc1 = {Props ++ [{<<"_attachments">>, Stubs}]},
+    JsonDoc = couchbeam_ejson:encode(Doc1),
+    FinalSize = 2 + % "--"
+                byte_size(Boundary) +
+                36 + % "\r\ncontent-type: application/json\r\n\r\n"
+                byte_size(JsonDoc) +
+                4 + % "\r\n--"
+                byte_size(Boundary) +
+                + AttsSize +
+                2, % "--"
+
+    {FinalSize, JsonDoc, Doc1}.
+
+send_mp_doc(Atts, Ref, Boundary, JsonDoc, Doc) ->
+    %% send the doc
+    DocParts = [<<"--", Boundary/binary >>,
+                <<"Content-Type: application/json">>,
+                <<>>, JsonDoc, <<>>],
+    DocBin = hackney_bstr:join(DocParts, <<"\r\n">>),
+    case hackney:send_body(Ref, DocBin) of
+        ok ->
+            send_mp_doc_atts(Atts, Ref, Doc, Boundary);
+        Error ->
+            Error
+    end.
+
+
+send_mp_doc_atts([], Ref, Doc, Boundary) ->
+    %% no more attachments, send the final boundary (eof)
+    case hackney:send_body(Ref, <<"\r\n--", Boundary/binary, "--" >>) of
+        ok ->
+            %% collect the response.
+            mp_doc_reply(Ref, Doc);
+        Error ->
+            Error
+    end;
+
+send_mp_doc_atts([Att | Rest], Ref, Doc, Boundary) ->
+    {AttLen, Name, Type, Encoding, Msg} = att_info(Att),
+    BinAttLen = hackney_bstr:to_binary(AttLen),
+    AttHeadersParts = [<<"--", Boundary/binary >>,
+                       <<"Content-Disposition: attachment; filename=\"", Name/binary, "\"" >>,
+                      <<"Content-Type: ", Type/binary >>,
+                      <<"Content-Length: ", BinAttLen/binary >>],
+
+    AttHeadersParts1 = AttHeadersParts ++
+            case Encoding of
+                <<"identity">> ->
+                    [<<>>, <<>>];
+                _ ->
+                    [<<"Content-Encoding: ", Encoding/binary >>, <<>>,
+                     <<>>]
+            end,
+    AttHeadersBin = hackney_bstr:join(AttHeadersParts1, <<"\r\n">>),
+
+    %% first send the att headers
+    case hackney:send_body(Ref, AttHeadersBin) of
+        ok ->
+            %% send the attachment by itself
+            case hackney:send_body(Ref, Msg) of
+                ok ->
+                    %% everything is OK continue to the next attachment
+                    send_mp_doc_atts(Rest, Ref, Doc, Boundary);
+                Error ->
+                    Error
+            end;
+        Error ->
+            Error
+    end.
+
+mp_doc_reply(Ref, Doc) ->
+    Resp = hackney:start_response(Ref),
+    case couchbeam_httpc:db_resp(Resp, [200, 201]) of
+        {ok, _, _, Ref} ->
+            {JsonProp} = couchbeam_httpc:json_body(Ref),
+            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
+            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+            %% set the new doc ID
+            Doc1 = couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc),
+            %% set the new rev
+            FinalDoc = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
+            %% return the updated document
+            {ok, FinalDoc};
+        Error ->
+            Error
+    end.
+
+att_info({Name, {file, Path}=Msg}) ->
+    CType = hackney_bstr:content_type(Path),
+    Len = filelib:file_size(Path),
+    {Len, Name, CType, <<"identity">>, Msg};
+att_info({Name, Bin}) when is_list(Bin) ->
+    att_info({Name, iolist_to_binary(Bin)});
+att_info({Name, Bin}) when is_binary(Bin) ->
+    CType = hackney_bstr:content_type(Name),
+    {byte_size(Bin), Name, CType, <<"identity">>, Bin};
+att_info({Name, {file, Path}=Msg, Encoding}) ->
+    CType = hackney_bstr:content_type(Path),
+    Len = filelib:file_size(Path),
+    {Len, Name, CType, Encoding, Msg};
+att_info({Name, {Fun, _Acc0}=Msg, Len}) when is_function(Fun) ->
+    {Len, Name, <<"application/octet-stream">>, <<"identity">>, Msg};
+att_info({Name, Fun, Len}) when is_function(Fun) ->
+    {Len, Name, <<"application/octet-stream">>, <<"identity">>, Fun};
+att_info({Name, Bin, Encoding}) when is_binary(Bin) ->
+    CType = hackney_bstr:content_type(Name),
+    {byte_size(Bin), Name, CType, Encoding, Bin};
+att_info({Name, {Fun, _Acc0}=Msg, Len, Encoding}) when is_function(Fun) ->
+    {Len, Name, <<"application/octet-stream">>, Encoding, Msg};
+att_info({Name, Fun, Len, Encoding}) when is_function(Fun) ->
+    {Len, Name, <<"application/octet-stream">>, Encoding, Fun};
+att_info({Name, Bin, CType, Encoding}) when is_binary(Bin) ->
+    {byte_size(Bin), Name, CType, Encoding, Bin};
+att_info({Name, {Fun, _Acc0}=Msg, Len, CType, Encoding})
+                when is_function(Fun) ->
+    {Len, Name, CType, Encoding, Msg};
+att_info({Name, Fun, Len, CType, Encoding}) when is_function(Fun) ->
+    {Len, Name, CType, Encoding, Fun}.

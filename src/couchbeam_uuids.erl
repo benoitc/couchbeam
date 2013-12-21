@@ -6,7 +6,11 @@
 -module(couchbeam_uuids).
 -behaviour(gen_server).
 
--export([start_link/0, get_uuids/2]).
+-export([random/0,
+         utc_random/0]).
+
+-export([start_link/0]).
+-export([get_uuids/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -17,11 +21,20 @@
 
 -record(state, {}).
 
+%% @doc return a random uuid
+-spec random() -> binary().
+random() ->
+    list_to_binary(hackney_bstr:to_hex(crypto:rand_bytes(16))).
+
+%% @doc return a random uuid based on time
+-spec utc_random() -> binary().
+utc_random() ->
+    utc_suffix(couch_util:to_hex(crypto:rand_bytes(9))).
+
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
     gen_server:call(?MODULE, {get_uuids, Server, Count}).
-
 
 %%--------------------------------------------------------------------
 %% Function: start_link/0
@@ -115,3 +128,11 @@ get_new_uuids(#server{url=ServerUrl, options=Opts}, Acc) ->
         Error ->
             Error
     end.
+
+utc_suffix(Suffix) ->
+    Now = {_, _, Micro} = now(),
+    Nowish = calendar:now_to_universal_time(Now),
+    Nowsecs = calendar:datetime_to_gregorian_seconds(Nowish),
+    Then = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+    Prefix = io_lib:format("~14.16.0b", [(Nowsecs - Then) * 1000000 + Micro]),
+    list_to_binary(Prefix ++ Suffix).
