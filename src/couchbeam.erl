@@ -88,7 +88,7 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @equiv server_connection(Host, Port, "", [])
 
 server_connection(URL, Options) when is_list(Options) ->
-    #server{url=URL, options=[]};
+    #server{url=URL, options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, "", []).
 
