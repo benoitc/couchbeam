@@ -19,6 +19,18 @@
 
 __abstract datatype__: `doc_stream()`
 
+
+
+
+### <a name="type-mp_attachments">mp_attachments()</a> ###
+
+
+
+<pre><code>
+mp_attachments() = {Name::binary(), Bin::binary()} | {Name::binary(), Bin::binary(), Encoding::binary()} | {Name::binary(), Bin::binary(), Type::binary(), Encoding::binary()} | {Name::binary(), {file, Path::string()}} | {Name::binary(), {file, Path::string()}, Encoding::binary()} | {Name::binary(), Fun::function(), Length::integer()} | {Name::binary(), Fun::function(), Length::integer(), Encoding::binary()} | {Name::binary(), Fun::function(), Length::integer(), Type::binary(), Encoding::binary()} | {Name::binary(), {Fun::function(), Acc::any()}, Length::integer()} | {Name::binary(), {Fun::function(), Acc::any()}, Length::integer(), Encoding::binary()} | {Name::binary(), {Fun::function(), Acc::any()}, Length::integer(), Type::binary(), Encoding::binary()}
+</code></pre>
+
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -44,6 +56,7 @@ Params is a list of query argument.</td></tr><tr><td valign="top"><a href="#open
 database if needed.</td></tr><tr><td valign="top"><a href="#open_or_create_db-3">open_or_create_db/3</a></td><td>Create a client for connecting to a database and create the
 database if needed.</td></tr><tr><td valign="top"><a href="#open_or_create_db-4">open_or_create_db/4</a></td><td>Create a client for connecting to a database and create the
 database if needed.</td></tr><tr><td valign="top"><a href="#put_attachment-4">put_attachment/4</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#put_attachment-5">put_attachment/5</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#replicate-2">replicate/2</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-3">replicate/3</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-4">replicate/4</a></td><td>handle Replication.</td></tr><tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a document.</td></tr><tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td>save a *document
+A document is a Json object like this one:.</td></tr><tr><td valign="top"><a href="#save_doc-4">save_doc/4</a></td><td>save a *document with all its attacjments
 A document is a Json object like this one:.</td></tr><tr><td valign="top"><a href="#save_docs-2">save_docs/2</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#save_docs-3">save_docs/3</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#send_attachment-2">send_attachment/2</a></td><td>send an attachment chunk
 Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#server_connection-0">server_connection/0</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-1">server_connection/1</a></td><td></td></tr><tr><td valign="top"><a href="#server_connection-2">server_connection/2</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-4">server_connection/4</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_info-1">server_info/1</a></td><td>Get Information from the server.</td></tr><tr><td valign="top"><a href="#server_url-1">server_url/1</a></td><td>Asemble the server URL for the given client.</td></tr><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Start the couchbeam process.</td></tr><tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>Stop the couchbeam process.</td></tr><tr><td valign="top"><a href="#stream_attachment-1">stream_attachment/1</a></td><td>fetch an attachment chunk.</td></tr><tr><td valign="top"><a href="#stream_doc-1">stream_doc/1</a></td><td>stream the multipart response of the doc API.</td></tr><tr><td valign="top"><a href="#version-0">version/0</a></td><td>Return the version of the application.</td></tr></table>
 
@@ -610,6 +623,62 @@ new document with last revision and a docid. If _id isn't specified in
 document it will be created. Id is created by extracting an uuid from
 the couchdb node.
 
+<a name="save_doc-4"></a>
+
+### save_doc/4 ###
+
+
+<pre><code>
+save_doc(Db::<a href="#type-db">db()</a>, Doc::<a href="#type-doc">doc()</a>, Atts::<a href="#type-mp_attachments">mp_attachments()</a>, Options::list()) -&gt; {ok, <a href="#type-doc">doc()</a>} | {error, term()}
+</code></pre>
+
+<br></br>
+
+
+
+save a *document with all its attacjments
+A document is a Json object like this one:
+
+
+
+```
+          {[
+           {<<"_id">>, <<"myid">>},
+           {<<"title">>, <<"test">>}
+       ]}
+```
+
+
+
+Options are arguments passed to the request. This function return a
+new document with last revision and a docid. If _id isn't specified in
+document it will be created. Id is created by extracting an uuid from
+the couchdb node.
+
+
+
+If the attachments is not empty, the doc will be sent as multipart.
+Attachments are passed as a list of the following tupples:
+
+
+
+- `{Name :: binary(), Bin :: binary()}`
+- `{Name :: binary(), Bin :: binary(), Encoding :: binary()}`
+- `{ Name :: binary(), Bin :: binary(), Type :: binary(), Encoding :: binary()}`
+- `{ Name :: binary(), {file, Path ::  string()}}`
+- `{ Name :: binary(), {file, Path ::  string()}, Encoding :: binary()}`
+- `{ Name :: binary(), Fun :: fun(), Length :: integer()}`
+- `{ Name :: binary(), Fun :: fun(), Length :: integer(), Encoding :: binary()}`
+- `{Name :: binary(), Fun :: fun(), Length :: integer(), Type :: binary(), Encoding :: binary()}`
+- `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer()}`
+- `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Encoding :: binary()}`
+- `{ Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Type :: binary(), Encoding :: binary()}.`
+
+
+where `Type` is the content-type of the attachments (detected in other
+case) and `Encoding` the encoding of the attachments:
+`<<"identity">>` if normal or `<<"gzip">>` if the attachments is
+gzipped.
 <a name="save_docs-2"></a>
 
 ### save_docs/2 ###
