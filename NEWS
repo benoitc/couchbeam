@@ -1,6 +1,25 @@
 couchbeam NEWS
 --------------
 
+version 1.0.0 / 2013-12-21
+--------------------------
+
+**First stable release**. This is a supported release.
+
+- send a doc and its attachments efficiently using the [multipart
+  API](http://docs.couchdb.org/en/latest/api/document/common.html#creating-multiple-attachments).
+- add `couchbeam:get_config/{1,2,3}`, `couchbeam:set_config/{4,5}` and
+  `couchbeam:delete_config/{3,4}` to use the [config
+API](http://docs.couchdb.org/en/latest/api/server/configuration.html).
+- add `couchbeam_uuids:random/0` and `couchbeam_uuids:utc_random/0` to
+  generate UUIDS in your app instead of reusing the UUID generated on
+the node. By default couchbeam is fetching from the node, which is
+- add `{error, forbidden}` and `{error, unauthenticated}` as possible
+  results of a reply.
+better if you want to use UUID based on the node time.
+- fix accept header handling
+
+
 version 0.10.0 / 2013-12-21
 ---------------------------
 

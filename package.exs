@@ -1,5 +1,5 @@
 Expm.Package.new(name: "couchbeam", description: "Apache CouchDB client in Erlang",
-                 version: "0.10.0", keywords: ["couchdb",
+                 version: "1.0.0", keywords: ["couchdb",
                                               "http","client","binary",
                                               "database"],
                  dependencies: ["hackney"],
@@ -7,5 +7,4 @@ Expm.Package.new(name: "couchbeam", description: "Apache CouchDB client in Erlan
                  contributors: [],
                  maintainers: [[name: "Benoit Chesneau",
                                 email: "bchesneau@gmail.com"]],
-                 repositories: [[github: "benoitc/couchbeam", tag: "0.10.0"]])
-
+                 repositories: [[github: "benoitc/couchbeam", tag: "1.0.0"]])

@@ -6,7 +6,7 @@
 
 
 @copyright 2009-2013 Benoît Chesneau.
-@version 0.10
+@version 1.0.0
 @title Couchbeam - simple erlang CouchDB library.
 
 @doc

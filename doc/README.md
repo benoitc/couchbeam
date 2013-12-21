@@ -4,7 +4,7 @@
 
 Copyright (c) 2009-2013 Benoît Chesneau.
 
-__Version:__ 0.10
+__Version:__ 1.0.0
 
 # couchbeam
 
