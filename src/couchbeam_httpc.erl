@@ -43,6 +43,12 @@ maybe_oauth_header(Method, Url, Headers, Options) ->
 
 db_resp({ok, Ref}=Resp, _Expect) when is_reference(Ref) ->
     Resp;
+db_resp({ok, 401, _, Ref}, _Expect) ->
+    hackney:skip_body(Ref),
+    {error, unauthenticated};
+db_resp({ok, 403, _, Ref}, _Expect) ->
+    hackney:skip_body(Ref),
+    {error, forbidden};
 db_resp({ok, 404, _, Ref}, _Expect) ->
     hackney:skip_body(Ref),
     {error, not_found};
