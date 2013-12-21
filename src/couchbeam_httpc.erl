@@ -15,6 +15,7 @@
 request(Method, Url, Headers, Body, Options) ->
     {FinalHeaders, FinalOpts} = make_headers(Method, Url, Headers,
                                              Options),
+
     hackney:request(Method, Url , FinalHeaders, Body, FinalOpts).
 
 db_request(Method, Url, Headers, Body, Options) ->
@@ -29,7 +30,12 @@ json_body(Ref) ->
     couchbeam_ejson:decode(Body).
 
 make_headers(Method, Url, Headers, Options) ->
-    Headers1 = [{<<"Accept">>, <<"application/json, */*;q=0.9">>} | Headers],
+    Headers1 = case couchbeam_util:get_value(<<"Accept">>, Headers) of
+        undefined ->
+            [{<<"Accept">>, <<"application/json, */*;q=0.9">>} | Headers];
+        _ ->
+            Headers
+    end,
     maybe_oauth_header(Method, Url, Headers1, Options).
 
 maybe_oauth_header(Method, Url, Headers, Options) ->
