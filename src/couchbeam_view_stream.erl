@@ -98,7 +98,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
             exit(normal);
-        {Ref, {status, 200, _}} ->
+        {hackney_response, Ref, {status, 200, _}} ->
             #state{parent=Parent,
                    owner=Owner,
                    ref=StreamRef,
@@ -110,7 +110,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
             {ok, State#state{client_ref=Ref,
                              decoder=DecoderFun}};
 
-        {error, Reason} ->
+        {hackney_response, Ref, {error, Reason}} ->
             exit(Reason)
     after ?TIMEOUT ->
             exit(timeout)
@@ -129,16 +129,16 @@ loop(#state{owner=Owner,
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
             exit(normal);
-        {ClientRef, {headers, _Headers}} ->
+        {hackney_response, ClientRef, {headers, _Headers}} ->
             loop(State);
-        {ClientRef, done} ->
+        {hackney_response, ClientRef, done} ->
             %% unregister the stream
             ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done};
-        {ClientRef, Data} when is_binary(Data) ->
+        {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(DecodeFun, Data, State);
-        {ClientRef, Error} ->
+        {hackney_response, ClientRef, Error} ->
             ets:delete(couchbeam_view_streams, StreamRef),
             %% report the error
             report_error(Error, StreamRef, Owner),

@@ -437,7 +437,6 @@ make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
     end.
 
 fold_view_results(Ref, Fun, Acc) ->
-    stream_next(Ref),
     receive
         {Ref, done} ->
             Acc;
@@ -447,6 +446,7 @@ fold_view_results(Ref, Fun, Acc) ->
                     cancel_stream(Ref),
                     Acc;
                 Acc1 ->
+                    stream_next(Ref),
                     fold_view_results(Ref, Fun, Acc1)
             end;
         {Ref, Error} ->

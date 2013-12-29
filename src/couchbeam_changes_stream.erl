@@ -135,7 +135,7 @@ do_init_stream(#state{mref=MRef,
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
             exit(normal);
-        {ClientRef, {status, 200, _}} ->
+        {hackney_response, ClientRef, {status, 200, _}} ->
             State1 = State#state{client_ref=ClientRef},
             DecoderFun = case FeedType of
                 longpoll ->
@@ -144,7 +144,7 @@ do_init_stream(#state{mref=MRef,
                     nil
             end,
             {ok, State1#state{decoder=DecoderFun}};
-        {error, Reason} ->
+        {hackney_response, ClientRef, {error, Reason}} ->
             exit(Reason)
     after ?TIMEOUT ->
            exit(timeout)
@@ -163,15 +163,15 @@ loop(#state{owner=Owner,
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
             exit(normal);
-        {ClientRef, {headers, _Headers}} ->
+        {hackney_response, ClientRef, {headers, _Headers}} ->
             loop(State);
-        {ClientRef, done} ->
+        {hackney_response, ClientRef, done} ->
             maybe_reconnect(State);
-        {ClientRef, <<"\n">>} ->
+        {hackney_response, ClientRef, <<"\n">>} ->
              maybe_continue(State);
-        {ClientRef, Data} when is_binary(Data) ->
+        {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(DecodeFun, Data, State);
-        {ClientRef, Error} ->
+        {hackney_response, ClientRef, Error} ->
             ets:delete(couchbeam_changes_streams, StreamRef),
             %% report the error
             report_error(Error, StreamRef, Owner),
