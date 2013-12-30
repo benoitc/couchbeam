@@ -1,6 +1,13 @@
 couchbeam NEWS
 --------------
 
+version 1.0.1 / 2013-12-30
+--------------------------
+
+- fix connection reusing in changes and view streams
+- bump hackney version to 0.10.1
+
+
 version 1.0.0 / 2013-12-21
 --------------------------
 
