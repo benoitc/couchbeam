@@ -2,9 +2,9 @@
 
 # Couchbeam - simple erlang CouchDB library. #
 
-Copyright (c) 2009-2013 Benoît Chesneau.
+Copyright (c) 2009-2014 BenoÃ®t Chesneau.
 
-__Version:__ 1.0.0
+__Version:__ 1.0.2
 
 # couchbeam
 
