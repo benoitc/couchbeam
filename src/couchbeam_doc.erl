@@ -64,7 +64,7 @@ get_value(Key, JsonObj, Default) when is_list(Key) ->
     get_value(list_to_binary(Key), JsonObj, Default);
 get_value(Key, JsonObj, Default) when is_binary(Key) ->
     {Props} = JsonObj,
-    proplists:get_value(Key, Props, Default).
+    couchbeam_util:get_value(Key, Props, Default).
 
 
 %% @spec take_value(Key::key_val(), JsonObj::json_obj()) -> {term(), json_obj()}

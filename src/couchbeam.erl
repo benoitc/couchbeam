@@ -1201,16 +1201,39 @@ len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
                                        byte_size(Encoding) +
                                        byte_size(<<"\r\nContent-Encoding: ">>)
                                end,
-                    AccAtts1 = [{Name, [{<<"content_type">>, Type},
-                                        {<<"length">>, AttLen},
-                                        {<<"follows">>, true},
-                                        {<<"encoding">>, Encoding}]}
+                    AccAtts1 = [{Name, {[{<<"content_type">>, Type},
+                                         {<<"length">>, AttLen},
+                                         {<<"follows">>, true},
+                                         {<<"encoding">>, Encoding}]}}
                                 | AccAtts],
                     {AccSize1, AccAtts1}
-
             end, {0, []}, Atts),
-    Doc1 = {Props ++ [{<<"_attachments">>, Stubs}]},
+
+    Doc1 = case couchbeam_util:get_value(<<"_attachments">>, Props) of
+        undefined ->
+            {Props ++ [{<<"_attachments">>, {Stubs}}]};
+        {OldAtts} ->
+            %% remove updated attachments from the old list of
+            %% attachments
+            OldAtts1 = lists:foldl(fun({Name, AttProps}, Acc) ->
+                            case couchbeam_util:get_value(Name, Stubs) of
+                                undefined ->
+                                    [{Name, AttProps} | Acc];
+                                _ ->
+                                    Acc
+                            end
+                    end, [], OldAtts),
+            %% update the list of the attachnebts with the attachments
+            %% that will be sent in the multipart
+            FinalAtts = lists:reverse(OldAtts1) ++ Stubs,
+            {lists:keyreplace(<<"_attachments">>, 1, Props,
+                             {<<"_attachments">>, {FinalAtts}})}
+    end,
+
+    %% eencode the doc
     JsonDoc = couchbeam_ejson:encode(Doc1),
+
+    %% calculate the final size with the doc part
     FinalSize = 2 + % "--"
                 byte_size(Boundary) +
                 36 + % "\r\ncontent-type: application/json\r\n\r\n"
