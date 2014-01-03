@@ -1,6 +1,12 @@
 couchbeam NEWS
 --------------
 
+version 1.0.2 / 2014-01-03
+--------------------------
+
+- fix: send a doc as multipart that already contains attachments
+
+
 version 1.0.1 / 2013-12-30
 --------------------------
 
