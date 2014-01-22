@@ -656,19 +656,15 @@ save_docs(Db, Docs) ->
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
-    {Options2, Body} = case couchbeam_util:get_value("all_or_nothing",
-            Options1, false) of
-        true ->
-            Body1 = couchbeam_ejson:encode({[
-                {<<"all_or_nothing">>, true},
-                {<<"docs">>, Docs1}
-            ]}),
-
-            {proplists:delete("all_or_nothing", Options1), Body1};
-        _ ->
-            Body1 = couchbeam_ejson:encode({[{<<"docs">>, Docs1}]}),
-            {Options1, Body1}
-        end,
+    DocOptions = [
+        {list_to_binary(K), V} || {K, V} <- Options1,
+        (K =:= "all_or_nothing" orelse K =:= "new_edits") andalso is_boolean(V)
+    ],
+    Options2 = [
+        {K, V} || {K, V} <- Options1,
+        K =/= "all_or_nothing" andalso K =/= "new_edits"
+    ],
+    Body = couchbeam_ejson:encode({[{<<"docs">>, Docs1}|DocOptions]}),
     Url = hackney_url:make_url(server_url(Server),
                                [db_url(Db), <<"_bulk_docs">>],
                                Options2),
