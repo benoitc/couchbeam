@@ -147,13 +147,18 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%          {signature_method, string()}
 %%
 server_connection(Host, Port, Prefix, Options)
-        when is_integer(Port), Port =:=443 ->
+        when is_integer(Port), Port =:= 443 ->
     BaseUrl = iolist_to_binary(["https://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
     #server{url=Url, options=Options};
 server_connection(Host, Port, Prefix, Options) ->
-    BaseUrl = iolist_to_binary(["https://", Host, ":",
+    Scheme = case proplists:get_value(is_ssl, Options) of
+        true -> "https";
+        _ -> "http"
+    end,
+
+    BaseUrl = iolist_to_binary([Scheme, "://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
     #server{url=Url, options=Options}.
