@@ -10,3 +10,6 @@ doc/erlang.png
 doc/edoc-info
 t/*.beam
 examples/*.beam
+
+src/test/out
+src/test/etap/*.beam
