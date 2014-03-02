@@ -17,8 +17,9 @@
                   public_key,
                   ssl,
                   mimetypes,
-                  hackney_lib,
+                  idna,
                   hackney]},
+  {included_applications, [hackney_lib, ets_lru]},
   {env, []},
   {mod, { couchbeam_app, []}}
  ]
