@@ -1,9 +1,10 @@
 
+
 # Couchbeam - simple erlang CouchDB library. #
 
-Copyright (c) 2009-2013 Benoît Chesneau.
+Copyright (c) 2009-2014 Benoît Chesneau.
 
-__Version:__ 1.0.0
+__Version:__ 1.0.3
 
 # couchbeam
 
@@ -266,7 +267,7 @@ ViewFun = fun(Ref, F) ->
 end,
 
 {ok, StreamRef} = couchbeam_view:stream(Db, 'all_docs'),
-ViewFun(StreamRef, ViewFun),
+ViewFun(StartRef, ViewFun),
 {ok, StreamRef2} = couchbeam_view:stream(Db, 'all_docs', [include_docs]),
 ViewFun(StreamRef2, ViewFun).
 ```
