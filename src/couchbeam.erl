@@ -93,11 +93,11 @@ version() ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
-    #server{url = <<"http://127.0.0.1:5984">>,
-            options = []}.
+    server_connection(<<"http://127.0.0.1:5984">>, []).
+
 
 server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
-    #server{url=hackney_url:fix_path(URL), options=[]}.
+    server_connection(URL, []).
 
 
 
@@ -105,7 +105,8 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @equiv server_connection(Host, Port, "", [])
 
 server_connection(URL, Options) when is_list(Options) ->
-    #server{url=URL, options=Options};
+    #server{url=hackney_url:fix_path(URL),
+            options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, "", []).
 
@@ -151,7 +152,7 @@ server_connection(Host, Port, Prefix, Options)
     BaseUrl = iolist_to_binary(["https://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
-    #server{url=Url, options=Options};
+    server_connection(Url, Options);
 server_connection(Host, Port, Prefix, Options) ->
     Scheme = case proplists:get_value(is_ssl, Options) of
         true -> "https";
@@ -161,7 +162,7 @@ server_connection(Host, Port, Prefix, Options) ->
     BaseUrl = iolist_to_binary([Scheme, "://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
-    #server{url=Url, options=Options}.
+    server_connection(Url, Options).
 
 %% @doc Get Information from the server
 %% @spec server_info(server()) -> {ok, iolist()}

@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ./ebin -pa ./t
+%%! -pa ./ebin -pa deps/*/ebin -pa ./t
 %%
 %% This file is part of couchbeam released under the MIT license.
 %% See the NOTICE for more information.
@@ -58,7 +58,6 @@ test() ->
     ]},
     {ok, Doc1} = couchbeam:save_doc(Db, Doc),
     RevDoc1 = couchbeam_doc:get_value(<<"_rev">>, Doc1),
-    io:format("rev ~p~n", [RevDoc1]),
     {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test",
             [{rev, RevDoc1}]),
 
@@ -97,7 +96,6 @@ test() ->
     etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
 
     {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
-
     {ok, FileInfo} = file:read_file_info("t/1M"),
     FileSize = FileInfo#file_info.size,
     {ok, Fd} = file:open("t/1M", [read]),
