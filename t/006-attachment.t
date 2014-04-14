@@ -107,7 +107,6 @@ test() ->
             end
         end, [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
     file:close(Fd),
-
     {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
     Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
     etap:isnt(Attachements, undefined, "attachment stream ok"),

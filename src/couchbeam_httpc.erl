@@ -70,6 +70,7 @@ db_resp({ok, Status, Headers, Ref}=Resp, Expect) ->
     case lists:member(Status, Expect) of
         true -> Resp;
         false ->
+            io:format("ahahahahah", []),
             {ok, Body} = hackney:body(Ref),
             {error, {bad_response, {Status, Headers, Body}}}
     end;
