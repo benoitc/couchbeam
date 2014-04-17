@@ -4,9 +4,8 @@
 %% See the NOTICE for more information.
 
 
-
-@copyright 2009-2013 Benoît Chesneau.
-@version 1.0.1
+@copyright 2009-2014 Benoît Chesneau.
+@version 1.0.4
 @title Couchbeam - simple erlang CouchDB library.
 
 @doc

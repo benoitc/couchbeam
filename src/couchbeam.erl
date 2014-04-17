@@ -93,11 +93,11 @@ version() ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
-    #server{url = <<"http://127.0.0.1:5984">>,
-            options = []}.
+    server_connection(<<"http://127.0.0.1:5984">>, []).
+
 
 server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
-    #server{url=hackney_url:fix_path(URL), options=[]}.
+    server_connection(URL, []).
 
 
 
@@ -105,7 +105,19 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @equiv server_connection(Host, Port, "", [])
 
 server_connection(URL, Options) when is_list(Options) ->
-    #server{url=URL, options=Options};
+    Options1 = case lists:keyfind(connect_options, 1, Options) of
+        false ->
+            [{connect_options, [{nodelay, true}]} | Options];
+        ConnOpts ->
+            ConnOpts1 = case lists:keyfind(nodelay, 1, ConnOpts) of
+                false -> [{nodelay, true} | ConnOpts];
+                _ -> ConnOpts
+            end,
+
+            lists:keyreplace(connect_options, 1, Options,
+                             {connect_options, ConnOpts1})
+    end,
+    #server{url=hackney_url:fix_path(URL), options=Options1};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, "", []).
 
@@ -147,16 +159,21 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%          {signature_method, string()}
 %%
 server_connection(Host, Port, Prefix, Options)
-        when is_integer(Port), Port =:=443 ->
+        when is_integer(Port), Port =:= 443 ->
     BaseUrl = iolist_to_binary(["https://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
-    #server{url=Url, options=Options};
+    server_connection(Url, Options);
 server_connection(Host, Port, Prefix, Options) ->
-    BaseUrl = iolist_to_binary(["https://", Host, ":",
+    Scheme = case proplists:get_value(is_ssl, Options) of
+        true -> "https";
+        _ -> "http"
+    end,
+
+    BaseUrl = iolist_to_binary([Scheme, "://", Host, ":",
                                 integer_to_list(Port)]),
     Url = hackney_url:make_url(BaseUrl, [Prefix], []),
-    #server{url=Url, options=Options}.
+    server_connection(Url, Options).
 
 %% @doc Get Information from the server
 %% @spec server_info(server()) -> {ok, iolist()}
@@ -656,19 +673,15 @@ save_docs(Db, Docs) ->
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
-    {Options2, Body} = case couchbeam_util:get_value("all_or_nothing",
-            Options1, false) of
-        true ->
-            Body1 = couchbeam_ejson:encode({[
-                {<<"all_or_nothing">>, true},
-                {<<"docs">>, Docs1}
-            ]}),
-
-            {proplists:delete("all_or_nothing", Options1), Body1};
-        _ ->
-            Body1 = couchbeam_ejson:encode({[{<<"docs">>, Docs1}]}),
-            {Options1, Body1}
-        end,
+    DocOptions = [
+        {list_to_binary(K), V} || {K, V} <- Options1,
+        (K =:= "all_or_nothing" orelse K =:= "new_edits") andalso is_boolean(V)
+    ],
+    Options2 = [
+        {K, V} || {K, V} <- Options1,
+        K =/= "all_or_nothing" andalso K =/= "new_edits"
+    ],
+    Body = couchbeam_ejson:encode({[{<<"docs">>, Docs1}|DocOptions]}),
     Url = hackney_url:make_url(server_url(Server),
                                [db_url(Db), <<"_bulk_docs">>],
                                Options2),
@@ -885,7 +898,8 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
     case couchbeam_httpc:db_request(put, Url, FinalHeaders, Body, Opts,
                                    [201]) of
         {ok, _, _, Ref} ->
-            {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
+            JsonBody = couchbeam_httpc:json_body(Ref),
+            {[{<<"ok">>, true}|R]} = JsonBody,
             {ok, {R}};
         {ok, Ref} ->
             {ok, Ref};
@@ -1201,16 +1215,39 @@ len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
                                        byte_size(Encoding) +
                                        byte_size(<<"\r\nContent-Encoding: ">>)
                                end,
-                    AccAtts1 = [{Name, [{<<"content_type">>, Type},
-                                        {<<"length">>, AttLen},
-                                        {<<"follows">>, true},
-                                        {<<"encoding">>, Encoding}]}
+                    AccAtts1 = [{Name, {[{<<"content_type">>, Type},
+                                         {<<"length">>, AttLen},
+                                         {<<"follows">>, true},
+                                         {<<"encoding">>, Encoding}]}}
                                 | AccAtts],
                     {AccSize1, AccAtts1}
-
             end, {0, []}, Atts),
-    Doc1 = {Props ++ [{<<"_attachments">>, Stubs}]},
+
+    Doc1 = case couchbeam_util:get_value(<<"_attachments">>, Props) of
+        undefined ->
+            {Props ++ [{<<"_attachments">>, {Stubs}}]};
+        {OldAtts} ->
+            %% remove updated attachments from the old list of
+            %% attachments
+            OldAtts1 = lists:foldl(fun({Name, AttProps}, Acc) ->
+                            case couchbeam_util:get_value(Name, Stubs) of
+                                undefined ->
+                                    [{Name, AttProps} | Acc];
+                                _ ->
+                                    Acc
+                            end
+                    end, [], OldAtts),
+            %% update the list of the attachnebts with the attachments
+            %% that will be sent in the multipart
+            FinalAtts = lists:reverse(OldAtts1) ++ Stubs,
+            {lists:keyreplace(<<"_attachments">>, 1, Props,
+                             {<<"_attachments">>, {FinalAtts}})}
+    end,
+
+    %% eencode the doc
     JsonDoc = couchbeam_ejson:encode(Doc1),
+
+    %% calculate the final size with the doc part
     FinalSize = 2 + % "--"
                 byte_size(Boundary) +
                 36 + % "\r\ncontent-type: application/json\r\n\r\n"

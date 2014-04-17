@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pa ./ebin -pa ./t
+%%! -pa ./ebin -pa deps/*/ebin -pa ./t
 %%
 %% This file is part of couchbeam released under the MIT license.
 %% See the NOTICE for more information.
@@ -8,7 +8,7 @@
 -include_lib("kernel/include/file.hrl").
 
 main(_) ->
-    etap:plan(30),
+    etap:plan(37),
     start_app(),
     case (catch test()) of
         ok ->
@@ -58,7 +58,6 @@ test() ->
     ]},
     {ok, Doc1} = couchbeam:save_doc(Db, Doc),
     RevDoc1 = couchbeam_doc:get_value(<<"_rev">>, Doc1),
-    io:format("rev ~p~n", [RevDoc1]),
     {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test",
             [{rev, RevDoc1}]),
 
@@ -97,7 +96,6 @@ test() ->
     etap:is(Attachment4, <<"test">>, "fetch attachment ok"),
 
     {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
-
     {ok, FileInfo} = file:read_file_info("t/1M"),
     FileSize = FileInfo#file_info.size,
     {ok, Fd} = file:open("t/1M", [read]),
@@ -109,7 +107,6 @@ test() ->
             end
         end, [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
     file:close(Fd),
-
     {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
     Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
     etap:isnt(Attachements, undefined, "attachment stream ok"),
@@ -211,7 +208,36 @@ test() ->
             "attachment 1M size ok"),
 
     {ok, MpBin} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
-    etap:is(iolist_size(Bin), FileSize,
+    etap:is(iolist_size(MpBin), FileSize,
             "fetch streammed attachment from mp doc OK"),
 
+    RespMpDoc2 = couchbeam:save_doc(Db, Doc10,
+                                    [{<<"hello.txt">>, <<"world">>}], []),
+    etap:ok(case RespMpDoc2 of
+        {ok, {Props2}} ->
+            case proplists:get_value(<<"_id">>, Props2) of
+                <<"test5">> -> true;
+                _ -> false
+            end;
+        _ -> false
+    end, "save multipart doc with new att ok"),
+
+    {ok, Doc11} = RespMpDoc2,
+    MpAttachments1 = couchbeam_doc:get_value(<<"_attachments">>, Doc11),
+    etap:isnt(MpAttachments1, undefined, "new attachment with multipart OK"),
+
+    MpAttachment3 = couchbeam_doc:get_value(<<"1M">>, MpAttachments1),
+    etap:isnt(MpAttachment3, undefined, "attachment 1M found"),
+    etap:is(couchbeam_doc:get_value(<<"length">>, MpAttachment3), FileSize,
+            "attachment 1M size ok"),
+
+    {ok, MpBin1} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
+    etap:is(iolist_size(MpBin1), FileSize,
+            "fetch streammed attachment from mp doc OK"),
+
+    MpAttachment4 =  couchbeam_doc:get_value(<<"hello.txt">>, MpAttachments1),
+    etap:isnt(MpAttachment4, undefined, "new attachment hello.txt found"),
+    {ok, MpBin2} = couchbeam:fetch_attachment(Db, <<"test5">>,
+                                              <<"hello.txt">>),
+    etap:is(MpBin2, <<"world">>, "new attachment hello.txt OK"),
     ok.

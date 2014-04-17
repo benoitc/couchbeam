@@ -172,6 +172,7 @@ maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref, mref=MRef,
     receive
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
+            maybe_close(State),
             exit(normal);
         {Ref, stream_next} ->
             loop(State);
@@ -201,6 +202,7 @@ maybe_continue(#state{parent=Parent,
     receive
         {'DOWN', MRef, _, _, _} ->
             %% parent exited there is no need to continue
+            maybe_close(State),
             exit(normal);
         {Ref, cancel} ->
             maybe_close(State),
@@ -238,7 +240,9 @@ system_continue(_, _, {loop, State}) ->
     loop(State).
 
 -spec system_terminate(any(), _, _, _) -> no_return().
-system_terminate(Reason, _, _, #state{ref=StreamRef}) ->
+system_terminate(Reason, _, _, #state{ref=StreamRef,
+                                      client_ref=ClientRef}) ->
+    hackney:close(ClientRef),
     %% unregister the stream
     catch ets:delete(couchbeam_view_streams, StreamRef),
     exit(Reason).
