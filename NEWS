@@ -1,5 +1,21 @@
 couchbeam NEWS
 --------------
+
+version 1.0.5 / 2014-04-18
+--------------------------
+
+- improve connections with HTTP proxies
+- improve content-types detection of attachments
+- improve URL encoding normalzation, useful when connecting to an
+  international domain/URI
+- URL resolving is faster
+- bump to [hackney 0.12.0](https://github.com/benoitc/hackney/releases/tag/0.12.0)
+
+version 1.0.4 / 2014-04-15
+--------------------------
+
+- remove spurious print
+
 version 1.0.3 / 2014-04-15
 --------------------------
 
