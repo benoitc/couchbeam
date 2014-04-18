@@ -1334,16 +1334,16 @@ mp_doc_reply(Ref, Doc) ->
     end.
 
 att_info({Name, {file, Path}=Msg}) ->
-    CType = hackney_bstr:content_type(Path),
+    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
     Len = filelib:file_size(Path),
     {Len, Name, CType, <<"identity">>, Msg};
 att_info({Name, Bin}) when is_list(Bin) ->
     att_info({Name, iolist_to_binary(Bin)});
 att_info({Name, Bin}) when is_binary(Bin) ->
-    CType = hackney_bstr:content_type(Name),
+    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
     {byte_size(Bin), Name, CType, <<"identity">>, Bin};
 att_info({Name, {file, Path}=Msg, Encoding}) ->
-    CType = hackney_bstr:content_type(Path),
+    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
     Len = filelib:file_size(Path),
     {Len, Name, CType, Encoding, Msg};
 att_info({Name, {Fun, _Acc0}=Msg, Len}) when is_function(Fun) ->
@@ -1351,7 +1351,7 @@ att_info({Name, {Fun, _Acc0}=Msg, Len}) when is_function(Fun) ->
 att_info({Name, Fun, Len}) when is_function(Fun) ->
     {Len, Name, <<"application/octet-stream">>, <<"identity">>, Fun};
 att_info({Name, Bin, Encoding}) when is_binary(Bin) ->
-    CType = hackney_bstr:content_type(Name),
+    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
     {byte_size(Bin), Name, CType, Encoding, Bin};
 att_info({Name, {Fun, _Acc0}=Msg, Len, Encoding}) when is_function(Fun) ->
     {Len, Name, <<"application/octet-stream">>, Encoding, Msg};
