@@ -1,6 +1,12 @@
 couchbeam NEWS
 --------------
 
+version 1.0.6 / 2014-04-18
+--------------------------
+
+- bump to [hackney 0.12.1](https://github.com/benoitc/hackney/releases/tag/0.12.2)
+
+
 version 1.0.5 / 2014-04-18
 --------------------------
 
