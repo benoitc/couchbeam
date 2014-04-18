@@ -18,8 +18,9 @@
 %%      AName::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
-    ContentType = hackney_util:content_type(AName),
-    add_inline(Doc, Content, AName, ContentType).
+    AName1 = hackney_bstr:to_binary(AName),
+    ContentType = hackney_mimetypes:filename(AName1),
+    add_inline(Doc, Content, AName1, ContentType).
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
 %%      AName::string(), ContentType::string()) -> json_obj()
@@ -27,8 +28,8 @@ add_inline(Doc, Content, AName) ->
 add_inline(Doc, Content, AName, ContentType) ->
     {Props} = Doc,
     Data = base64:encode(Content),
-    Attachment = {couchbeam_util:to_binary(AName), {[{<<"content_type">>,
-        couchbeam_util:to_binary(ContentType)}, {<<"data">>, Data}]}},
+    Attachment = {AName, {[{<<"content_type">>, ContentType},
+                           {<<"data">>, Data}]}},
 
     Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
         undefined ->
