@@ -6,7 +6,7 @@
 -module(couchbeam_util).
 
 -include_lib("hackney/include/hackney.hrl").
--include_lib("hackney_lib/include/hackney_lib.hrl").
+-include_lib("hackney/include/hackney_lib.hrl").
 
 -export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).

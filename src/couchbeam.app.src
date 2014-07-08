@@ -5,7 +5,7 @@
 
 {application, couchbeam,
  [{description, "Erlang CouchDB client"},
-  {vsn, "1.0.6"},
+  {vsn, "1.0.7"},
   {modules, []},
   {registered, [
     couchbeam_sup
@@ -18,7 +18,7 @@
                   ssl,
                   idna,
                   hackney]},
-  {included_applications, [hackney_lib]},
+  {included_applications, []},
   {env, []},
   {mod, { couchbeam_app, []}}
  ]
