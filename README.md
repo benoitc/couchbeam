@@ -4,7 +4,7 @@
 
 Copyright (c) 2009-2014 Benoît Chesneau.
 
-__Version:__ 1.0.5
+__Version:__ 1.0.6
 
 # couchbeam
 
@@ -267,7 +267,7 @@ ViewFun = fun(Ref, F) ->
 end,
 
 {ok, StreamRef} = couchbeam_view:stream(Db, 'all_docs'),
-ViewFun(StartRef, ViewFun),
+ViewFun(StreamRef, ViewFun),
 {ok, StreamRef2} = couchbeam_view:stream(Db, 'all_docs', [include_docs]),
 ViewFun(StreamRef2, ViewFun).
 ```
