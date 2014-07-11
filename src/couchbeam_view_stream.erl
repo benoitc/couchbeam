@@ -106,7 +106,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
 
             DecoderFun = jsx:decoder(?MODULE, [Parent, Owner, StreamRef,
                                                MRef, Ref, Async],
-                                     [explicit_end]),
+                                     [stream]),
             {ok, State#state{client_ref=Ref,
                              decoder=DecoderFun}};
 
@@ -120,9 +120,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
 loop(#state{owner=Owner,
             ref=StreamRef,
             mref=MRef,
-            client_ref=ClientRef,
-            decoder=DecodeFun}=State) ->
-
+            client_ref=ClientRef}=State) ->
 
     hackney:stream_next(ClientRef),
     receive
@@ -137,7 +135,7 @@ loop(#state{owner=Owner,
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done};
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
-            decode_data(DecodeFun, Data, State);
+            decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->
             ets:delete(couchbeam_view_streams, StreamRef),
             %% report the error
@@ -145,17 +143,15 @@ loop(#state{owner=Owner,
             exit(Error)
     end.
 
-decode_data(DecodeFun, Data, #state{owner=Owner,
-                                    ref=StreamRef,
-                                    client_ref=ClientRef}=State) ->
-    case DecodeFun(Data) of
-        {incomplete, DecodeFun2} ->
-            maybe_continue(State#state{decoder=DecodeFun2});
-        badarg ->
-            exit(badarg);
-        done ->
+decode_data(Data, #state{owner=Owner,
+                         ref=StreamRef,
+                         client_ref=ClientRef,
+                         decoder=DecodeFun}=State) ->
+    try 
+        {incomplete, DecodeFun2} = DecodeFun(Data),
+        try DecodeFun2(end_stream) of done ->
             %% stop the request
-            ok = hackney:stop_async(ClientRef),
+            {ok, _} = hackney:stop_async(ClientRef),
             %% skip the rest of the body so the socket is
             %% replaced in the pool
             hackney:skip_body(ClientRef),
@@ -163,8 +159,11 @@ decode_data(DecodeFun, Data, #state{owner=Owner,
             ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done}
+        catch error:badarg ->
+            maybe_continue(State#state{decoder=DecodeFun2})
+        end
+    catch error:badarg -> exit(badarg)
     end.
-
 
 maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref, mref=MRef,
                       async=once}=State) ->

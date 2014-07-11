@@ -12,8 +12,8 @@
 
 
 -ifndef('WITH_JIFFY').
--define(JSON_ENCODE(D), jsx:encode(D, [{pre_encode, fun jsx_pre_encode/1}])).
--define(JSON_DECODE(D), jsx:decode(D, [{post_decode, fun jsx_post_decode/1}])).
+-define(JSON_ENCODE(D), jsx:encode(pre_encode(D))).
+-define(JSON_DECODE(D), post_decode(jsx:decode(D))).
 
 -else.
 -define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).
@@ -41,24 +41,30 @@ decode(D) ->
             throw({invalid_json, badarg})
     end.
 
-jsx_pre_encode({[]}) ->
+pre_encode({[]}) ->
     [{}];
-jsx_pre_encode({PropList}) ->
-    PropList;
-jsx_pre_encode(true) ->
+pre_encode({PropList}) ->
+    pre_encode(PropList);
+pre_encode([{_, _}|_] = PropList) ->
+    [ {Key, pre_encode(Value)} || {Key, Value} <- PropList ];
+pre_encode(List) when is_list(List) ->
+    [ pre_encode(Term) || Term <- List ];
+pre_encode(true) ->
     true;
-jsx_pre_encode(false) ->
+pre_encode(false) ->
     false;
-jsx_pre_encode(null) ->
+pre_encode(null) ->
     null;
-jsx_pre_encode(Atom) when is_atom(Atom) ->
+pre_encode(Atom) when is_atom(Atom) ->
     erlang:atom_to_binary(Atom, utf8);
-jsx_pre_encode(Term) ->
+pre_encode(Term) when is_integer(Term); is_float(Term); is_binary(Term) ->
     Term.
 
-jsx_post_decode([{}]) ->
+post_decode([{}]) ->
     {[]};
-jsx_post_decode([{_Key, _Value} | _Rest] = PropList) ->
-    {PropList};
-jsx_post_decode(Term) ->
+post_decode([{_Key, _Value} | _Rest] = PropList) ->
+    {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
+post_decode(List) when is_list(List) ->
+    [ post_decode(Term) || Term <- List];
+post_decode(Term) ->
     Term.
