@@ -139,7 +139,7 @@ do_init_stream(#state{mref=MRef,
             State1 = State#state{client_ref=ClientRef},
             DecoderFun = case FeedType of
                 longpoll ->
-                    jsx:decoder(?MODULE, [State1], [explicit_end]);
+                    jsx:decoder(?MODULE, [State1], [stream]);
                 _ ->
                     nil
             end,
@@ -154,8 +154,7 @@ do_init_stream(#state{mref=MRef,
 loop(#state{owner=Owner,
             ref=StreamRef,
             mref=MRef,
-            client_ref=ClientRef,
-            decoder=DecodeFun}=State) ->
+            client_ref=ClientRef}=State) ->
 
 
     hackney:stream_next(ClientRef),
@@ -170,7 +169,7 @@ loop(#state{owner=Owner,
         {hackney_response, ClientRef, <<"\n">>} ->
              maybe_continue(State);
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
-            decode_data(DecodeFun, Data, State);
+            decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->
             ets:delete(couchbeam_changes_streams, StreamRef),
             %% report the error
@@ -238,44 +237,44 @@ wait_reconnect(#state{parent=Parent,
     end.
 
 
-decode_data(DecodeFun, Data, #state{owner=Owner,
-                                    ref=Ref,
-                                    feed_type=continuous}=State) ->
+decode_data(Data, #state{owner=Owner,
+                         ref=Ref,
+                         feed_type=continuous,
+                         decoder=DecodeFun}=State) ->
 
-    Res = case DecodeFun of
+    {incomplete, DecodeFun2} = try DecodeFun of
         nil ->
-            jsx:decode(Data, [{post_decode, fun jsx_post_decode/1}]);
+            post_decode(jsx:decode(Data, [stream]));
         _ ->
             DecodeFun(Data)
+    catch error:badarg -> exit(badarg)
     end,
 
-    case Res of
-        {incomplete, DecodeFun2} ->
-            maybe_continue(State#state{decoder=DecodeFun2});
-        badarg ->
-            exit(badarg);
+    try DecodeFun2(end_stream) of
         {Props} = Change ->
             Seq = couchbeam_util:get_value(<<"seq">>, Props),
             put(last_seq, Seq),
             Owner ! {Ref, {change, Change}},
             maybe_continue(State#state{decoder=nil})
+    catch error:badarg -> maybe_continue(State#state{decoder=DecodeFun2})
     end;
-decode_data(DecodeFun, Data, #state{client_ref=ClientRef}=State) ->
-    case DecodeFun(Data) of
-        {incomplete, DecodeFun2} ->
-            maybe_continue(State#state{decoder=DecodeFun2});
-        badarg ->
-            exit(badarg);
-        done ->
+decode_data(Data, #state{client_ref=ClientRef,
+                         decoder=DecodeFun}=State) ->
+    try 
+        {incomplete, DecodeFun2} = DecodeFun(Data),
+        try DecodeFun2(end_stream) of done ->
             %% stop the request
-            %%ok = hackney:stop_async(ClientRef),
+            {ok, _} = hackney:stop_async(ClientRef),
             %% skip the rest of the body so the socket is
             %% replaced in the pool
             hackney:skip_body(ClientRef),
             %% maybe reconnect
             maybe_reconnect(State)
+        catch error:badarg ->
+            maybe_continue(State#state{decoder=DecodeFun2})
+        end
+    catch error:badarg -> exit(badarg)
     end.
-
 
 maybe_continue(#state{parent=Parent,
                       owner=Owner,
@@ -543,9 +542,11 @@ maybe_close(#state{client_ref=nil}) ->
 maybe_close(#state{client_ref=Ref}) ->
     hackney:close(Ref).
 
-jsx_post_decode([{}]) ->
+post_decode([{}]) ->
     {[]};
-jsx_post_decode([{_Key, _Value} | _Rest] = PropList) ->
-    {PropList};
-jsx_post_decode(Term) ->
+post_decode([{_Key, _Value} | _Rest] = PropList) ->
+    {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
+post_decode(List) when is_list(List) ->
+    [ post_decode(Term) || Term <- List];
+post_decode(Term) ->
     Term.
