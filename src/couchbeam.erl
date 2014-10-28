@@ -315,8 +315,7 @@ all_dbs(#server{url=ServerUrl, options=Opts}) ->
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
-        {ok, _, _, Ref} ->
-            hackney:skip_body(Ref),
+        {ok, 200, _}->
             true;
         _Error ->
             false
@@ -441,9 +440,7 @@ doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
-        {ok, _, _, Ref} ->
-            hackney:skip_body(Ref),
-            true;
+        {ok, _, _} -> true;
         _Error -> false
     end.
 
@@ -765,7 +762,7 @@ lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
                                Params),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
-        {ok, _, Headers, _} ->
+        {ok, _, Headers} ->
             HeadersDict = hackney_headers:new(Headers),
             re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
                 <<"\"">>, <<>>, [global, {return, binary}]);

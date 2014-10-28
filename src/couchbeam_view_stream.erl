@@ -86,7 +86,7 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
 do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
     %% we are doing the request asynchronously
     FinalOpts = [{async, once} | Opts],
-    {ok, Ref} = case Args#view_query_args.method of
+    Reply = case Args#view_query_args.method of
         get ->
             hackney:request(get, Url, [], <<>>, FinalOpts);
         post ->
@@ -94,27 +94,34 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
                                              Args#view_query_args.keys}]}),
             hackney:request(post, Url, [], Body, FinalOpts)
     end,
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            %% parent exited there is no need to continue
-            exit(normal);
-        {hackney_response, Ref, {status, 200, _}} ->
-            #state{parent=Parent,
-                   owner=Owner,
-                   ref=StreamRef,
-                   async=Async} = State,
 
-            DecoderFun = jsx:decoder(?MODULE, [Parent, Owner, StreamRef,
-                                               MRef, Ref, Async],
-                                     [stream]),
-            {ok, State#state{client_ref=Ref,
-                             decoder=DecoderFun}};
+    case Reply of
+        {ok, Ref} ->
+            receive
+                {'DOWN', MRef, _, _, _} ->
+                    %% parent exited there is no need to continue
+                    exit(normal);
+                {hackney_response, Ref, {status, 200, _}} ->
+                    #state{parent=Parent,
+                           owner=Owner,
+                           ref=StreamRef,
+                           async=Async} = State,
 
-        {hackney_response, Ref, {error, Reason}} ->
-            exit(Reason)
-    after ?TIMEOUT ->
-            exit(timeout)
+                    DecoderFun = jsx:decoder(?MODULE, [Parent, Owner,
+                                                       StreamRef, MRef, Ref,
+                                                       Async], [stream]),
+                    {ok, State#state{client_ref=Ref,
+                                     decoder=DecoderFun}};
+
+                {hackney_response, Ref, {error, Reason}} ->
+                    exit(Reason)
+            after ?TIMEOUT ->
+                    exit(timeout)
+            end;
+        Error ->
+            {error, Error}
     end.
+
 
 
 loop(#state{owner=Owner,
@@ -147,7 +154,7 @@ decode_data(Data, #state{owner=Owner,
                          ref=StreamRef,
                          client_ref=ClientRef,
                          decoder=DecodeFun}=State) ->
-    try 
+    try
         {incomplete, DecodeFun2} = DecodeFun(Data),
         try DecodeFun2(end_stream) of done ->
             %% stop the request
@@ -342,7 +349,6 @@ collect_object({_, Event}, {_, NestCount, [Last|Terms], ViewSt}) ->
 send_row(Row, #viewst{owner=Owner, ref=Ref}=ViewSt) ->
     Owner ! {Ref, {row, Row}},
     maybe_continue_decoding(ViewSt).
-
 
 %% eventually wait for the next call from the parent
 maybe_continue_decoding(#viewst{parent=Parent,
