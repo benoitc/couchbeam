@@ -88,9 +88,7 @@ replace a value in a proplist
 <pre><code>
 get_value(Key::term(), Prop::[term()]) -&gt; term()
 </code></pre>
-
-<br></br>
-
+<br />
 
 emulate proplists:get_value/2,3 but use faster lists:keyfind/3
 <a name="get_value-3"></a>
@@ -101,9 +99,7 @@ emulate proplists:get_value/2,3 but use faster lists:keyfind/3
 <pre><code>
 get_value(Key::term(), Prop::[term()], Default::term()) -&gt; term()
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 <a name="oauth_header-3"></a>
@@ -160,9 +156,7 @@ key is in 2 proplists, the value from the first are kept.
 <pre><code>
 start_app_deps(App::atom()) -&gt; ok
 </code></pre>
-
-<br></br>
-
+<br />
 
 Start depedent applications of App.
 <a name="to_atom-1"></a>

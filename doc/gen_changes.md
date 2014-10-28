@@ -9,9 +9,7 @@
 gen_changes CouchDB continuous changes consumer behavior
 This behaviour allws you to create easily a server that consume
 Couchdb continuous changes.
-__This module defines the `gen_changes` behaviour.__
-<br></br>
- Required callback functions: `init/1`, `handle_change/2`, `handle_call/3`, `handle_cast/2`, `handle_info/2`, `terminate/2`.
+__This module defines the `gen_changes` behaviour.__<br /> Required callback functions: `init/1`, `handle_change/2`, `handle_call/3`, `handle_cast/2`, `handle_info/2`, `terminate/2`.
 <a name="index"></a>
 
 ## Function Index ##

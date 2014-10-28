@@ -26,9 +26,7 @@ AccIn == Acc.</td></tr><tr><td valign="top"><a href="#foreach-3">foreach/3</a></
 <pre><code>
 all(Db::<a href="#type-db">db()</a>) -&gt; {ok, Rows::[<a href="#type-ejson_object">ejson_object()</a>]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`fetch(Db, all_docs, [])`](#fetch-3).
 
@@ -41,9 +39,7 @@ fetch all docs
 <pre><code>
 all(Db::<a href="#type-db">db()</a>, Options::<a href="#type-view_options">view_options()</a>) -&gt; {ok, Rows::[<a href="#type-ejson_object">ejson_object()</a>]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`fetch(Db, all_docs, Options)`](#fetch-3).
 
@@ -63,9 +59,7 @@ fetch all docs
 <pre><code>
 count(Db::<a href="#type-db">db()</a>) -&gt; integer() | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`count(Db, all_docs, [])`](#count-3).
 <a name="count-2"></a>
@@ -76,9 +70,7 @@ Equivalent to [`count(Db, all_docs, [])`](#count-3).
 <pre><code>
 count(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; integer() | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`count(Db, ViewName, [])`](#count-3).
 <a name="count-3"></a>
@@ -89,9 +81,7 @@ Equivalent to [`count(Db, ViewName, [])`](#count-3).
 <pre><code>
 count(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; integer() | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 count number of doc in a view (or all docs)
 <a name="fetch-1"></a>
@@ -102,9 +92,7 @@ count number of doc in a view (or all docs)
 <pre><code>
 fetch(Db::<a href="#type-db">db()</a>) -&gt; {ok, Rows::[<a href="#type-ejson_object">ejson_object()</a>]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`fetch(Db, all_docs, [])`](#fetch-3).
 <a name="fetch-2"></a>
@@ -115,9 +103,7 @@ Equivalent to [`fetch(Db, all_docs, [])`](#fetch-3).
 <pre><code>
 fetch(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; {ok, Rows::[<a href="#type-ejson_object">ejson_object()</a>]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`fetch(Db, ViewName, [])`](#fetch-3).
 <a name="fetch-3"></a>
@@ -128,9 +114,7 @@ Equivalent to [`fetch(Db, ViewName, [])`](#fetch-3).
 <pre><code>
 fetch(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; {ok, Rows::[<a href="#type-ejson_object">ejson_object()</a>]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Collect view results
 
@@ -168,9 +152,7 @@ Return: {ok, Rows} or {error, Rows, Error}
 <pre><code>
 first(Db::<a href="#type-db">db()</a>) -&gt; {ok, Row::<a href="#type-ejson_object">ejson_object()</a>} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`first(Db, all_docs, [])`](#first-3).
 <a name="first-2"></a>
@@ -181,9 +163,7 @@ Equivalent to [`first(Db, all_docs, [])`](#first-3).
 <pre><code>
 first(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; {ok, Row::<a href="#type-ejson_object">ejson_object()</a>} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`first(Db, ViewName, [])`](#first-3).
 <a name="first-3"></a>
@@ -194,9 +174,7 @@ Equivalent to [`first(Db, ViewName, [])`](#first-3).
 <pre><code>
 first(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; {ok, Rows::<a href="#type-ejson_object">ejson_object()</a>} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 get first result of a view
 
@@ -234,9 +212,7 @@ Return: {ok, Row} or {error, Error}
 <pre><code>
 fold(Function::function(), Acc::any(), Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; [term()] | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`fold(Function, Acc, Db, ViewName, [])`](#fold-5).
 <a name="fold-5"></a>
@@ -247,9 +223,7 @@ Equivalent to [`fold(Function, Acc, Db, ViewName, [])`](#fold-5).
 <pre><code>
 fold(Function::function(), Acc::any(), Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; [term()] | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 call Function(Row, AccIn) on succesive row, starting with
 AccIn == Acc. Function/2 must return a new list accumultator or the
@@ -268,9 +242,7 @@ list is empty. For example:
 <pre><code>
 foreach(Function::function(), Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; [term()] | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`foreach(Function, Db, ViewName, [])`](#foreach-4).
 <a name="foreach-4"></a>
@@ -281,9 +253,7 @@ Equivalent to [`foreach(Function, Db, ViewName, [])`](#foreach-4).
 <pre><code>
 foreach(Function::function(), Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; [term()] | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 call Function(Row) on succesive row. Example:
 
@@ -299,9 +269,7 @@ call Function(Row) on succesive row. Example:
 <pre><code>
 parse_view_options(Options::list()) -&gt; <a href="#type-view_query_args">view_query_args()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 parse view options
 <a name="stream-2"></a>
@@ -312,9 +280,7 @@ parse view options
 <pre><code>
 stream(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}) -&gt; {ok, StartRef::term(), ViewPid::pid()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Equivalent to [`stream(Db, ViewName, Client, [])`](#stream-4).
 <a name="stream-3"></a>
@@ -325,9 +291,7 @@ Equivalent to [`stream(Db, ViewName, Client, [])`](#stream-4).
 <pre><code>
 stream(Db::<a href="#type-db">db()</a>, ViewName::all_docs | {DesignName::string(), ViewName::string()}, Options::<a href="#type-view_options">view_options()</a>) -&gt; {ok, StartRef::term(), ViewPid::pid()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 stream view results to a pid
 

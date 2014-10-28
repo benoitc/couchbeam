@@ -1,6 +1,16 @@
 couchbeam NEWS
 --------------
 
+version 1.1.0 / 2014-10-28
+--------------------------
+
+- update to [hackney 0.14.3](https://github.com/benoitc/hackney/releases)
+- fix memory leaks
+- correctly close sockets
+- fix streaming issue: don't wait the stream timeout to report the initial
+  error.
+- update JSX dependency to version 2.1.1
+
 version 1.0.7 / 2014-07-08
 --------------------------
 

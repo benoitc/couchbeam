@@ -28,9 +28,7 @@ This module contains utilities to manage attachments.
 <pre><code>
 add_inline(Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string()) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 add attachment  to a doc and encode it. Give possibility to send attachments inline.
 <a name="add_inline-4"></a>
@@ -41,9 +39,7 @@ add attachment  to a doc and encode it. Give possibility to send attachments inl
 <pre><code>
 add_inline(Doc::<a href="#type-json_obj">json_obj()</a>, Content::<a href="#type-attachment_content">attachment_content()</a>, AName::string(), ContentType::string()) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 add attachment  to a doc and encode it with ContentType fixed.
 <a name="add_stub-3"></a>
@@ -61,9 +57,7 @@ add attachment  to a doc and encode it with ContentType fixed.
 <pre><code>
 delete_inline(Doc::<a href="#type-json_obj">json_obj()</a>, AName::string()) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 delete an attachment record in doc. This is different from delete_attachment
 change is only applied in Doc object. Save_doc should be save to save changes.

@@ -88,9 +88,7 @@
 <pre><code>
 system_terminate(Reason::any(), X2::term(), X3::term(), State::term()) -&gt; no_return()
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 <a name="wait_reconnect-1"></a>

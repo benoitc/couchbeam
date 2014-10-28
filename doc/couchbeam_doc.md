@@ -61,9 +61,7 @@ it from json object.</td></tr></table>
 <pre><code>
 delete_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 Deletes all entries associated with Key in json object.
 <a name="extend-2"></a>
@@ -74,9 +72,7 @@ Deletes all entries associated with Key in json object.
 <pre><code>
 extend(Prop::<a href="#type-property">property()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 extend a jsonobject by a property, list of property or another jsonobject
 <a name="extend-3"></a>
@@ -87,9 +83,7 @@ extend a jsonobject by a property, list of property or another jsonobject
 <pre><code>
 extend(Key::binary(), Value::<a href="#type-json_term">json_term()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; <a href="#type-json_obj">json_obj()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 extend a jsonobject by key, value
 <a name="get_id-1"></a>
@@ -100,9 +94,7 @@ extend a jsonobject by key, value
 <pre><code>
 get_id(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; binary()
 </code></pre>
-
-<br></br>
-
+<br />
 
 get document id.
 <a name="get_idrev-1"></a>
@@ -113,9 +105,7 @@ get document id.
 <pre><code>
 get_idrev(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; {DocId, DocRev}
 </code></pre>
-
-<br></br>
-
+<br />
 
 get  a tuple containing docucment id and revision.
 <a name="get_rev-1"></a>
@@ -126,9 +116,7 @@ get  a tuple containing docucment id and revision.
 <pre><code>
 get_rev(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; binary()
 </code></pre>
-
-<br></br>
-
+<br />
 
 get document revision.
 <a name="get_value-2"></a>
@@ -139,9 +127,7 @@ get document revision.
 <pre><code>
 get_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; term()
 </code></pre>
-
-<br></br>
-
+<br />
 
 Returns the value of a simple key/value property in json object
 Equivalent to get_value(Key, JsonObj, undefined).
@@ -153,9 +139,7 @@ Equivalent to get_value(Key, JsonObj, undefined).
 <pre><code>
 get_value(Key::<a href="#type-lis">lis()</a> | binary(), JsonObj::<a href="#type-json_obj">json_obj()</a>, Default::term()) -&gt; term()
 </code></pre>
-
-<br></br>
-
+<br />
 
 Returns the value of a simple key/value property in json object
 function from erlang_couchdb
@@ -167,9 +151,7 @@ function from erlang_couchdb
 <pre><code>
 is_saved(Doc::<a href="#type-json_obj">json_obj()</a>) -&gt; boolean()
 </code></pre>
-
-<br></br>
-
+<br />
 
 If document have been saved (revision is defined) return true,
 else, return false.
@@ -181,9 +163,7 @@ else, return false.
 <pre><code>
 set_value(Key::<a href="#type-key_val">key_val()</a>, Value::term(), JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; term()
 </code></pre>
-
-<br></br>
-
+<br />
 
 set a value for a key in jsonobj. If key exists it will be updated.
 <a name="take_value-2"></a>
@@ -194,9 +174,7 @@ set a value for a key in jsonobj. If key exists it will be updated.
 <pre><code>
 take_value(Key::<a href="#type-key_val">key_val()</a>, JsonObj::<a href="#type-json_obj">json_obj()</a>) -&gt; {term(), <a href="#type-json_obj">json_obj()</a>}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Returns the value of a simple key/value property in json object and deletes
 it form json object
@@ -209,9 +187,7 @@ Equivalent to take_value(Key, JsonObj, undefined).
 <pre><code>
 take_value(Key::<a href="#type-key_val">key_val()</a> | binary(), JsonObj::<a href="#type-json_obj">json_obj()</a>, Default::term()) -&gt; {term(), <a href="#type-json_obj">json_obj()</a>}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Returns the value of a simple key/value property in json object and deletes
 it from json object

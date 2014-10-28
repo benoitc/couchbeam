@@ -33,9 +33,7 @@ connections.</td></tr><tr><td valign="top"><a href="#stream_next-1">stream_next/
 <pre><code>
 follow(Db::<a href="#type-db">db()</a>) -&gt; {ok, StreamRef::atom()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 <a name="follow-2"></a>
@@ -46,9 +44,7 @@ follow(Db::<a href="#type-db">db()</a>) -&gt; {ok, StreamRef::atom()} | {error, 
 <pre><code>
 follow(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options">changes_options()</a>) -&gt; {ok, StreamRef::atom()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Stream changes to a pid
 
@@ -162,9 +158,7 @@ when needed.
 <pre><code>
 follow_once(Db::<a href="#type-db">db()</a>) -&gt; {ok, LastSeq::integer(), Changes::list()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 <a name="follow_once-2"></a>
@@ -175,9 +169,7 @@ follow_once(Db::<a href="#type-db">db()</a>) -&gt; {ok, LastSeq::integer(), Chan
 <pre><code>
 follow_once(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options">changes_options()</a>) -&gt; {ok, LastSeq::integer(), Changes::list()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 fetch all changes at once using a normal or longpoll

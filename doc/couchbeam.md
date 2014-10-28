@@ -74,9 +74,7 @@ Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#
 <pre><code>
 all_dbs(Server::<a href="#type-server">server()</a>) -&gt; {ok, iolist()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 get list of databases on a CouchDB node
 <a name="compact-1"></a>
@@ -87,9 +85,7 @@ get list of databases on a CouchDB node
 <pre><code>
 compact(Db::<a href="#type-db">db()</a>) -&gt; ok | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Compaction compresses the database file by removing unused
 sections created during updates.
@@ -102,9 +98,7 @@ See [`http://wiki.apache.org/couchdb/Compaction`](http://wiki.apache.org/couchdb
 <pre><code>
 compact(Db::<a href="#type-db">db()</a>, ViewName::string()) -&gt; ok | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Like compact/1 but this compacts the view index from the
 current version of the design document.
@@ -151,9 +145,7 @@ Create a database and a client for connectiong to it.
 <pre><code>
 create_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>, Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 Create a database and a client for connectiong to it.
@@ -178,9 +170,7 @@ db. Useful for bigcouch for example.
 <pre><code>
 db_exists(Server::<a href="#type-server">server()</a>, DbName::string()) -&gt; boolean()
 </code></pre>
-
-<br></br>
-
+<br />
 
 test if db with dbname exists on the CouchDB node
 <a name="db_info-1"></a>
@@ -191,9 +181,7 @@ test if db with dbname exists on the CouchDB node
 <pre><code>
 db_info(Db::<a href="#type-db">db()</a>) -&gt; {ok, iolist() | {error, Error}}
 </code></pre>
-
-<br></br>
-
+<br />
 
 get database info
 <a name="db_url-1"></a>
@@ -250,9 +238,7 @@ delete database
 <pre><code>
 delete_db(Server::<a href="#type-server">server()</a>, DbName) -&gt; {ok, iolist() | {error, Error}}
 </code></pre>
-
-<br></br>
-
+<br />
 
 delete database
 <a name="delete_doc-2"></a>
@@ -272,9 +258,7 @@ delete a document
 <pre><code>
 delete_doc(Db, Doc, Options) -&gt; {ok, Result} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 delete a document
 if you want to make sure the doc it emptied on delete, use the option
@@ -297,9 +281,7 @@ delete a list of documents
 <pre><code>
 delete_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 delete a list of documents
 if you want to make sure the doc it emptied on delete, use the option
@@ -313,9 +295,7 @@ members.
 <pre><code>
 doc_exists(Db::<a href="#type-db">db()</a>, DocId::string()) -&gt; boolean()
 </code></pre>
-
-<br></br>
-
+<br />
 
 test if doc with uuid exists in the given db
 <a name="doc_url-2"></a>
@@ -333,9 +313,7 @@ test if doc with uuid exists in the given db
 <pre><code>
 end_doc_stream(X1::<a href="#type-doc_stream">doc_stream()</a>) -&gt; ok
 </code></pre>
-
-<br></br>
-
+<br />
 
 stop to receive the multipart response of the doc api and close
 the connection.
@@ -356,9 +334,7 @@ commit all docs in memory
 <pre><code>
 ensure_full_commit(Db::<a href="#type-db">db()</a>, Options::list()) -&gt; {ok, InstancestartTime::binary()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 commit all docs in memory
 <a name="fetch_attachment-3"></a>
@@ -378,9 +354,7 @@ fetch a document attachment
 <pre><code>
 fetch_attachment(Db::<a href="#type-db">db()</a>, DocId::string(), Name::string(), Options0::list()) -&gt; {ok, binary()} | {ok, atom()} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 fetch a document attachment
 Options are
@@ -422,9 +396,7 @@ retrieve a key value from the couchdb config
 <pre><code>
 get_missing_revs(Db::#db{}, IdRevs::[{binary(), [binary()]}]) -&gt; {ok, [{DocId::binary(), [MissingRev::binary()], [PossibleAncestor::binary()]}]} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 get missing revisions
 <a name="get_uuid-1"></a>
@@ -435,9 +407,7 @@ get missing revisions
 <pre><code>
 get_uuid(Server::<a href="#type-server">server()</a>) -&gt; <a href="#type-lists">lists()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 Get one uuid from the server
 <a name="get_uuids-2"></a>
@@ -448,9 +418,7 @@ Get one uuid from the server
 <pre><code>
 get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <a href="#type-lists">lists()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 Get a list of uuids from the server
 <a name="lookup_doc_rev-2"></a>
@@ -484,9 +452,7 @@ Create a client for connection to a database
 <pre><code>
 open_db(Server::<a href="#type-server">server()</a>, DbName::string(), Options::<a href="#type-optionList">optionList()</a>) -&gt; {ok, <a href="#type-db">db()</a>}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Create a client for connection to a database
 <a name="open_doc-2"></a>
@@ -506,9 +472,7 @@ open a document
 <pre><code>
 open_doc(Db::<a href="#type-db">db()</a>, DocId::string(), Params::list()) -&gt; {ok, Doc} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 open a document
 Params is a list of query argument. Have a look in CouchDb API
@@ -540,9 +504,7 @@ database if needed.
 <pre><code>
 open_or_create_db(Server::<a href="#type-server">server()</a>, DbName0::string(), Options::list(), Params::list()) -&gt; {ok, <a href="#type-db">db()</a> | {error, Error}}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Create a client for connecting to a database and create the
 database if needed.
@@ -575,9 +537,7 @@ put an attachment
 <pre><code>
 replicate(Server::<a href="#type-server">server()</a>, RepObj::{list()}) -&gt; {ok, Result} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Handle replication. Pass an object containting all informations
 It allows to pass for example an authentication info
@@ -600,9 +560,7 @@ It allows to pass for example an authentication info
 <pre><code>
 replicate(Server::<a href="#type-server">server()</a>, Source::string(), Target::<a href="#type-target">target()</a>) -&gt; {ok, Result} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Handle replication.
 <a name="replicate-4"></a>
@@ -637,9 +595,7 @@ save a document
 <pre><code>
 save_doc(Db::<a href="#type-db">db()</a>, Doc, Options::list()) -&gt; {ok, Doc1} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 save a *document
@@ -668,9 +624,7 @@ the couchdb node.
 <pre><code>
 save_doc(Db::<a href="#type-db">db()</a>, Doc::<a href="#type-doc">doc()</a>, Atts::<a href="#type-mp_attachments">mp_attachments()</a>, Options::list()) -&gt; {ok, <a href="#type-doc">doc()</a>} | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
 save a *document with all its attacjments
@@ -733,9 +687,7 @@ save a list of documents
 <pre><code>
 save_docs(Db::<a href="#type-db">db()</a>, Docs::list(), Options::list()) -&gt; {ok, Result} | {error, Error}
 </code></pre>
-
-<br></br>
-
+<br />
 
 save a list of documents
 <a name="send_attachment-2"></a>
@@ -807,9 +759,7 @@ For a description of SSL Options, look in the [ssl](http://www.erlang.org/doc/ap
 <pre><code>
 server_info(Server::<a href="#type-server">server()</a>) -&gt; {ok, iolist()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Get Information from the server
 <a name="server_url-1"></a>
@@ -820,9 +770,7 @@ Get Information from the server
 <pre><code>
 server_url(Server::{Host, Port}) -&gt; iolist()
 </code></pre>
-
-<br></br>
-
+<br />
 
 Asemble the server URL for the given client
 <a name="set_config-4"></a>
@@ -861,9 +809,7 @@ Stop the couchbeam process. Useful when testing using the shell.
 <pre><code>
 stream_attachment(Ref::atom()) -&gt; {ok, binary()} | done | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 fetch an attachment chunk.
 Use this function when you pass the `stream` option to the
@@ -910,9 +856,7 @@ This function return the following response:
 <pre><code>
 stream_doc(X1::<a href="#type-doc_stream">doc_stream()</a>) -&gt; {doc, <a href="#type-doc">doc()</a>} | {att, Name::binary(), <a href="#type-doc_stream">doc_stream()</a>} | {att_body, Name::binary(), Chunk::binary(), <a href="#type-doc_stream">doc_stream()</a>} | {att_eof, Name::binary(), <a href="#type-doc_stream">doc_stream()</a>} | eof | {error, term()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 stream the multipart response of the doc API. Use this function
 when you get `{ok, {multipart, State}}` from the function

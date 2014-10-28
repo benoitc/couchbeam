@@ -25,9 +25,7 @@
 <pre><code>
 decode(D::binary()) -&gt; <a href="#type-ejson">ejson()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 decode a binary to an EJSON term. Throw an exception if there is
 any error.
@@ -39,9 +37,7 @@ any error.
 <pre><code>
 encode(D::<a href="#type-ejson">ejson()</a>) -&gt; binary()
 </code></pre>
-
-<br></br>
-
+<br />
 
 encode an erlang term to JSON. Throw an exception if there is
 any error.

@@ -32,9 +32,7 @@ __Behaviours:__ [`gen_server`](gen_server.md).
 <pre><code>
 get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <a href="#type-lists">lists()</a>
 </code></pre>
-
-<br></br>
-
+<br />
 
 Get a list of uuids from the server
 <a name="handle_call-3"></a>
@@ -66,9 +64,7 @@ Get a list of uuids from the server
 <pre><code>
 random() -&gt; binary()
 </code></pre>
-
-<br></br>
-
+<br />
 
 return a random uuid
 <a name="start_link-0"></a>
@@ -79,9 +75,7 @@ return a random uuid
 <pre><code>
 start_link() -&gt; {ok, pid()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 Starts the couchbeam process linked to the calling process. Usually
 invoked by the supervisor couchbeam_sup
@@ -100,8 +94,6 @@ invoked by the supervisor couchbeam_sup
 <pre><code>
 utc_random() -&gt; binary()
 </code></pre>
-
-<br></br>
-
+<br />
 
 return a random uuid based on time

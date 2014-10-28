@@ -32,8 +32,6 @@ __Behaviours:__ [`supervisor`](supervisor.md).
 <pre><code>
 start_link() -&gt; {ok, pid()}
 </code></pre>
-
-<br></br>
-
+<br />
 
 
