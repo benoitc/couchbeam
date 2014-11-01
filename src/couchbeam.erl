@@ -1094,7 +1094,7 @@ reply_att({ok, 404, _, Ref}) ->
 reply_att({ok, 409, _, Ref}) ->
     hackney:skip_body(Ref),
     {error, conflict};
-reply_att({ok, Status, _, Ref}) when Status >= 200 andalso Status < 300 ->
+reply_att({ok, Status, _, Ref}) when Status =:= 200 orelse Status =:= 201 ->
   {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
   {ok, {R}};
 reply_att({ok, Status, Headers, Ref}) ->
