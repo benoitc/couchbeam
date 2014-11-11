@@ -1,6 +1,15 @@
 couchbeam NEWS
 --------------
 
+version 1.1.1 / 2014-11-11
+--------------------------
+
+- update to [hackney 0.15.0](https://github.com/benoitc/hackney/releases ),
+  improving performances and concurrency
+- fix `couchbeam:doc_exists/2`(#116)
+- fix `couchbeam:reply_att/1 (#114)
+
+
 version 1.1.0 / 2014-10-28
 --------------------------
 
