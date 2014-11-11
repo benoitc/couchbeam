@@ -49,6 +49,24 @@ maybe_oauth_header(Method, Url, Headers, Options) ->
 
 db_resp({ok, Ref}=Resp, _Expect) when is_reference(Ref) ->
     Resp;
+db_resp({ok, 401, _}, _Expect) ->
+    {error, unauthenticated};
+db_resp({ok, 403, _}, _Expect) ->
+    {error, forbidden};
+db_resp({ok, 404, _}, _Expect) ->
+    {error, not_found};
+db_resp({ok, 409, _}, _Expect) ->
+    {error, conflict};
+db_resp({ok, 412, _}, _Expect) ->
+    {error, precondition_failed};
+db_resp({ok, _, _}=Resp, []) ->
+    Resp;
+db_resp({ok, Status, Headers}=Resp, Expect) ->
+    case lists:member(Status, Expect) of
+        true -> Resp;
+        false ->
+            {error, {bad_response, {Status, Headers, <<>>}}}
+    end;
 db_resp({ok, 401, _, Ref}, _Expect) ->
     hackney:skip_body(Ref),
     {error, unauthenticated};
