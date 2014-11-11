@@ -1085,15 +1085,15 @@ reply_att(ok) ->
     ok;
 reply_att(done) ->
     done;
-reply_att({ok, 200, _, Ref}) ->
-    {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
-            {ok, {R}};
 reply_att({ok, 404, _, Ref}) ->
     hackney:skip_body(Ref),
     {error, not_found};
 reply_att({ok, 409, _, Ref}) ->
     hackney:skip_body(Ref),
     {error, conflict};
+reply_att({ok, Status, _, Ref}) when Status =:= 200 orelse Status =:= 201 ->
+  {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
+  {ok, {R}};
 reply_att({ok, Status, Headers, Ref}) ->
     {ok, Body} = hackney:body(Ref),
     {error, {bad_response, {Status, Headers, Body}}};
