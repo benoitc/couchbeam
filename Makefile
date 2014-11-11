@@ -1,7 +1,7 @@
 ERL          ?= erl
 ERLC		     ?= erlc
 APP          := couchbeam
-REBAR?=./rebar
+REBAR?= $(shell which rebar)
 
 .PHONY: deps doc
 
