@@ -458,18 +458,14 @@ fold_view_results(Ref, Fun, Acc) ->
 collect_view_results(Ref, Acc) ->
     receive
         {Ref, done} ->
-            io:format("got done ~n", []),
             Rows = lists:reverse(Acc),
             {ok, Rows};
         {Ref, {row, Row}} ->
-            io:format("got row ~p~n", [Row]),
             collect_view_results(Ref, [Row|Acc]);
         {Ref, {error, Error}} ->
             %% in case we got some results
             Rows = lists:reverse(Acc),
-            {error, Error, Rows};
-        Else ->
-            io:format("got unknown message ~p~n", [Else])
+            {error, Error, Rows}
     after 10000 ->
               {error, timeout}
     end.
