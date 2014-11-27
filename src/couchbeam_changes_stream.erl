@@ -251,10 +251,10 @@ decode_data(Data, #state{owner=Owner,
     end,
 
     try DecodeFun2(end_stream) of
-        {Props} = Change ->
+        Props ->
             Seq = couchbeam_util:get_value(<<"seq">>, Props),
             put(last_seq, Seq),
-            Owner ! {Ref, {change, Change}},
+            Owner ! {Ref, {change, {Props}}},
             maybe_continue(State#state{decoder=nil})
     catch error:badarg -> maybe_continue(State#state{decoder=DecodeFun2})
     end;
