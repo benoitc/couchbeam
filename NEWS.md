@@ -1,6 +1,12 @@
 couchbeam NEWS
 --------------
 
+version 1.1.4 / 2014-12-01
+--------------------------
+
+- update to [Hackney](https://github.com/benoitc/hackney) 1.0.1: more SSL
+  certificate authority handling.
+
 version 1.1.3 / 2014-11-30
 --------------------------
 
