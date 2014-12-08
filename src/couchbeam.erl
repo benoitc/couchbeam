@@ -105,19 +105,7 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @equiv server_connection(Host, Port, "", [])
 
 server_connection(URL, Options) when is_list(Options) ->
-    Options1 = case lists:keyfind(connect_options, 1, Options) of
-        false ->
-            [{connect_options, [{nodelay, true}]} | Options];
-        ConnOpts ->
-            ConnOpts1 = case lists:keyfind(nodelay, 1, ConnOpts) of
-                false -> [{nodelay, true} | ConnOpts];
-                _ -> ConnOpts
-            end,
-
-            lists:keyreplace(connect_options, 1, Options,
-                             {connect_options, ConnOpts1})
-    end,
-    #server{url=hackney_url:fix_path(URL), options=Options1};
+    #server{url=hackney_url:fix_path(URL), options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, "", []).
 
