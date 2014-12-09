@@ -19,6 +19,9 @@
 
 -include("couchbeam.hrl").
 
+-define(START_RETRY, 200).
+-define(MAX_RETRY, 10000).
+
 -record(state, {}).
 
 %% @doc return a random uuid
@@ -34,7 +37,7 @@ utc_random() ->
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
-    gen_server:call(?MODULE, {get_uuids, Server, Count}).
+    gen_server:call(?MODULE, {get_uuids, Server, Count}, infinity).
 
 %%--------------------------------------------------------------------
 %% Function: start_link/0
@@ -111,7 +114,10 @@ do_get_uuids1(Acc, [Uuid|Rest], Count) ->
 get_new_uuids(Server) ->
     get_new_uuids(Server, []).
 
-get_new_uuids(#server{url=ServerUrl, options=Opts}, Acc) ->
+get_new_uuids(Server, Acc) ->
+    get_new_uuids(Server, ?START_RETRY, Acc).
+
+get_new_uuids(#server{url=ServerUrl, options=Opts}=Server, Backoff, Acc) ->
     Count = list_to_binary(integer_to_list(1000 - length(Acc))),
     Url = hackney_url:make_url(ServerUrl, <<"/_uuids">>, [{<<"count">>, Count}]),
     case couchbeam_httpc:request(get, Url, [], <<>>, Opts) of
@@ -125,9 +131,21 @@ get_new_uuids(#server{url=ServerUrl, options=Opts}, Acc) ->
         {ok, Status, Headers, Ref} ->
             {ok, Body} = hackney:body(Ref),
             {error, {bad_response, {Status, Headers, Body}}};
+        {error, closed} ->
+            wait_for_retry(Server, Backoff, Acc);
+        {error, connect_timeout} ->
+            wait_for_retry(Server, Backoff, Acc);
         Error ->
             Error
     end.
+
+wait_for_retry(_S, ?MAX_RETRY, _A) ->
+    {error, max_retry};
+wait_for_retry(S, B, A) ->
+    %% increment backoff
+    B2 = min(B bsl 1, ?MAX_RETRY),
+    timer:sleep(B2),
+    get_new_uuids(S, B2, A).
 
 utc_suffix(Suffix) ->
     Now = {_, _, Micro} = now(),
