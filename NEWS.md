@@ -1,6 +1,13 @@
 couchbeam NEWS
 --------------
 
+version 1.1.5 / 2014-12-09
+--------------------------
+
+- improvement: do not force connections options to nodelay
+- update to [Hackney](https://github.com/benoitc/hackney) 1.0.4 fix #120
+- fix: retry fecthing UUIDS on error (#121)
+
 version 1.1.4 / 2014-12-01
 --------------------------
 
