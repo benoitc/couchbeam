@@ -18,7 +18,7 @@
                   ssl,
                   idna,
                   hackney]},
-  {included_applications, [ssl_verify_hostname]},
+  {included_applications, []},
   {env, []},
   {mod, { couchbeam_app, []}}
  ]
