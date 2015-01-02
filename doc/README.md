@@ -1,6 +1,6 @@
 
 
-# Couchbeam - simple erlang CouchDB library. #
+# Couchbeam - simple erlang Apache CouchDB and RCOUCH client library. #
 
 Copyright (c) 2009-2014 Benoît Chesneau.
 
@@ -8,11 +8,11 @@ __Version:__ 1.1.5
 
 # couchbeam
 
-Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple couchdb Nodes.
+Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org) or [RCOUCH](http://rcouch.org). Couchbeam provides you a full featured and easy client to access and manage multiple nodes.
 
 #### Main features:
 
-- Complete support of the CouchDB API
+- Complete support of the Apache CouchDB and RCOUCH API
 - Stream view results to your app
 - Stream changes feeds
 - reduced memory usage
@@ -23,20 +23,16 @@ in C.
 
 #### Useful modules are:
 
-- [`couchbeam`](couchbeam.md): The `couchbeam` module is the main interface for interaction
-with this application. It includes functions for managing connections to
-CouchDB servers and Couchdb Databases and for performing document
-creations, updates, deletes, views...
+- [`couchbeam`](couchbeam.md): The `couchbeam` module is the main interface for interaction with this application. It includes functions for managing connections to Apache CouchDB or RCOUCH servers and databases and for performing document creations, updates, deletes, views...
 - [`couchbeam_doc`](couchbeam_doc.md) Module to manipulate Documents structures. You can set values,
 updates keys, ...
 - [`couchbeam_attachments`](couchbeam_attachments.md): Module to manipulate attachments. You can add, remove
 attachments in a Document structure (inline attachments).
 - [`couchbeam_view`](couchbeam_view.md): Module to manage view results.
-- [`couchbeam_changes`](couchbeam_changes.md): Module to manage changes feeds in couchdb. Follow continuously
+- [`couchbeam_changes`](couchbeam_changes.md): Module to manage changes feeds. Follow continuously
 the changes in a db or get all changes at once.
 
-The goal of Couchbeam is to give all access to CouchDB 1.0 and sup API via
-HTTP in erlang.
+The goal of Couchbeam is to ease the access to the Apache CouchDB and RCOUCH HTTP API in erlang.
 
 Read the [NEWS](https://raw.github.com/benoitc/couchbeam/master/NEWS) file
 to get last changelog.
@@ -123,8 +119,7 @@ Test the connection with `couchbeam:server_info/1` :
 
 ### Open or Create a database
 
-All CouchDB document operations are done in databases. To open a
-database simply do:
+All document operations are done in databases. To open a database simply do:
 
 ```
 Options = [],
@@ -180,7 +175,7 @@ Options = [{rev, Rev}],
 ```
 
 Here we get the revision from the document we previously stored. Any
-options from the CouchDB API can be used.
+options from the Apache CouchDB and RCOUCH API can be used.
 
 ### Get all documents
 
@@ -221,7 +216,7 @@ ViewName = "viewname",
 
 Like the `all_docs` function, use the functions
 from `couchbeam_view` module to manipulate results. You can pass
-any querying options from the [view API](http://wiki.apache.org/couchdb/HTTP_view_API).
+any querying options from the [view API](http://docs.rcouch.org/en/latest/api/ddoc/views.html).
 
 Design doc are created like any documents:
 
@@ -283,8 +278,7 @@ ViewFun(StreamRef3, ViewFun).
 
 ### Put, Fetch and Delete documents attachments
 
-You can add attachments to any CouchDB documents. Attachments could be
-anything.
+You can add attachments to any documents. Attachments could be anything.
 
 To send an attachment:
 
@@ -296,9 +290,8 @@ Options = []
 {ok, _Result} = couchbeam:put_attachment(Db, DocId, AttName, Att, Options).
 ```
 
-All attachments are streamed to CouchDB. `Att` could be also be an iolist
-or functions, see `couchbeam:put_attachment/5` for more
-information.
+All attachments are streamed to servers. `Att` could be also be an iolist
+or functions, see `couchbeam:put_attachment/5` for more information.
 
 To fetch an attachment:
 
@@ -318,7 +311,7 @@ ok = couchbeam:delete_attachment(Db, Doc4, AttName).
 
 ### Changes
 
-CouchDB provides a means to get a list of changes made to documents in
+Apache CouchDB and RCOUCH provide a means to get a list of changes made to documents in
 the database. With couchbeam you can get changes using `couchbeam_changes:follow_once/2`.
 This function returns all changes immediately. But you can also retrieve
 all changes rows using longpolling :
@@ -328,11 +321,9 @@ Options = [],
 {ok, LastSeq, Rows} = couchbeam_changes:follow_once(Db, Options).
 ```
 
-Options can be any Changes query parameters. See
-the [change API](http://docs.couchdb.org/en/latest/api/database/changes.html) for more
-informations.
+Options can be any Changes query parameters. See the [change API](http://docs.rcouch.org/en/latest/api/database/changes.html) for more informations.
 
-You can also get [continuous](http://docs.couchdb.org/en/latest/api/database/changes.html#continuous):
+You can also get [continuous](http://docs.rcouch.org/en/latest/api/database/changes.html#continuous):
 
 ```
 ChangesFun = fun(StreamRef, F) ->
@@ -360,7 +351,7 @@ for more info.
 
 ### Authentication/ Connections options
 
-You can authenticate to the database or CouchDB server by filling
+You can authenticate to the database or Apache CouchDB or RCOUCH server by filling
 options to the Option list in `couchbeam:server_connection/4` for the
 server or in `couchbeam:create_db/3`, `couchbeam:open_db/3`,
 `couchbeam:wopen_or_create_db/3` functions.
