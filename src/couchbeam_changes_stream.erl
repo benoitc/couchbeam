@@ -129,7 +129,8 @@ do_init_stream(#state{mref=MRef,
             hackney:request(get, Url, [], <<>>, ConnOpts1);
         DocIds ->
             Body =  couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
-            hackney:request(post, Url, [], Body, ConnOpts1)
+            Headers = [{<<"Content-Type">>, <<"application/json">>}],
+            hackney:request(post, Url, Headers, Body, ConnOpts1)
     end,
     receive
         {'DOWN', MRef, _, _, _} ->
