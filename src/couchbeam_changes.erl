@@ -227,7 +227,8 @@ changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
                                        [200, 202]);
         _ ->
             Body =  couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
-            couchbeam_httpc:db_request(post, Url, [], Body, ConnOptions,
+            Headers = [{<<"Content-Type">>, <<"application/json">>}],
+            couchbeam_httpc:db_request(post, Url, Headers, Body, ConnOptions,
                                        [200, 202])
     end,
 
