@@ -107,7 +107,7 @@ While the callbac could be like:
      | longpoll
      | normal
      | include_docs
-     | {since, integer()}
+     | {since, integer() | now}
      | {timeout, integer()}
      | heartbeat | {heartbeat, integer()}
      | {filter, string()} | {filter, string(), list({string(), string() | integer()})}
@@ -186,7 +186,7 @@ Options :: changes_options() [
      | longpoll
      | normal
      | include_docs
-     | {since, integer()}
+     | {since, integer() | now}
      | {timeout, integer()}
      | heartbeat | {heartbeat, integer()}
      | {filter, string()}
