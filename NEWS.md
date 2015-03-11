@@ -1,6 +1,13 @@
 couchbeam NEWS
 --------------
 
+version 1.1.7 / 2015-03-11
+--------------------------
+
+- bump [hackney](https://github.com/benoitc/hackney) to 1.1.0
+- fix `Conten-Type` header ehen posting doc IDS in changes #126
+- fix documentation
+
 version 1.1.6 / 2015-01-02
 --------------------------
 
