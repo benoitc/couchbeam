@@ -303,6 +303,8 @@ all_dbs(#server{url=ServerUrl, options=Opts}) ->
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
+        {ok, 200, _}->
+            true;
         {ok, 200, _, _}->
             true;
         _Error ->
