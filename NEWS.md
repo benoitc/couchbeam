@@ -1,6 +1,11 @@
 couchbeam NEWS
 --------------
 
+version 1.1.8 / 2015-08-27
+--------------------------
+
+- use latest stable branch of [hackney](https://github.com/benoitc/hackney)
+
 version 1.1.7 / 2015-03-11
 --------------------------
 
