@@ -449,6 +449,13 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
         unefined -> {any, Params};
         A -> {A, proplists:delete(accept, Params)}
     end,
+
+    %% Set returm format
+    {ReturnOptions, Params2} = case proplists:get_value(return_maps, Params1) == true of
+        true  -> {[return_maps], proplists:delete(return_maps, Params1)};
+        false -> {[], Params1}
+    end,
+
     %% set the headers with the accepted content-type if needed
     Headers = case {Accept, proplists:get_value("attachments", Params)} of
         {any, true} ->
@@ -461,8 +468,9 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
         _ ->
             []
     end,
+
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
-                               Params1),
+                               Params2),
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
         {ok, _, RespHeaders, Ref} ->
@@ -474,7 +482,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
                             end},
                     {ok, {multipart, InitialState}};
                 _ ->
-                    {ok, couchbeam_httpc:json_body(Ref)}
+                    {ok, couchbeam_httpc:json_body(Ref, ReturnOptions)}
             end;
         Error ->
             Error
@@ -557,14 +565,23 @@ save_doc(Db, Doc, Options) ->
 
 -spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
     {ok, doc()} | {error, term()}.
-save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
-    DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
-        undefined ->
+save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
+    DocId = case Doc of
+        #{<<"_id">> := DocId1} -> 
+            couchbeam_util:encode_docid(DocId1);
+        #{} -> 
             [Id] = get_uuid(Server),
             Id;
-        DocId1 ->
-            couchbeam_util:encode_docid(DocId1)
+        {Props} ->
+            case couchbeam_util:get_value(<<"_id">>, Props) of
+                undefined ->
+                    [Id] = get_uuid(Server),
+                    Id;
+                DocId1 ->
+                    couchbeam_util:encode_docid(DocId1)
+            end
     end,
+
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
                                Options),
     case Atts of
@@ -577,8 +594,13 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
                     {JsonProp} = couchbeam_httpc:json_body(Ref),
                     NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
                     NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
-                    Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
-                        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
+                    Doc1 = case Doc of
+                        #{} ->
+                          Doc#{<<"_rev">> => NewRev, <<"_id">> => NewDocId};
+                        _ ->
+                            couchbeam_doc:set_value(<<"_rev">>, NewRev,
+                                couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc))
+                    end,
                     {ok, Doc1};
                 Error ->
                     Error

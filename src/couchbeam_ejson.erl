@@ -6,18 +6,18 @@
 
 -module(couchbeam_ejson).
 
--export([encode/1, decode/1]).
+-export([encode/1, decode/1, decode/2]).
 
 -include("couchbeam.hrl").
 
 
 -ifndef('WITH_JIFFY').
 -define(JSON_ENCODE(D), jsx:encode(pre_encode(D))).
--define(JSON_DECODE(D), post_decode(jsx:decode(D))).
+-define(JSON_DECODE(D, DecodeOptions), post_decode(jsx:decode(D, DecodeOptions))).
 
 -else.
 -define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).
--define(JSON_DECODE(D), jiffy:decode(D)).
+-define(JSON_DECODE(D, DecodeOptions), jiffy:decode(D, DecodeOptions)).
 -endif.
 
 
@@ -31,9 +31,14 @@ encode(D) ->
 -spec decode(binary()) -> ejson().
 %% @doc decode a binary to an EJSON term. Throw an exception if there is
 %% any error.
-decode(D) ->
+decode(D) -> decode(D, []).
+decode(D, Options) ->
+    DecodeOptions = case proplists:get_value(return_maps, Options) == true of
+        true -> [return_maps];
+        false -> []
+    end,
     try
-        ?JSON_DECODE(D)
+        ?JSON_DECODE(D, DecodeOptions)
     catch
         throw:Error ->
             throw({invalid_json, Error});
@@ -41,6 +46,8 @@ decode(D) ->
             throw({invalid_json, badarg})
     end.
 
+pre_encode(Map = #{}) ->
+    Map;
 pre_encode({[]}) ->
     [{}];
 pre_encode({PropList}) ->
@@ -60,6 +67,8 @@ pre_encode(Atom) when is_atom(Atom) ->
 pre_encode(Term) when is_integer(Term); is_float(Term); is_binary(Term) ->
     Term.
 
+post_decode(Map = #{}) ->
+    Map;
 post_decode([{}]) ->
     {[]};
 post_decode([{_Key, _Value} | _Rest] = PropList) ->
