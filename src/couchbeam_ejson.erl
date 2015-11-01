@@ -12,8 +12,8 @@
 
 
 -ifndef('WITH_JIFFY').
--define(JSON_ENCODE(D), jsx:encode(pre_encode(D))).
--define(JSON_DECODE(D, DecodeOptions), post_decode(jsx:decode(D, DecodeOptions))).
+-define(JSON_ENCODE(D), jsx:encode(map_or_pre_encode(D))).
+-define(JSON_DECODE(D, DecodeOptions), map_or_post_decode(jsx:decode(D, DecodeOptions))).
 
 -else.
 -define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).
@@ -46,8 +46,17 @@ decode(D, Options) ->
             throw({invalid_json, badarg})
     end.
 
-pre_encode(Map = #{}) ->
+
+-ifdef('MAPS_SUPPORT').
+map_or_pre_encode(Map = #{}) ->
     Map;
+map_or_pre_encode(NotMap) ->
+    pre_encode(NotMap).
+-else.
+map_or_pre_encode(NotMap) ->
+    pre_encode(NotMap).
+-endif.
+
 pre_encode({[]}) ->
     [{}];
 pre_encode({PropList}) ->
@@ -67,8 +76,16 @@ pre_encode(Atom) when is_atom(Atom) ->
 pre_encode(Term) when is_integer(Term); is_float(Term); is_binary(Term) ->
     Term.
 
-post_decode(Map = #{}) ->
+-ifdef('MAPS_SUPPORT').
+map_or_post_decode(Map = #{}) ->
     Map;
+map_or_post_decode(NotMap) ->
+    post_decode(NotMap).
+-else.
+map_or_post_decode(NotMap) ->
+    post_decode(NotMap).
+-endif.
+
 post_decode([{}]) ->
     {[]};
 post_decode([{_Key, _Value} | _Rest] = PropList) ->

@@ -432,6 +432,22 @@ doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
         _Error -> false
     end.
 
+
+-ifdef('MAPS_SUPPORT').
+get_return_params(Params) ->
+    case proplists:get_value(return_maps, Params) == true of
+        true  -> {[return_maps], proplists:delete(return_maps, Params)};
+        false -> {[], Params}
+    end.
+-else.
+get_return_params(Params) ->
+    case proplists:get_value(return_maps, Params) == true of
+        true  -> {[], proplists:delete(return_maps, Params)};
+        false -> {[], Params}
+    end.
+-endif.
+
+
 %% @doc open a document
 %% @equiv open_doc(Db, DocId, [])
 open_doc(Db, DocId) ->
@@ -450,11 +466,8 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
         A -> {A, proplists:delete(accept, Params)}
     end,
 
-    %% Set returm format
-    {ReturnOptions, Params2} = case proplists:get_value(return_maps, Params1) == true of
-        true  -> {[return_maps], proplists:delete(return_maps, Params1)};
-        false -> {[], Params1}
-    end,
+    %% Set return format
+    {ReturnOptions, Params2} = get_return_params(Params1),
 
     %% set the headers with the accepted content-type if needed
     Headers = case {Accept, proplists:get_value("attachments", Params)} of
@@ -563,25 +576,56 @@ save_doc(Db, Doc, Options) ->
 %% `<<"identity">>' if normal or `<<"gzip">>' if the attachments is
 %% gzipped.
 
+
+-ifdef('MAPS_SUPPORT').
+form_return_doc(Doc = #{}, NewRev, NewDocId) -> 
+    Doc#{<<"_rev">> => NewRev, <<"_id">> => NewDocId};
+form_return_doc(Doc, NewRev, NewDocId) ->
+    couchbeam_doc:set_value(<<"_rev">>, NewRev,
+        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc));
+form_return_doc(Doc, NewRev, NewDocId) ->
+    couchbeam_doc:set_value(<<"_rev">>, NewRev,
+        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)).
+-else.
+form_return_doc(Doc, NewRev, NewDocId) ->
+    couchbeam_doc:set_value(<<"_rev">>, NewRev,
+        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)).
+-endif.
+
+
+%
+-ifdef('MAPS_SUPPORT').
+get_doc_id(Doc = #{<<"_id">> := DocId1}, _Server) ->
+    couchbeam_util:encode_docid(DocId1);
+get_doc_id(Doc = #{}, Server) ->
+    [Id] = get_uuid(Server),
+    Id;
+get_doc_id({Props}, Server) ->
+    case couchbeam_util:get_value(<<"_id">>, Props) of
+        undefined ->
+            [Id] = get_uuid(Server),
+            Id;
+        DocId1 ->
+            couchbeam_util:encode_docid(DocId1)
+    end.
+-else.
+get_doc_id({Props}, Server) ->
+    case couchbeam_util:get_value(<<"_id">>, Props) of
+        undefined ->
+            [Id] = get_uuid(Server),
+            Id;
+        DocId1 ->
+            couchbeam_util:encode_docid(DocId1)
+    end.
+-endif.
+
+
+
+
 -spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
     {ok, doc()} | {error, term()}.
 save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
-    DocId = case Doc of
-        #{<<"_id">> := DocId1} -> 
-            couchbeam_util:encode_docid(DocId1);
-        #{} -> 
-            [Id] = get_uuid(Server),
-            Id;
-        {Props} ->
-            case couchbeam_util:get_value(<<"_id">>, Props) of
-                undefined ->
-                    [Id] = get_uuid(Server),
-                    Id;
-                DocId1 ->
-                    couchbeam_util:encode_docid(DocId1)
-            end
-    end,
-
+    DocId = get_doc_id(Doc, Server),
     Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
                                Options),
     case Atts of
@@ -594,13 +638,7 @@ save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
                     {JsonProp} = couchbeam_httpc:json_body(Ref),
                     NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
                     NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
-                    Doc1 = case Doc of
-                        #{} ->
-                          Doc#{<<"_rev">> => NewRev, <<"_id">> => NewDocId};
-                        _ ->
-                            couchbeam_doc:set_value(<<"_rev">>, NewRev,
-                                couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc))
-                    end,
+                    Doc1 = form_return_doc(Doc, NewRev, NewDocId),
                     {ok, Doc1};
                 Error ->
                     Error
