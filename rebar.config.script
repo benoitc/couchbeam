@@ -9,9 +9,8 @@ IsRebar3 = case application:get_key(rebar, vsn) of
 
 Rebar2Deps = [
     {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git",
-                        {tag,"2.8.0"}}},
+                 {tag,"2.8.0"}}},
 
-    %% hackney for doing HTTP requests
     {hackney, ".*", {git, "https://github.com/benoitc/hackney.git",
                      {tag, "1.4.3"}}}
 ],
@@ -20,5 +19,6 @@ case IsRebar3 of
     true ->
         CONFIG;
     false ->
-        [{eunit_opts, [verbose]} | lists:keyreplace(deps, 1, CONFIG, {deps, Rebar2Deps})]
+        CONFIG1 = lists:keyreplace(deps, 1, CONFIG, {deps, Rebar2Deps}),
+        [{eunit_opts, [verbose]} | CONFIG1]
 end.
