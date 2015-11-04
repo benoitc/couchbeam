@@ -12,6 +12,8 @@ before_script:
   - curl -X PUT localhost:5984/couchbeam_testdb
   - curl -X PUT localhost:5984/couchbeam_testdb2
   - curl -X PUT localhost:5984/couchbeam_testdb3
+  - "./support/bootstrap_travis.sh"
+script: "./rebar3 eunit"
 notifications:
   irc:
     - "irc.freenode.org#couchdbkit"
