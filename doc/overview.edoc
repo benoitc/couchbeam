@@ -387,16 +387,4 @@ in the `couchbeam:server_connection/2' documentation.
 For issues, comments or feedback please [create an
 issue](http://github.com/benoitc/couchbeam/issues).
 
-### Notes for developers
-
-If you want to contribute patches or improve the docs, you will need to
-build couchbeam using the `rebar_dev.config'  file. It can also be built
-using the **Makefile**:
-
-```
-$ make dev ; # compile & get deps
-$ make devclean ; # clean all files
-'''
-
-
 @end
