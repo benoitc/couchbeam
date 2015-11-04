@@ -79,7 +79,7 @@ encode_query_value(_K, V) -> V.
 oauth_header(Url, Action, OauthProps) ->
     #hackney_url{qs=QS} = hackney_url:parse_url(Url),
     QSL = [{binary_to_list(K), binary_to_list(V)} || {K,V} <-
-                                                     hackney:qs(QS)],
+                                                     hackney_url:qs(QS)],
 
     % get oauth paramerers
     ConsumerKey = to_list(get_value(consumer_key, OauthProps)),
