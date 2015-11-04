@@ -1,6 +1,12 @@
 couchbeam NEWS
 --------------
 
+version 1.2.1 / 2015/11/04
+--------------------------
+
+- also support 1.4.4 for rebar2.
+- fix hex.pm release to really use 1.4.4
+
 version 1.2.0 / 2015/11/04
 --------------------------
 
