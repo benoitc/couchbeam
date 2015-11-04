@@ -8,6 +8,7 @@
 -include_lib("hackney/include/hackney.hrl").
 -include_lib("hackney/include/hackney_lib.hrl").
 
+-export([dbname/1]).
 -export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
@@ -20,7 +21,16 @@
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
 
+
+
 -define(ENCODE_DOCID_FUNC, encode_docid1).
+
+dbname(DbName) when is_list(DbName) ->
+    list_to_binary(DbName);
+dbname(DbName) when is_binary(DbName) ->
+    DbName;
+dbname(DbName) ->
+    erlang:error({illegal_database_name, DbName}).
 
 encode_att_name(Name) when is_binary(Name) ->
     encode_att_name(xmerl_ucs:from_utf8(Name));

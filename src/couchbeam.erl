@@ -10,12 +10,6 @@
 
 -define(TIMEOUT, infinity).
 
-% generic functions
--export([start/0, stop/0, version/0]).
-
-%% utilities urls
--export([db_url/1, doc_url/2, server_url/1]).
-
 %% API urls
 -export([server_connection/0, server_connection/1,
          server_connection/2, server_connection/4,
@@ -62,29 +56,6 @@
     | { Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Encoding :: binary()}
     | { Name :: binary(), {Fun :: fun(), Acc :: any()}, Length :: integer(), Type :: binary(), Encoding :: binary()}.
 
-
-
-%% --------------------------------------------------------------------
-%% Generic utilities.
-%% --------------------------------------------------------------------
-
-%% @doc Start the couchbeam process. Useful when testing using the shell.
-start() ->
-    couchbeam_deps:ensure(),
-    application:load(couchbeam),
-    couchbeam_util:start_app_deps(couchbeam),
-    application:start(couchbeam).
-
-%% @doc Stop the couchbeam process. Useful when testing using the shell.
-stop() ->
-    application:stop(couchbeam).
-
-%% @spec () -> Version
-%%     Version = string()
-%% @doc Return the version of the application.
-version() ->
-    {ok, Version} = application:get_key(couchbeam, vsn),
-    Version.
 
 %% --------------------------------------------------------------------
 %% API functins.
@@ -301,7 +272,7 @@ all_dbs(#server{url=ServerUrl, options=Opts}) ->
 %% @doc test if db with dbname exists on the CouchDB node
 %% @spec db_exists(server(), string()) -> boolean()
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
-    Url = hackney_url:make_url(ServerUrl, dbname(DbName), []),
+    Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, 200, _}->
             true;
@@ -332,7 +303,7 @@ create_db(Server, DbName, Options) ->
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}}
 create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0, Options,
           Params) ->
-    DbName = dbname(DbName0),
+    DbName = couchbeam_util:dbname(DbName0),
     Options1 = couchbeam_util:propmerge1(Options, Opts),
     Url = hackney_url:make_url(ServerUrl, DbName, Params),
     Resp = couchbeam_httpc:db_request(put, Url, [], <<>>, Options1, [201]),
@@ -356,7 +327,7 @@ open_db(Server, DbName) ->
 %%              -> {ok, db()}
 open_db(#server{options=Opts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, Opts),
-    {ok, #db{server=Server, name=dbname(DbName), options=Options1}}.
+    {ok, #db{server=Server, name=couchbeam_util:dbname(DbName), options=Options1}}.
 
 
 %% @doc Create a client for connecting to a database and create the
@@ -377,7 +348,7 @@ open_or_create_db(Server, DbName, Options) ->
 open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
                   Options, Params) ->
 
-    DbName = dbname(DbName0),
+    DbName = couchbeam_util:dbname(DbName0),
     Url = hackney_url:make_url(ServerUrl, DbName, []),
     Opts1 = couchbeam_util:propmerge1(Options, Opts),
     Resp = couchbeam_httpc:request(get, Url, [], <<>>, Opts1),
@@ -399,7 +370,7 @@ delete_db(#db{server=Server, name=DbName}) ->
 %% @doc delete database
 %% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
 delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
-    Url = hackney_url:make_url(ServerUrl, dbname(DbName), []),
+    Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     Resp = couchbeam_httpc:request(delete, Url, [], <<>>, Opts),
     case couchbeam_httpc:db_resp(Resp, [200]) of
         {ok, _, _, Ref} ->
@@ -411,7 +382,7 @@ delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
 %% @doc get database info
 %% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
 db_info(#db{server=Server, name=DbName, options=Opts}) ->
-    Url = hackney_url:make_url(server_url(Server), dbname(DbName), []),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]) of
         {ok, _Status, _Headers, Ref} ->
             Infos = couchbeam_httpc:json_body(Ref),
@@ -426,7 +397,7 @@ db_info(#db{server=Server, name=DbName, options=Opts}) ->
 %% @spec doc_exists(db(), string()) -> boolean()
 doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1), []),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, _} -> true;
         _Error -> false
@@ -461,7 +432,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
         _ ->
             []
     end,
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1),
                                Params1),
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
@@ -470,7 +441,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
                 {<<"multipart">>, _, _} ->
                     %% we get a multipart request, start to parse it.
                     InitialState =  {Ref, fun() ->
-                                    wait_mp_doc(Ref, <<>>)
+                                    couchbeam_httpc:wait_mp_doc(Ref, <<>>)
                             end},
                     {ok, {multipart, InitialState}};
                 _ ->
@@ -565,7 +536,7 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
         DocId1 ->
             couchbeam_util:encode_docid(DocId1)
     end,
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId),
                                Options),
     case Atts of
         [] ->
@@ -590,7 +561,7 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
             %% so we have to calculate the content-length. It also means
             %% that we need to know the size of each attachments. (Which
             %% should be expected).
-            {CLen, JsonDoc, Doc2} = len_doc_to_mp_stream(Atts, Boundary, Doc),
+            {CLen, JsonDoc, Doc2} = couchbeam_httpc:len_doc_to_mp_stream(Atts, Boundary, Doc),
             CType = <<"multipart/related; boundary=\"",
                       Boundary/binary, "\"" >>,
 
@@ -600,7 +571,7 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
             case couchbeam_httpc:request(put, Url, Headers, stream,
                                          Opts) of
                 {ok, Ref} ->
-                    send_mp_doc(Atts, Ref, Boundary, JsonDoc, Doc2);
+                    couchbeam_httpc:send_mp_doc(Atts, Ref, Boundary, JsonDoc, Doc2);
                 Error ->
                     Error
             end
@@ -667,8 +638,8 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
         K =/= "all_or_nothing" andalso K =/= "new_edits"
     ],
     Body = couchbeam_ejson:encode({[{<<"docs">>, Docs1}|DocOptions]}),
-    Url = hackney_url:make_url(server_url(Server),
-                               [db_url(Db), <<"_bulk_docs">>],
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                               [couchbeam_httpc:db_url(Db), <<"_bulk_docs">>],
                                Options2),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, Body, Opts, [201]) of
@@ -727,7 +698,7 @@ do_copy(#db{server=Server, options=Opts}=Db, {DocId, DocRev},
             {Headers, [{<<"rev">>, DocRev}]}
     end,
 
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId),
                                Params),
 
     case couchbeam_httpc:db_request(copy, Url, Headers1, <<>>,
@@ -747,7 +718,7 @@ lookup_doc_rev(Db, DocId) ->
 
 lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1),
                                Params),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, Headers} ->
@@ -796,8 +767,8 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
     end,
 
     DocId1 = couchbeam_util:encode_docid(DocId),
-    Url = hackney_url:make_url(server_url(Server),
-                               [db_url(Db), DocId1,
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                               [couchbeam_httpc:db_url(Db), DocId1,
                                 Name],
                                Options2),
     case hackney:get(Url, Headers, <<>>, Opts) of
@@ -876,7 +847,7 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
 
     DocId1 = couchbeam_util:encode_docid(DocId),
     AttName = couchbeam_util:encode_att_name(Name),
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db), DocId1,
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db), DocId1,
                                                     AttName],
                                QueryArgs),
 
@@ -898,13 +869,13 @@ send_attachment(Ref, eof) ->
     case hackney:finish_send_body(Ref) of
         ok ->
             Resp =  hackney:start_response(Ref),
-            reply_att(Resp);
+            couchbeam_httpc:reply_att(Resp);
         Error ->
             Error
     end;
 send_attachment(Ref, Msg) ->
     Reply = hackney:send_body(Ref, Msg),
-    reply_att(Reply).
+    couchbeam_httpc:reply_att(Reply).
 
 
 %% @doc delete a document attachment
@@ -936,7 +907,7 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                 _ ->
                     Options1
             end,
-            Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+            Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                             DocId,
                                                             Name],
                                        Options2),
@@ -961,7 +932,7 @@ ensure_full_commit(Db) ->
     -> {ok, InstancestartTime :: binary()}
     | {error, term()}.
 ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                     <<"_ensure_full_commit">>],
                                Options),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
@@ -978,7 +949,7 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 %% See [http://wiki.apache.org/couchdb/Compaction] for more informations
 %% @spec compact(Db::db()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db) ->
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                     <<"_compact">>],
                                []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
@@ -994,7 +965,7 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
 %% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                    <<"_compact">>,
                                                    DesignName], []),
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
@@ -1014,7 +985,7 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
     | {error, term()}.
 get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
     Json = couchbeam_ejson:encode({IdRevs}),
-    Url = hackney_url:make_url(server_url(Server), [db_url(Db),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                    <<"_revs_diff">>],
                               []),
 
@@ -1038,7 +1009,7 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
     end.
 
 %% --------------------------------------------------------------------
-%% Utilities functions.
+%% private functions.
 %% --------------------------------------------------------------------
 
 %% add missing docid to a list of documents if needed
@@ -1050,306 +1021,6 @@ maybe_docid(Server, {DocProps}) ->
         _DocId ->
             {DocProps}
     end.
-
-%% @doc Asemble the server URL for the given client
-%% @spec server_url({Host, Port}) -> iolist()
-server_url(#server{url=Url}) ->
-    Url.
-
-dbname(DbName) when is_list(DbName) ->
-    list_to_binary(DbName);
-dbname(DbName) when is_binary(DbName) ->
-    DbName;
-dbname(DbName) ->
-    erlang:error({illegal_database_name, DbName}).
-
-db_url(#db{name=DbName}) ->
-    DbName.
-
-doc_url(Db, DocId) ->
-    iolist_to_binary([db_url(Db), <<"/">>, DocId]).
-
-reply_att(ok) ->
-    ok;
-reply_att(done) ->
-    done;
-reply_att({ok, 404, _, Ref}) ->
-    hackney:skip_body(Ref),
-    {error, not_found};
-reply_att({ok, 409, _, Ref}) ->
-    hackney:skip_body(Ref),
-    {error, conflict};
-reply_att({ok, Status, _, Ref}) when Status =:= 200 orelse Status =:= 201 ->
-  {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
-  {ok, {R}};
-reply_att({ok, Status, Headers, Ref}) ->
-    {ok, Body} = hackney:body(Ref),
-    {error, {bad_response, {Status, Headers, Body}}};
-reply_att(Error) ->
-    Error.
-
-wait_mp_doc(Ref, Buffer) ->
-    %% we are always waiting for the full doc
-    case hackney:stream_multipart(Ref) of
-        {headers, _} ->
-            wait_mp_doc(Ref, Buffer);
-        {body, Data} ->
-            NBuffer = << Buffer/binary, Data/binary >>,
-            wait_mp_doc(Ref, NBuffer);
-        end_of_part when Buffer =:= <<>> ->
-            %% end of part in multipart/mixed
-            wait_mp_doc(Ref, Buffer);
-        end_of_part ->
-            %% decode the doc
-            {Props} = Doc = couchbeam_ejson:decode(Buffer),
-            case couchbeam_util:get_value(<<"_attachments">>, Props, {[]}) of
-                {[]} ->
-                    %% not attachments wait for the eof or the next doc
-                    NState = {Ref, fun() -> wait_mp_doc(Ref, <<>>) end},
-                    {doc, Doc, NState};
-                {Atts} ->
-                    %% start to receive the attachments
-                    %% we get the list of attnames for the versions of
-                    %% couchdb that don't provide the att name in the
-                    %% header.
-                    AttNames = [AttName || {AttName, _} <- Atts],
-                    NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {nil, AttNames})
-                            end},
-                    {doc, Doc, NState}
-            end;
-        mp_mixed ->
-            %% we are starting a multipart/mixed (probably on revs)
-            %% continue
-            wait_mp_doc(Ref, Buffer);
-        mp_mixed_eof ->
-            %% end of multipar/mixed wait for the next doc
-            wait_mp_doc(Ref, Buffer);
-        eof ->
-            eof
-    end.
-
-wait_mp_att(Ref, {AttName, AttNames}) ->
-    case hackney:stream_multipart(Ref) of
-        {headers, Headers} ->
-            %% old couchdb api doesn't give the content-disposition
-            %% header so we have to use the list of att names given in
-            %% the doc. Hopefully the erlang parser keeps it in order.
-            case hackney_headers:get_value(<<"content-disposition">>,
-                                           hackney_headers:new(Headers)) of
-                undefined ->
-                    [Name | Rest] = AttNames,
-                    NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {Name, Rest})
-                            end},
-                    {att, Name, NState};
-                CDisp ->
-                    {_, Props} = content_disposition(CDisp),
-                    Name = proplists:get_value(<<"filename">>, Props),
-                    [_ | Rest] = AttNames,
-                    NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {Name, Rest})
-                            end},
-                    {att, Name, NState}
-            end;
-        {body, Data} ->
-            %% return the attachment par
-            NState = {Ref, fun() -> wait_mp_att(Ref, {AttName, AttNames}) end},
-            {att_body, AttName, Data, NState};
-        end_of_part ->
-            %% wait for the next attachment
-            NState = {Ref, fun() -> wait_mp_att(Ref, {nil, AttNames}) end},
-            {att_eof, AttName, NState};
-        mp_mixed_eof ->
-            %% wait for the next doc
-            wait_mp_doc(Ref, <<>>);
-        eof ->
-            %% we are done with the multipart request
-            eof
-    end.
-
-content_disposition(Data) ->
-    hackney_bstr:token_ci(Data, fun
-            (_Rest, <<>>) ->
-                {error, badarg};
-            (Rest, Disposition) ->
-                hackney_bstr:params(Rest, fun
-                        (<<>>, Params) -> {Disposition, Params};
-                        (_Rest2, _) -> {error, badarg}
-                    end)
-        end).
-
-len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
-    {AttsSize, Stubs} = lists:foldl(fun(Att, {AccSize, AccAtts}) ->
-                    {AttLen, Name, Type, Encoding, _Msg} = att_info(Att),
-                    AccSize1 = AccSize +
-                               4 + %% \r\n\r\n
-                               AttLen +
-                               byte_size(hackney_bstr:to_binary(AttLen)) +
-                               4 +  %% "\r\n--"
-                               byte_size(Boundary) +
-                               byte_size(Name) +
-                               byte_size(Type) +
-                               byte_size(<<"\r\nContent-Disposition: attachment; filename=\"\"">> ) +
-                               byte_size(<<"\r\nContent-Type: ">>) +
-                               byte_size(<<"\r\nContent-Length: ">>) +
-                               case Encoding of
-                                   <<"identity">> ->
-                                       0;
-                                   _ ->
-                                       byte_size(Encoding) +
-                                       byte_size(<<"\r\nContent-Encoding: ">>)
-                               end,
-                    AccAtts1 = [{Name, {[{<<"content_type">>, Type},
-                                         {<<"length">>, AttLen},
-                                         {<<"follows">>, true},
-                                         {<<"encoding">>, Encoding}]}}
-                                | AccAtts],
-                    {AccSize1, AccAtts1}
-            end, {0, []}, Atts),
-
-    Doc1 = case couchbeam_util:get_value(<<"_attachments">>, Props) of
-        undefined ->
-            {Props ++ [{<<"_attachments">>, {Stubs}}]};
-        {OldAtts} ->
-            %% remove updated attachments from the old list of
-            %% attachments
-            OldAtts1 = lists:foldl(fun({Name, AttProps}, Acc) ->
-                            case couchbeam_util:get_value(Name, Stubs) of
-                                undefined ->
-                                    [{Name, AttProps} | Acc];
-                                _ ->
-                                    Acc
-                            end
-                    end, [], OldAtts),
-            %% update the list of the attachnebts with the attachments
-            %% that will be sent in the multipart
-            FinalAtts = lists:reverse(OldAtts1) ++ Stubs,
-            {lists:keyreplace(<<"_attachments">>, 1, Props,
-                             {<<"_attachments">>, {FinalAtts}})}
-    end,
-
-    %% eencode the doc
-    JsonDoc = couchbeam_ejson:encode(Doc1),
-
-    %% calculate the final size with the doc part
-    FinalSize = 2 + % "--"
-                byte_size(Boundary) +
-                36 + % "\r\ncontent-type: application/json\r\n\r\n"
-                byte_size(JsonDoc) +
-                4 + % "\r\n--"
-                byte_size(Boundary) +
-                + AttsSize +
-                2, % "--"
-
-    {FinalSize, JsonDoc, Doc1}.
-
-send_mp_doc(Atts, Ref, Boundary, JsonDoc, Doc) ->
-    %% send the doc
-    DocParts = [<<"--", Boundary/binary >>,
-                <<"Content-Type: application/json">>,
-                <<>>, JsonDoc, <<>>],
-    DocBin = hackney_bstr:join(DocParts, <<"\r\n">>),
-    case hackney:send_body(Ref, DocBin) of
-        ok ->
-            send_mp_doc_atts(Atts, Ref, Doc, Boundary);
-        Error ->
-            Error
-    end.
-
-
-send_mp_doc_atts([], Ref, Doc, Boundary) ->
-    %% no more attachments, send the final boundary (eof)
-    case hackney:send_body(Ref, <<"\r\n--", Boundary/binary, "--" >>) of
-        ok ->
-            %% collect the response.
-            mp_doc_reply(Ref, Doc);
-        Error ->
-            Error
-    end;
-
-send_mp_doc_atts([Att | Rest], Ref, Doc, Boundary) ->
-    {AttLen, Name, Type, Encoding, Msg} = att_info(Att),
-    BinAttLen = hackney_bstr:to_binary(AttLen),
-    AttHeadersParts = [<<"--", Boundary/binary >>,
-                       <<"Content-Disposition: attachment; filename=\"", Name/binary, "\"" >>,
-                      <<"Content-Type: ", Type/binary >>,
-                      <<"Content-Length: ", BinAttLen/binary >>],
-
-    AttHeadersParts1 = AttHeadersParts ++
-            case Encoding of
-                <<"identity">> ->
-                    [<<>>, <<>>];
-                _ ->
-                    [<<"Content-Encoding: ", Encoding/binary >>, <<>>,
-                     <<>>]
-            end,
-    AttHeadersBin = hackney_bstr:join(AttHeadersParts1, <<"\r\n">>),
-
-    %% first send the att headers
-    case hackney:send_body(Ref, AttHeadersBin) of
-        ok ->
-            %% send the attachment by itself
-            case hackney:send_body(Ref, Msg) of
-                ok ->
-                    %% everything is OK continue to the next attachment
-                    send_mp_doc_atts(Rest, Ref, Doc, Boundary);
-                Error ->
-                    Error
-            end;
-        Error ->
-            Error
-    end.
-
-mp_doc_reply(Ref, Doc) ->
-    Resp = hackney:start_response(Ref),
-    case couchbeam_httpc:db_resp(Resp, [200, 201]) of
-        {ok, _, _, Ref} ->
-            {JsonProp} = couchbeam_httpc:json_body(Ref),
-            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
-            %% set the new doc ID
-            Doc1 = couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc),
-            %% set the new rev
-            FinalDoc = couchbeam_doc:set_value(<<"_rev">>, NewRev, Doc1),
-            %% return the updated document
-            {ok, FinalDoc};
-        Error ->
-            Error
-    end.
-
-att_info({Name, {file, Path}=Msg}) ->
-    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
-    Len = filelib:file_size(Path),
-    {Len, Name, CType, <<"identity">>, Msg};
-att_info({Name, Bin}) when is_list(Bin) ->
-    att_info({Name, iolist_to_binary(Bin)});
-att_info({Name, Bin}) when is_binary(Bin) ->
-    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
-    {byte_size(Bin), Name, CType, <<"identity">>, Bin};
-att_info({Name, {file, Path}=Msg, Encoding}) ->
-    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
-    Len = filelib:file_size(Path),
-    {Len, Name, CType, Encoding, Msg};
-att_info({Name, {Fun, _Acc0}=Msg, Len}) when is_function(Fun) ->
-    {Len, Name, <<"application/octet-stream">>, <<"identity">>, Msg};
-att_info({Name, Fun, Len}) when is_function(Fun) ->
-    {Len, Name, <<"application/octet-stream">>, <<"identity">>, Fun};
-att_info({Name, Bin, Encoding}) when is_binary(Bin) ->
-    CType = hackney_mimetypes:filename(hackney_bstr:to_binary(Name)),
-    {byte_size(Bin), Name, CType, Encoding, Bin};
-att_info({Name, {Fun, _Acc0}=Msg, Len, Encoding}) when is_function(Fun) ->
-    {Len, Name, <<"application/octet-stream">>, Encoding, Msg};
-att_info({Name, Fun, Len, Encoding}) when is_function(Fun) ->
-    {Len, Name, <<"application/octet-stream">>, Encoding, Fun};
-att_info({Name, Bin, CType, Encoding}) when is_binary(Bin) ->
-    {byte_size(Bin), Name, CType, Encoding, Bin};
-att_info({Name, {Fun, _Acc0}=Msg, Len, CType, Encoding})
-                when is_function(Fun) ->
-    {Len, Name, CType, Encoding, Msg};
-att_info({Name, Fun, Len, CType, Encoding}) when is_function(Fun) ->
-    {Len, Name, CType, Encoding, Fun}.
-
 
 update_config(#server{url=ServerUrl, options=Opts}, Section, Key, Value,
            Persist, Method) ->
@@ -1373,3 +1044,311 @@ update_config(#server{url=ServerUrl, options=Opts}, Section, Key, Value,
         Error ->
             Error
     end.
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+-include_lib("kernel/include/file.hrl").
+
+
+clean_dbs() ->
+    Server = couchbeam:server_connection(),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb3"),
+    timer:sleep(300),
+    ok.
+
+start_couchbeam_tests() ->
+    {ok, _} = application:ensure_all_started(couchbeam),
+    clean_dbs().
+
+basic_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, {Data}} = couchbeam:server_info(Server),
+    ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
+    ok.
+
+db_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+
+    %% test db creation
+    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb")),
+    ?assertEqual({error, db_exists}, couchbeam:create_db(Server, "couchbeam_testdb")),
+    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb2")),
+
+    {ok, AllDbs} = couchbeam:all_dbs(Server),
+    ?assert(is_list(AllDbs) =:= true),
+    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs)),
+    ?assertEqual(true, lists:member(<<"couchbeam_testdb2">>, AllDbs)),
+    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+    ?assertMatch({ok, _}, couchbeam:delete_db(Server, "couchbeam_testdb2")),
+    {ok, AllDbs1} = couchbeam:all_dbs(Server),
+    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs1)),
+    ?assertEqual(false, lists:member(<<"couchbeam_testdb2">>, AllDbs1)),
+    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+    ?assertEqual(false, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+
+    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb")),
+    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
+    ok.
+
+basic_doc_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
+    ?assertMatch({_}, Doc),
+    {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
+    ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
+    ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
+    
+    Rev = couchbeam:lookup_doc_rev(Db, "test"),
+    {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
+    ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
+    ?assertEqual(<<"blah">>, proplists:get_value(<<"test">>, Doc1)),
+
+    _ = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
+    {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
+    ?assertMatch({_}, Doc2),
+    ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
+    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
+    ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),
+    ?assertMatch({ok, _}, couchbeam:delete_doc(Db, Doc2)),
+    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
+    ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
+
+    Doc3 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
+    {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
+    {ok, Doc5} = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
+    ?assertEqual( <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, couchbeam_doc:get_id(Doc5)),
+    ok.
+
+bulk_doc_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+
+    Doc1 = {[{<<"_id">>, <<"a">>}]},
+    Doc2 = {[{<<"_id">>, <<"b">>}]},
+    {ok, [{Props1}, {Props2}]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
+    ?assertEqual(<<"a">>, proplists:get_value(<<"id">>, Props1)),
+    ?assertEqual(<<"b">>, proplists:get_value(<<"id">>, Props2)),
+    ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
+    ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
+
+
+    {ok, Doc3} = couchbeam:open_doc(Db, <<"a">>),
+    {ok, Doc4} = couchbeam:open_doc(Db, <<"b">>),
+    couchbeam:delete_docs(Db, [Doc3, Doc4]),
+    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
+    ok.
+
+copy_doc_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+
+    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, 1}]}),
+    {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, Doc),
+    {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
+    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
+
+    {ok, _Doc3} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test_copy">>}]}),
+    {ok, CopyId1, _} = couchbeam:copy_doc(Db, Doc, <<"test_copy">>),
+    ?assertEqual(<<"test_copy">>, CopyId1),
+    {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
+    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
+    ok.
+
+
+attachments_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    Doc = {[{<<"_id">>, <<"test">>}]},
+    {ok, Doc1} = couchbeam:save_doc(Db, Doc),
+    RevDoc1 = couchbeam_doc:get_rev(Doc1),
+    {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test", [{rev, RevDoc1}]),
+    RevDoc11 = proplists:get_value(<<"rev">>, Res),
+    ?assertNot(RevDoc1 =:= RevDoc11),
+    {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test"),
+    ?assertEqual( <<"test">>, Attachment),
+    {ok, Doc2} = couchbeam:open_doc(Db, "test"),
+    ?assertMatch({ok, {_}}, couchbeam:delete_attachment(Db, Doc2, "test")),
+    Doc3 = {[{<<"_id">>, <<"test2">>}]},
+    Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
+    Doc5 = couchbeam_attachments:add_inline(Doc4, "test2", "test2.txt"),
+    {ok, _} = couchbeam:save_doc(Db, Doc5),
+    {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
+    {ok, Attachment2} = couchbeam:fetch_attachment(Db, "test2", "test2.txt"),
+    ?assertEqual( <<"test">>, Attachment1),
+    ?assertEqual( <<"test2">>, Attachment2),
+    {ok, Doc6} = couchbeam:open_doc(Db, "test2"),
+    Doc7 = couchbeam_attachments:delete_inline(Doc6, "test2.txt"),
+    {ok, _} = couchbeam:save_doc(Db, Doc7),
+    ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test2", "test2.txt")),
+    {ok, Attachment4} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
+    ?assertEqual( <<"test">>, Attachment4),
+    {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
+
+    TestFileName = data_path("1M"),
+    {ok, FileInfo} = file:read_file_info(TestFileName),
+    {ok, Fd} = file:open(TestFileName, [read]),
+    FileSize = FileInfo#file_info.size,
+    StreamFun = fun() ->
+                    case file:read(Fd, 4096) of
+                        {ok, Data} ->  {ok, iolist_to_binary(Data)};
+                        _ -> eof
+                    end
+                end,
+    {ok, _Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), "1M", StreamFun, 
+                                          [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
+
+    file:close(Fd),
+    {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
+    Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
+    ?assert(Attachements /= undefined),
+    Attachment5 = couchbeam_doc:get_value(<<"1M">>, Attachements),
+    ?assert(Attachment5 /= undefined),
+    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, Attachment5)),
+    {ok, Bin} = couchbeam:fetch_attachment(Db, couchbeam_doc:get_id(Doc8), "1M"),
+    ?assertEqual(FileSize, iolist_size(Bin)),
+
+    {ok, _Res3}= couchbeam:put_attachment(Db, "test/2", "test", "test"),
+    {ok, Attachment10} = couchbeam:fetch_attachment(Db, "test/2", "test"),
+    ?assertEqual(<<"test">>, Attachment10),
+    {ok, _Res4}= couchbeam:put_attachment(Db, "test3", "test", "test"),
+    {ok, Attachment11} = couchbeam:fetch_attachment(Db, "test3", "test"),
+    ?assertEqual(<<"test">>, Attachment11),
+    ok.
+
+multipart_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+
+    {ok, _Res4}= couchbeam:put_attachment(Db, "test", "test", "test"),
+    Resp = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
+    ?assertMatch( {ok, {multipart, _}}, Resp),
+
+    {ok, {multipart, Stream}} = Resp,
+    Collected = collect_mp(couchbeam:stream_doc(Stream), []),
+    ?assert(proplists:is_defined(doc, Collected)),
+    MpDoc = proplists:get_value(doc, Collected),
+    MpDocId = couchbeam_doc:get_id(MpDoc),
+    ?assertEqual(<<"test">>, MpDocId),
+    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected)),
+
+    Resp1 = couchbeam:open_doc(Db, <<"test">>, [{open_revs, all},
+                                                {accept, <<"multipart/mixed">>}]),
+    ?assertMatch( {ok, {multipart, _}}, Resp1),
+    {ok, {multipart, Stream1}} = Resp1,
+    Collected1 = collect_mp(couchbeam:stream_doc(Stream1), []),
+    MpDoc1 = proplists:get_value(doc, Collected1),
+    MpDocId1 = couchbeam_doc:get_id(MpDoc1),
+    ?assertEqual(<<"test">>, MpDocId1),
+    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected1)),
+    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test2">>}]},
+                                       [{<<"test.txt">>, <<"test">>}], []),
+    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc)),
+    {ok, MpAttachment1} = couchbeam:fetch_attachment(Db, <<"test2">>, <<"test.txt">>),
+    ?assertEqual(<<"test">>, MpAttachment1),
+
+    TestFileName = data_path("1M"),
+    {ok, FileInfo} = file:read_file_info(TestFileName),
+    FileSize = FileInfo#file_info.size,
+
+    {ok, Doc1} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test5">>}]},
+                                         [{<<"1M">>, {file, TestFileName}}], []),
+
+    ?assert(couchbeam_doc:is_saved(Doc1)),
+    {ok, Doc2} = couchbeam:open_doc(Db, <<"test5">>),
+    MpAttachments = couchbeam_doc:get_value(<<"_attachments">>, Doc2),
+    ?assert(MpAttachments /= undefined),
+    MpAttachment2 = couchbeam_doc:get_value(<<"1M">>, MpAttachments),
+    ?assert(MpAttachment2 /= undefined),
+    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, MpAttachment2)),
+    {ok, MpBin} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
+    ?assertEqual(FileSize, iolist_size(MpBin)),
+    {ok, MpDoc2} = couchbeam:save_doc(Db, Doc2, [{<<"hello.txt">>, <<"world">>}], []),
+    ?assert(couchbeam_doc:is_saved(MpDoc2)),
+    MpAttachments3= couchbeam_doc:get_value(<<"_attachments">>, MpDoc2),
+    ?assert(MpAttachments3 /= undefined),
+    MpAttachment4 = couchbeam_doc:get_value(<<"1M">>, MpAttachments3),
+    ?assert(MpAttachment4 /= undefined),
+    {ok, MpBin1} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
+    ?assertEqual(FileSize, iolist_size(MpBin1)),
+    MpAttachment5 = couchbeam_doc:get_value(<<"hello.txt">>, MpAttachments3),
+    ?assert(MpAttachment5 /= undefined),
+    {ok, MpBin2} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"hello.txt">>),
+    ?assertEqual(<<"world">>, MpBin2),
+    ok.
+
+replicate_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    {ok, Db2} = couchbeam:create_db(Server, "couchbeam_testdb2"),
+
+    {ok, Doc11} = couchbeam:save_doc(Db, {[]}),
+    DocId11 = couchbeam_doc:get_id(Doc11),
+    DocRev11 = couchbeam_doc:get_rev(Doc11),
+    ?assertMatch({ok, _}, couchbeam:replicate(Server, Db, Db2)),
+
+    {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
+    DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
+    ?assertEqual(DocRev11_2, DocRev11),
+
+    {ok, Doc12} = couchbeam:save_doc(Db, Doc11 ),
+    {ok, Doc13} = couchbeam:save_doc(Db, Doc12),
+
+    DocRev12 = couchbeam_doc:get_rev(Doc12),
+    DocRev13 = couchbeam_doc:get_rev(Doc13),
+    {ok, Missing} = couchbeam:get_missing_revs(Db2, [{DocId11, [DocRev12,
+                                                                DocRev13]}]),
+    ?assertEqual([{DocId11, [DocRev12, DocRev13], [DocRev11]}], Missing),
+
+    {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
+    ?assert(is_binary(InstanceStartTime)),
+    ok.
+
+config_test() ->
+    Server = couchbeam:server_connection(),
+    {ok, {AllConfig}} = couchbeam:get_config(Server),
+    ?assert(proplists:is_defined(<<"httpd">>, AllConfig)),
+    {ok, {HttpdConfig}} = couchbeam:get_config(Server, <<"httpd">>),
+    ?assert(proplists:is_defined(<<"port">>, HttpdConfig)),
+    {ok, Port} = couchbeam:get_config(Server, <<"httpd">>, <<"port">>),
+    ?assertEqual(<<"5984">>, Port),
+    ?assertMatch({ok, <<>>}, couchbeam:set_config(Server, <<"couchbeam">>,<<"test">>, <<"1">>, false)),
+    ?assertEqual({ok, <<"1">>}, couchbeam:get_config(Server, <<"couchbeam">>,<<"test">>)),
+    ?assertEqual({ok, <<"1">>}, couchbeam:set_config(Server, <<"couchbeam">>,<<"test">>, <<"2">>,  false)),
+    ?assertEqual({ok, <<"2">>}, couchbeam:get_config(Server, <<"couchbeam">>, <<"test">>)),
+    ?assertEqual({ok, <<"2">>}, couchbeam:delete_config(Server, <<"couchbeam">>, <<"test">>, false)),
+    ?assertEqual({error, not_found}, couchbeam:get_config(Server, <<"couchbeam">>,  <<"test">>)),
+    ok.
+
+collect_mp({doc, Doc, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), [{doc, Doc} | Acc]);
+collect_mp({att, Name, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>} | Acc]);
+collect_mp({att_body, Name, Chunk, Next}, Acc) ->
+    Buffer = proplists:get_value(Name, Acc),
+    NBuffer = << Buffer/binary, Chunk/binary >>,
+    Acc1 = lists:keystore(Name, 1, Acc, {Name, NBuffer}),
+    collect_mp(couchbeam:stream_doc(Next), Acc1);
+collect_mp({att_eof, _Name, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), Acc);
+collect_mp(eof, Acc) ->
+    Acc.
+
+data_path(Basename) ->
+    filename:join([filename:dirname(filename:absname(?FILE)), "..", "support", Basename]).
+
+-endif.

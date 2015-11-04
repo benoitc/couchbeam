@@ -19,7 +19,7 @@
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
     AName1 = hackney_bstr:to_binary(AName),
-    ContentType = hackney_mimetypes:filename(AName1),
+    ContentType = mimerl:filename(AName1),
     add_inline(Doc, Content, AName1, ContentType).
 
 %% @spec add_inline(Doc::json_obj(), Content::attachment_content(),

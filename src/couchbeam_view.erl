@@ -422,13 +422,13 @@ make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
     Args = parse_view_options(Options),
     case ViewName of
         'all_docs' ->
-            Url = hackney_url:make_url(couchbeam:server_url(Server),
-                                       [couchbeam:db_url(Db), <<"_all_docs">>],
+            Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                                       [couchbeam_httpc:db_url(Db), <<"_all_docs">>],
                                        Args#view_query_args.options),
             Fun(Args, Url);
         {DName, VName} ->
-            Url = hackney_url:make_url(couchbeam:server_url(Server),
-                                       [couchbeam:db_url(Db), <<"_design">>,
+            Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                                       [couchbeam_httpc:db_url(Db), <<"_design">>,
                                         DName, <<"_view">>, VName],
                                        Args#view_query_args.options),
             Fun(Args, Url);
@@ -492,3 +492,83 @@ with_view_stream(Ref, Fun) ->
         [{Ref, Pid}] ->
             Fun(Pid)
     end.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-include_lib("kernel/include/file.hrl").
+
+
+clean_dbs() ->
+    Server = couchbeam:server_connection(),
+    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
+    ok.
+
+start_couchbeam_tests() ->
+    {ok, _} = application:ensure_all_started(couchbeam),
+    clean_dbs().
+
+
+basic_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+
+    DesignDoc = {[
+        {<<"_id">>, <<"_design/couchbeam">>},
+        {<<"language">>,<<"javascript">>},
+        {<<"views">>,
+            {[{<<"test">>,
+                {[{<<"map">>,
+                    <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
+                }]}
+            },{<<"test2">>,
+                {[{<<"map">>,
+                    <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
+                }]}
+            }]}
+        }
+    ]},
+
+    Doc = {[
+        {<<"type">>, <<"test">>}
+    ]},
+
+    couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
+    couchbeam:ensure_full_commit(Db),
+
+    {ok, AllDocs} = couchbeam_view:fetch(Db),
+    ?assertEqual(3, length(AllDocs)),
+
+    {ok, Rst2} = couchbeam_view:fetch(Db, {"couchbeam", "test"}),
+    ?assertEqual(2, length(Rst2)),
+
+    Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
+    ?assertEqual(2, Count),
+
+    {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
+    {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
+    ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
+
+    Docs = [
+        {[{<<"_id">>, <<"test1">>}, {<<"type">>, <<"test">>}, {<<"value">>, 1}]},
+        {[{<<"_id">>, <<"test2">>}, {<<"type">>, <<"test">>}, {<<"value">>, 2}]},
+        {[{<<"_id">>, <<"test3">>}, {<<"type">>, <<"test">>}, {<<"value">>, 3}]},
+        {[{<<"_id">>, <<"test4">>}, {<<"type">>, <<"test">>}, {<<"value">>, 4}]}
+    ],
+
+    couchbeam:save_docs(Db, Docs),
+    couchbeam:ensure_full_commit(Db),
+
+    {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}]),
+    ?assertEqual(4, length(Rst3)),
+
+    {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
+    ?assertEqual(3, length(Rst4)),
+
+    AccFun = fun(Row, Acc) -> [Row | Acc] end,
+    Rst5 = couchbeam_view:fold(AccFun, [], Db, {"couchbeam", "test"}, [{start_key, <<"test">>},   {end_key,<<"test3">>}]),
+    ?assertEqual(3, length(Rst5)).
+
+
+-endif.
