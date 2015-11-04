@@ -5,11 +5,12 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 gen_changes CouchDB continuous changes consumer behavior
 This behaviour allws you to create easily a server that consume
 Couchdb continuous changes.
+
 __This module defines the `gen_changes` behaviour.__<br /> Required callback functions: `init/1`, `handle_change/2`, `handle_call/3`, `handle_cast/2`, `handle_info/2`, `terminate/2`.
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -28,13 +29,11 @@ __This module defines the `gen_changes` behaviour.__<br /> Required callback fun
 
 `behaviour_info(X1) -> any()`
 
-
 <a name="call-2"></a>
 
 ### call/2 ###
 
 `call(Name, Request) -> any()`
-
 
 <a name="call-3"></a>
 
@@ -42,13 +41,11 @@ __This module defines the `gen_changes` behaviour.__<br /> Required callback fun
 
 `call(Name, Request, Timeout) -> any()`
 
-
 <a name="cast-2"></a>
 
 ### cast/2 ###
 
 `cast(Dest, Request) -> any()`
-
 
 <a name="code_change-3"></a>
 
@@ -56,13 +53,11 @@ __This module defines the `gen_changes` behaviour.__<br /> Required callback fun
 
 `code_change(OldVersion, State, Extra) -> any()`
 
-
 <a name="get_seq-1"></a>
 
 ### get_seq/1 ###
 
 `get_seq(Pid) -> any()`
-
 
 <a name="handle_call-3"></a>
 
@@ -70,13 +65,11 @@ __This module defines the `gen_changes` behaviour.__<br /> Required callback fun
 
 `handle_call(Request, From, State) -> any()`
 
-
 <a name="handle_cast-2"></a>
 
 ### handle_cast/2 ###
 
 `handle_cast(Msg, State) -> any()`
-
 
 <a name="handle_info-2"></a>
 
@@ -84,18 +77,15 @@ __This module defines the `gen_changes` behaviour.__<br /> Required callback fun
 
 `handle_info(Info, State) -> any()`
 
-
 <a name="init-1"></a>
 
 ### init/1 ###
 
 `init(X1) -> any()`
 
-
 <a name="start_link-4"></a>
 
 ### start_link/4 ###
-
 
 <pre><code>
 start_link(Module, Db::<a href="#type-db">db()</a>, Options::<a href="#type-changesoptions">changesoptions()</a>, InitArgs::list()) -&gt; term()
@@ -105,17 +95,16 @@ start_link(Module, Db::<a href="#type-db">db()</a>, Options::<a href="#type-chan
 
 create a gen_changes process as part of a supervision tree.
 The function should be called, directly or indirectly, by the supervisor.
+
 <a name="stop-1"></a>
 
 ### stop/1 ###
 
 `stop(Pid) -> any()`
 
-
 <a name="terminate-2"></a>
 
 ### terminate/2 ###
 
 `terminate(Reason, Gen_changes_state) -> any()`
-
 

@@ -5,6 +5,7 @@
 * [Function Details](#functions)
 
 __Behaviours:__ [`supervisor`](supervisor.md).
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -23,15 +24,12 @@ __Behaviours:__ [`supervisor`](supervisor.md).
 
 `init(X1) -> any()`
 
-
 <a name="start_link-0"></a>
 
 ### start_link/0 ###
-
 
 <pre><code>
 start_link() -&gt; {ok, pid()}
 </code></pre>
 <br />
-
 

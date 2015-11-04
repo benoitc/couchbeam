@@ -4,7 +4,6 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 <a name="index"></a>
 
 ## Function Index ##
@@ -24,22 +23,18 @@ connections.</td></tr><tr><td valign="top"><a href="#stream_next-1">stream_next/
 
 `cancel_stream(Ref) -> any()`
 
-
 <a name="follow-1"></a>
 
 ### follow/1 ###
-
 
 <pre><code>
 follow(Db::<a href="#type-db">db()</a>) -&gt; {ok, StreamRef::atom()} | {error, term()}
 </code></pre>
 <br />
 
-
 <a name="follow-2"></a>
 
 ### follow/2 ###
-
 
 <pre><code>
 follow(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options">changes_options()</a>) -&gt; {ok, StreamRef::atom()} | {error, term()}
@@ -49,7 +44,6 @@ follow(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options"
 Stream changes to a pid
 
 Db : a db record
-
 
 Client : pid  or callback where to send changes events where events are
 The pid receive these events:
@@ -101,7 +95,6 @@ While the callbac could be like:
 ```
 
 
-
 ```
 >Options :: changes_stream_options() [continuous
      | longpoll
@@ -116,8 +109,6 @@ While the callbac could be like:
      | {stream_to, pid()},
      | {async, once | normal}]
 ```
-
-
 
 * `continuous | longpoll | normal`: set the type of changes
 feed to get
@@ -142,10 +133,7 @@ by default the current pid. Used for continuous and longpoll
 connections
 
 
-
-
-
- Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
+Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be
 used to disctint all changes from this pid. ChangesPid is the pid of
 the changes loop process. Can be used to monitor it or kill it
 when needed.
@@ -154,32 +142,24 @@ when needed.
 
 ### follow_once/1 ###
 
-
 <pre><code>
 follow_once(Db::<a href="#type-db">db()</a>) -&gt; {ok, LastSeq::integer(), Changes::list()} | {error, term()}
 </code></pre>
 <br />
 
-
 <a name="follow_once-2"></a>
 
 ### follow_once/2 ###
-
 
 <pre><code>
 follow_once(Db::<a href="#type-db">db()</a>, Options::<a href="#type-changes_options">changes_options()</a>) -&gt; {ok, LastSeq::integer(), Changes::list()} | {error, term()}
 </code></pre>
 <br />
 
-
 fetch all changes at once using a normal or longpoll
 connections.
 
-
-
 Db : a db record
-
-
 
 ```
 Options :: changes_options() [
@@ -195,8 +175,6 @@ Options :: changes_options() [
      | {stream_to, pid()}
      ]
 ```
-
-
 
 * `longpoll | normal`: set the type of changes
 feed to get
@@ -217,9 +195,6 @@ that it requires to set filter special value `"_view"`
 to enable this feature.
 
 
-
-
-
 Result: `{ok, LastSeq::integer(), Rows::list()}` or
 `{error, LastSeq, Error}`. LastSeq is the last sequence of changes.
 
@@ -228,5 +203,4 @@ Result: `{ok, LastSeq::integer(), Rows::list()}` or
 ### stream_next/1 ###
 
 `stream_next(Ref) -> any()`
-
 
