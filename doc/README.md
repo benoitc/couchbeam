@@ -1,6 +1,6 @@
 
 
-# Couchbeam - simple erlang Apache CouchDB and RCOUCH client library. #
+# Couchbeam - simple Barrel and Apache CouchDB client library for Erlang applications #
 
 Copyright (c) 2009-2015 Benoît Chesneau.
 
@@ -8,11 +8,11 @@ __Version:__ 1.2.0
 
 # couchbeam
 
-Couchbeam is a simple erlang library for [Apache CouchDB](http://couchdb.apache.org) or [RCOUCH](http://rcouch.org). Couchbeam provides you a full featured and easy client to access and manage multiple nodes.
+Couchbeam is a simple erlang library for [Barrel](https://barrel-db.org) or [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple nodes.
 
 #### Main features:
 
-- Complete support of the Apache CouchDB and RCOUCH API
+- Complete support of the BarrelDB and Apache CouchDB API
 - Stream view results to your app
 - Stream changes feeds
 - reduced memory usage
