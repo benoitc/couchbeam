@@ -11,10 +11,6 @@ Rebar2Deps = [
     {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git",
                         {tag,"2.8.0"}}},
 
-    %% erlang-oauth for oauth authentification
-    {oauth, ".*", {git,"https://github.com/barreld-db/erlang-oauth.git",
-                   "master"}},
-
     %% hackney for doing HTTP requests
     {hackney, ".*", {git, "https://github.com/benoitc/hackney.git",
                      {tag, "1.4.3"}}}
