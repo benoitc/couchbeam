@@ -6,7 +6,7 @@
 
 
 @copyright 2009-2015 Benoît Chesneau.
-@version 1.2.0
+@version 1.2.1
 @title Couchbeam - simple Barrel and Apache CouchDB client library for Erlang applications
 
 @doc
