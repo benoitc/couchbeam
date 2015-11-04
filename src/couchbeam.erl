@@ -1105,7 +1105,7 @@ basic_doc_test() ->
     {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
     ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
     ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
-    
+
     Rev = couchbeam:lookup_doc_rev(Db, "test"),
     {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
     ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
@@ -1205,7 +1205,7 @@ attachments_test() ->
                         _ -> eof
                     end
                 end,
-    {ok, _Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), "1M", StreamFun, 
+    {ok, _Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), "1M", StreamFun,
                                           [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
 
     file:close(Fd),
@@ -1349,6 +1349,16 @@ collect_mp(eof, Acc) ->
     Acc.
 
 data_path(Basename) ->
-    filename:join([filename:dirname(filename:absname(?FILE)), "..", "support", Basename]).
+    FName = filename:join([filename:dirname(filename:absname(?FILE)), "..", "support",
+                           Basename]),
+
+    case filelib:is_file(FName) of
+        true -> FName;
+        false ->
+            F = filename:join([filename:dirname(code:which(?MODULE)), "..", "support",
+                               Basename]),
+            F
+    end.
+
 
 -endif.

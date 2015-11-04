@@ -20,5 +20,5 @@ case IsRebar3 of
     true ->
         CONFIG;
     false ->
-        lists:keyreplace(deps, 1, CONFIG, {deps, Rebar2Deps})
+        [{eunit_opts, [verbose]} | lists:keyreplace(deps, 1, CONFIG, {deps, Rebar2Deps})]
 end.
