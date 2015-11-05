@@ -453,7 +453,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
             []
     end,
 
-    Url = hackney_url:make_url(server_url(Server), doc_url(Db, DocId1),
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1),
                                Params2),
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
