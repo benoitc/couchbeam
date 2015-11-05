@@ -129,3 +129,72 @@ set_value1([{K, V}|T], Key, Value, Acc) ->
         end,
     set_value1(T, Key, Value, Acc1).
 
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+get_value_test() ->
+    Doc = {[{<<"a">>, 1}]},
+    ?assertEqual(1, couchbeam_doc:get_value(<<"a">>, Doc)),
+    ?assertEqual(1, couchbeam_doc:get_value("a", Doc)),
+    ?assertEqual(undefined, couchbeam_doc:get_value("b", Doc)),
+    ?assertEqual(nil, couchbeam_doc:get_value("b", Doc, nil)),
+    ok.
+
+set_value_test() ->
+    Doc = {[{<<"a">>, 1}]},
+    ?assertEqual(undefined, couchbeam_doc:get_value("b", Doc)),
+    Doc1 = couchbeam_doc:set_value("b", 1, Doc),
+    ?assertEqual(1, couchbeam_doc:get_value("b", Doc1)),
+    Doc2 = couchbeam_doc:set_value("b", 0, Doc1),
+    ?assertEqual(0, couchbeam_doc:get_value("b", Doc2)),
+    ok.
+
+delete_value_test() ->
+    Doc = {[{<<"a">>, 1}, {<<"b">>, 1}]},
+    Doc1 = couchbeam_doc:delete_value("b", Doc),
+    ?assertEqual(undefined, couchbeam_doc:get_value("b", Doc1)),
+    ok.
+
+extend_test() ->
+    Doc = {[{<<"a">>, 1}]},
+    ?assertEqual(1, couchbeam_doc:get_value("a", Doc)),
+    ?assertEqual(undefined, couchbeam_doc:get_value("b", Doc)),
+    ?assertEqual(undefined, couchbeam_doc:get_value("c", Doc)),
+    Doc1 = couchbeam_doc:extend([{<<"b">>, 1}, {<<"c">>, 1}], Doc),
+    ?assertEqual(1, couchbeam_doc:get_value("b", Doc1)),
+    ?assertEqual(1, couchbeam_doc:get_value("c", Doc1)),
+    Doc2 = couchbeam_doc:extend([{<<"b">>, 3}, {<<"d">>, 1}], Doc1),
+    ?assertEqual(3, couchbeam_doc:get_value("b", Doc2)),
+    ?assertEqual(1, couchbeam_doc:get_value("d", Doc2)),
+    ok.
+
+id_rev_test() ->
+    Doc = {[{<<"a">>, 1}]},
+    ?assertEqual(undefined, couchbeam_doc:get_id(Doc)),
+    ?assertEqual(undefined, couchbeam_doc:get_rev(Doc)),
+    ?assertEqual({undefined, undefined}, couchbeam_doc:get_idrev(Doc)),
+    Doc1 = couchbeam_doc:extend([{<<"_id">>, 1}, {<<"_rev">>, 1}], Doc),
+    ?assertEqual(1, couchbeam_doc:get_id(Doc1)),
+    ?assertEqual(1, couchbeam_doc:get_rev(Doc1)),
+    ?assertEqual({1, 1}, couchbeam_doc:get_idrev(Doc1)),
+    ok.
+
+is_saved_test() ->
+    Doc = {[{<<"a">>, 1}]},
+    ?assertEqual(false, couchbeam_doc:is_saved(Doc)),
+    Doc1 = couchbeam_doc:set_value(<<"_rev">>, <<"x">>, Doc),
+    ?assertEqual(true, couchbeam_doc:is_saved(Doc1)),
+    ok.
+
+
+take_value_test() ->
+    Doc = {[{<<"a">>, 1}, {<<"b">>, 2}]},
+    ?assertEqual({undefined, Doc}, couchbeam_doc:take_value(<<"c">>, Doc)),
+    ?assertEqual({1, {[{<<"b">>, 2}]}}, couchbeam_doc:take_value(<<"a">>, Doc)),
+    ok.
+
+-endif.
+
+

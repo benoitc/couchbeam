@@ -4,7 +4,6 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 <a name="index"></a>
 
 ## Function Index ##
@@ -21,7 +20,6 @@
 
 ### decode/1 ###
 
-
 <pre><code>
 decode(D::binary()) -&gt; <a href="#type-ejson">ejson()</a>
 </code></pre>
@@ -29,10 +27,10 @@ decode(D::binary()) -&gt; <a href="#type-ejson">ejson()</a>
 
 decode a binary to an EJSON term. Throw an exception if there is
 any error.
+
 <a name="encode-1"></a>
 
 ### encode/1 ###
-
 
 <pre><code>
 encode(D::<a href="#type-ejson">ejson()</a>) -&gt; binary()
@@ -41,3 +39,4 @@ encode(D::<a href="#type-ejson">ejson()</a>) -&gt; binary()
 
 encode an erlang term to JSON. Throw an exception if there is
 any error.
+

@@ -5,6 +5,7 @@
 * [Function Details](#functions)
 
 __Behaviours:__ [`gen_server`](gen_server.md).
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -23,11 +24,9 @@ __Behaviours:__ [`gen_server`](gen_server.md).
 
 `code_change(OldVsn, State, Extra) -> any()`
 
-
 <a name="get_uuids-2"></a>
 
 ### get_uuids/2 ###
-
 
 <pre><code>
 get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <a href="#type-lists">lists()</a>
@@ -35,12 +34,12 @@ get_uuids(Server::<a href="#type-server">server()</a>, Count::integer()) -&gt; <
 <br />
 
 Get a list of uuids from the server
+
 <a name="handle_call-3"></a>
 
 ### handle_call/3 ###
 
 `handle_call(X1, From, State) -> any()`
-
 
 <a name="handle_cast-2"></a>
 
@@ -48,18 +47,15 @@ Get a list of uuids from the server
 
 `handle_cast(Msg, State) -> any()`
 
-
 <a name="handle_info-2"></a>
 
 ### handle_info/2 ###
 
 `handle_info(Info, State) -> any()`
 
-
 <a name="random-0"></a>
 
 ### random/0 ###
-
 
 <pre><code>
 random() -&gt; binary()
@@ -67,10 +63,10 @@ random() -&gt; binary()
 <br />
 
 return a random uuid
+
 <a name="start_link-0"></a>
 
 ### start_link/0 ###
-
 
 <pre><code>
 start_link() -&gt; {ok, pid()}
@@ -79,17 +75,16 @@ start_link() -&gt; {ok, pid()}
 
 Starts the couchbeam process linked to the calling process. Usually
 invoked by the supervisor couchbeam_sup
+
 <a name="terminate-2"></a>
 
 ### terminate/2 ###
 
 `terminate(Reason, State) -> any()`
 
-
 <a name="utc_random-0"></a>
 
 ### utc_random/0 ###
-
 
 <pre><code>
 utc_random() -&gt; binary()
@@ -97,3 +92,4 @@ utc_random() -&gt; binary()
 <br />
 
 return a random uuid based on time
+

@@ -1,6 +1,25 @@
 couchbeam NEWS
 --------------
 
+version 1.2.1 / 2015/11/04
+--------------------------
+
+- also support hackney 1.4.4 for rebar2.
+- fix hex.pm release to really use 1.4.4
+
+version 1.2.0 / 2015/11/04
+--------------------------
+
+- move to eunit for tests.
+- hex.pm support
+- mix & rebar3 build tools support
+- bump hackney to 1.4.4
+- bump jsx to 2.2.8
+
+### Breaking change
+
+erlang-oauth is now optionnal and won't be installed by default.
+
 version 1.1.8 / 2015-08-27
 --------------------------
 
