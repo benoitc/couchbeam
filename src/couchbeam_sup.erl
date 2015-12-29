@@ -31,4 +31,4 @@ init([]) ->
                   {couchbeam_changes_sup, start_link, []},
                   permanent, 2000, supervisor, [couchbeam_changes_sup]},
 
-    {ok, {{one_for_one, 10, 3600}, [Uuids, ViewSup, ChangesSup]}}.
+    {ok, {{one_for_one, 10, 10}, [Uuids, ViewSup, ChangesSup]}}.
