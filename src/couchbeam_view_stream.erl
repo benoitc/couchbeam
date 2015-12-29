@@ -42,7 +42,7 @@
                  async=false}).
 
 
--define(TIMEOUT, 10000).
+-define(TIMEOUT, 200000).
 -define(DEFAULT_CHANGES_POLL, 5000). % we check every 5secs
 
 
@@ -382,7 +382,7 @@ maybe_continue_decoding(#viewst{parent=Parent,
             %% report the error
             report_error(Else, Ref, Owner),
             exit(Else)
-    after 5000 ->
+    after ?TIMEOUT ->
             erlang:hibernate(?MODULE, maybe_continue_decoding, [ViewSt])
     end;
 
