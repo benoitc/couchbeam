@@ -70,6 +70,6 @@ post_decode([{_Key, _Value} | _Rest] = PropList) ->
 post_decode(List) when is_list(List) ->
     [ post_decode(Term) || Term <- List];
 post_decode({Term}) ->
-    {post_decode(Term)};
+    post_decode(Term);
 post_decode(Term) ->
     Term.
