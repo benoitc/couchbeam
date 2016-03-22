@@ -19,12 +19,13 @@
          get_config/1, get_config/2, get_config/3,
          set_config/4, set_config/5,
          delete_config/3, delete_config/4,
-         all_dbs/1, db_exists/2,
+         all_dbs/1, all_dbs/2, db_exists/2,
          create_db/2, create_db/3, create_db/4,
          open_db/2, open_db/3,
          open_or_create_db/2, open_or_create_db/3, open_or_create_db/4,
          delete_db/1, delete_db/2,
          db_info/1,
+         design_info/2, view_cleanup/1,
          save_doc/2, save_doc/3, save_doc/4,
          doc_exists/2,
          open_doc/2, open_doc/3,
@@ -258,13 +259,42 @@ delete_config(Server, Section, Key, Persist) ->
 
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
-all_dbs(#server{url=ServerUrl, options=Opts}) ->
-    Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, []),
+all_dbs(#server{}=Server) -> all_dbs(Server, []).
+
+%% @doc get list of databases on a CouchDB node with optional filter
+%% @spec all_dbs(server(), view_options()) -> {ok, iolist()}
+all_dbs(#server{url=ServerUrl, options=Opts}, Options) ->
+    Args = couchbeam_view:parse_view_options(Options),
+    Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, Args#view_query_args.options),
     Resp = couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]),
     case Resp of
         {ok, _, _, Ref} ->
             AllDbs = couchbeam_httpc:json_body(Ref),
             {ok, AllDbs};
+        Error ->
+            Error
+    end.
+
+design_info(#db{server=Server, name=DbName, options=Opts}, DesignName) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                               [couchbeam_httpc:db_url(DbName), <<"_design">>, DesignName, <<"_info">>],
+                               []),
+    Resp = couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]),
+    case Resp of
+        {ok, _, _, Ref} ->
+            DesignInfo = couchbeam_httpc:json_body(Ref),
+            {ok, DesignInfo};
+        Error ->
+            Error
+    end.
+
+view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                               [couchbeam_httpc:db_url(DbName), <<"_view_cleanup">>],
+                               []),
+    Resp = couchbeam_httpc:db_request(post, Url, [], <<>>, Opts, [200]),
+    case Resp of
+        {ok, _, _, Ref} -> ok;
         Error ->
             Error
     end.
