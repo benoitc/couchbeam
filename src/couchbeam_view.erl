@@ -570,5 +570,14 @@ basic_test() ->
     Rst5 = couchbeam_view:fold(AccFun, [], Db, {"couchbeam", "test"}, [{start_key, <<"test">>},   {end_key,<<"test3">>}]),
     ?assertEqual(3, length(Rst5)).
 
+view_notfound_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+
+    {error, not_found} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, []),
+    ok.
+
 
 -endif.

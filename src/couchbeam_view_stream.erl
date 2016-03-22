@@ -69,16 +69,17 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
                        async=Async},
 
     %% connect to the view
-    {ok, State} = do_init_stream(Req, InitState),
-
-    %% register the stream
-    ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
-
-    %% tell to the parent that we are ok
-    proc_lib:init_ack(Parent, {ok, self()}),
-
-    %% start the loop
-    loop(State),
+    case do_init_stream(Req, InitState) of
+        {ok, State} ->
+            %% register the stream
+            ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
+            %% tell to the parent that we are ok
+            proc_lib:init_ack(Parent, {ok, self()}),
+            %% start the loop
+            loop(State);
+        Error ->
+            proc_lib:init_ack(Parent, Error)
+    end,
     %% stop to monitor the parent
     erlang:demonitor(MRef),
     ok.
@@ -114,6 +115,10 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
                     {ok, State#state{client_ref=Ref,
                                      decoder=DecoderFun}};
 
+                {hackney_response, Ref, {status, 404, _}} ->
+                    {error, not_found};
+                {hackney_response, Ref, {status, Status, Reason}} ->
+                    {error, {http_error, Status, Reason}};
                 {hackney_response, Ref, {error, Reason}} ->
                     exit(Reason)
             after ?TIMEOUT ->
