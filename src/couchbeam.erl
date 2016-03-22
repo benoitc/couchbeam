@@ -294,7 +294,9 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
                                []),
     Resp = couchbeam_httpc:db_request(post, Url, [], <<>>, Opts, [200]),
     case Resp of
-        {ok, _, _, Ref} -> ok;
+        {ok, _, _, Ref} ->
+            catch hackney:skip_body(Ref),
+            ok;
         Error ->
             Error
     end.
