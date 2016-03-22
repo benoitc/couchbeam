@@ -1,11 +1,12 @@
-%%% -*- erlang -*-
+%% -*- tab-width: 4;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
 %%%
 %%% This file is part of couchbeam released under the MIT license.
 %%% See the NOTICE for more information.
 
 {application, couchbeam,
  [{description, "Erlang CouchDB client"},
-  {vsn, "1.2.1"},
+  {vsn, "1.3.0"},
   {modules, []},
   {registered, [
     couchbeam_sup
@@ -20,6 +21,22 @@
                   hackney]},
   {included_applications, []},
   {env, []},
-  {mod, { couchbeam_app, []}}
+  {mod, { couchbeam_app, []}},
+
+  {maintainers, ["Benoit Chesneau"]},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/benoitc/couchbeam"}]},
+  {files, [
+    "src",
+    "include",
+    "mix.exs",
+    "mix.lock",
+    "rebar.config",
+    "rebar.lock",
+    "README.md",
+    "NEWS.md",
+    "LICENSE",
+    "NOTICE"]},
+  {build_tools, [<<"rebar3">>, <<"mix">>]}
  ]
 }.

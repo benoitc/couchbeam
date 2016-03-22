@@ -32,7 +32,7 @@ mp_attachments() = {Name::binary(), Bin::binary()} | {Name::binary(), Bin::binar
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all_dbs-1">all_dbs/1</a></td><td>get list of databases on a CouchDB node.</td></tr><tr><td valign="top"><a href="#compact-1">compact/1</a></td><td>Compaction compresses the database file by removing unused
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all_dbs-1">all_dbs/1</a></td><td>get list of databases on a CouchDB node.</td></tr><tr><td valign="top"><a href="#all_dbs-2">all_dbs/2</a></td><td>get list of databases on a CouchDB node with optional filter.</td></tr><tr><td valign="top"><a href="#compact-1">compact/1</a></td><td>Compaction compresses the database file by removing unused
 sections created during updates.</td></tr><tr><td valign="top"><a href="#compact-2">compact/2</a></td><td>Like compact/1 but this compacts the view index from the
 current version of the design document.</td></tr><tr><td valign="top"><a href="#copy_doc-2">copy_doc/2</a></td><td>duplicate a document using the doc API.</td></tr><tr><td valign="top"><a href="#copy_doc-3">copy_doc/3</a></td><td>copy a doc to a destination.</td></tr><tr><td valign="top"><a href="#create_db-2">create_db/2</a></td><td>Create a database and a client for connectiong to it.</td></tr><tr><td valign="top"><a href="#create_db-3">create_db/3</a></td><td>Create a database and a client for connectiong to it.</td></tr><tr><td valign="top"><a href="#create_db-4">create_db/4</a></td><td>Create a database and a client for connectiong to it.</td></tr><tr><td valign="top"><a href="#db_exists-2">db_exists/2</a></td><td>test if db with dbname exists on the CouchDB node.</td></tr><tr><td valign="top"><a href="#db_info-1">db_info/1</a></td><td>get database info.</td></tr><tr><td valign="top"><a href="#delete_attachment-3">delete_attachment/3</a></td><td>delete a document attachment.</td></tr><tr><td valign="top"><a href="#delete_attachment-4">delete_attachment/4</a></td><td>delete a document attachment.</td></tr><tr><td valign="top"><a href="#delete_config-3">delete_config/3</a></td><td>delete a key from the couchdb config.</td></tr><tr><td valign="top"><a href="#delete_config-4">delete_config/4</a></td><td></td></tr><tr><td valign="top"><a href="#delete_db-1">delete_db/1</a></td><td>delete database.</td></tr><tr><td valign="top"><a href="#delete_db-2">delete_db/2</a></td><td>delete database.</td></tr><tr><td valign="top"><a href="#delete_doc-2">delete_doc/2</a></td><td>delete a document.</td></tr><tr><td valign="top"><a href="#delete_doc-3">delete_doc/3</a></td><td>delete a document
 if you want to make sure the doc it emptied on delete, use the option
@@ -40,7 +40,7 @@ if you want to make sure the doc it emptied on delete, use the option
 members.</td></tr><tr><td valign="top"><a href="#delete_docs-2">delete_docs/2</a></td><td>delete a list of documents.</td></tr><tr><td valign="top"><a href="#delete_docs-3">delete_docs/3</a></td><td>delete a list of documents
 if you want to make sure the doc it emptied on delete, use the option
 {empty_on_delete,  true} or pass a doc with just _id and _rev
-members.</td></tr><tr><td valign="top"><a href="#doc_exists-2">doc_exists/2</a></td><td>test if doc with uuid exists in the given db.</td></tr><tr><td valign="top"><a href="#end_doc_stream-1">end_doc_stream/1</a></td><td>stop to receive the multipart response of the doc api and close
+members.</td></tr><tr><td valign="top"><a href="#design_info-2">design_info/2</a></td><td></td></tr><tr><td valign="top"><a href="#doc_exists-2">doc_exists/2</a></td><td>test if doc with uuid exists in the given db.</td></tr><tr><td valign="top"><a href="#end_doc_stream-1">end_doc_stream/1</a></td><td>stop to receive the multipart response of the doc api and close
 the connection.</td></tr><tr><td valign="top"><a href="#ensure_full_commit-1">ensure_full_commit/1</a></td><td>commit all docs in memory.</td></tr><tr><td valign="top"><a href="#ensure_full_commit-2">ensure_full_commit/2</a></td><td>commit all docs in memory.</td></tr><tr><td valign="top"><a href="#fetch_attachment-3">fetch_attachment/3</a></td><td>fetch a document attachment.</td></tr><tr><td valign="top"><a href="#fetch_attachment-4">fetch_attachment/4</a></td><td>fetch a document attachment
 Options are
 <ul>
@@ -55,7 +55,7 @@ database if needed.</td></tr><tr><td valign="top"><a href="#open_or_create_db-4"
 database if needed.</td></tr><tr><td valign="top"><a href="#put_attachment-4">put_attachment/4</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#put_attachment-5">put_attachment/5</a></td><td>put an attachment.</td></tr><tr><td valign="top"><a href="#replicate-2">replicate/2</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-3">replicate/3</a></td><td>Handle replication.</td></tr><tr><td valign="top"><a href="#replicate-4">replicate/4</a></td><td>handle Replication.</td></tr><tr><td valign="top"><a href="#save_doc-2">save_doc/2</a></td><td>save a document.</td></tr><tr><td valign="top"><a href="#save_doc-3">save_doc/3</a></td><td>save a *document
 A document is a Json object like this one:.</td></tr><tr><td valign="top"><a href="#save_doc-4">save_doc/4</a></td><td>save a *document with all its attacjments
 A document is a Json object like this one:.</td></tr><tr><td valign="top"><a href="#save_docs-2">save_docs/2</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#save_docs-3">save_docs/3</a></td><td>save a list of documents.</td></tr><tr><td valign="top"><a href="#send_attachment-2">send_attachment/2</a></td><td>send an attachment chunk
-Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#server_connection-0">server_connection/0</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-1">server_connection/1</a></td><td></td></tr><tr><td valign="top"><a href="#server_connection-2">server_connection/2</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-4">server_connection/4</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_info-1">server_info/1</a></td><td>Get Information from the server.</td></tr><tr><td valign="top"><a href="#set_config-4">set_config/4</a></td><td>set a key, value in the couchdb config.</td></tr><tr><td valign="top"><a href="#set_config-5">set_config/5</a></td><td></td></tr><tr><td valign="top"><a href="#stream_attachment-1">stream_attachment/1</a></td><td>fetch an attachment chunk.</td></tr><tr><td valign="top"><a href="#stream_doc-1">stream_doc/1</a></td><td>stream the multipart response of the doc API.</td></tr></table>
+Msg could be Data, eof to stop sending.</td></tr><tr><td valign="top"><a href="#server_connection-0">server_connection/0</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-1">server_connection/1</a></td><td></td></tr><tr><td valign="top"><a href="#server_connection-2">server_connection/2</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_connection-4">server_connection/4</a></td><td>Create a server for connectiong to a CouchDB node.</td></tr><tr><td valign="top"><a href="#server_info-1">server_info/1</a></td><td>Get Information from the server.</td></tr><tr><td valign="top"><a href="#set_config-4">set_config/4</a></td><td>set a key, value in the couchdb config.</td></tr><tr><td valign="top"><a href="#set_config-5">set_config/5</a></td><td></td></tr><tr><td valign="top"><a href="#stream_attachment-1">stream_attachment/1</a></td><td>fetch an attachment chunk.</td></tr><tr><td valign="top"><a href="#stream_doc-1">stream_doc/1</a></td><td>stream the multipart response of the doc API.</td></tr><tr><td valign="top"><a href="#view_cleanup-1">view_cleanup/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -72,6 +72,17 @@ all_dbs(Server::<a href="#type-server">server()</a>) -&gt; {ok, iolist()}
 <br />
 
 get list of databases on a CouchDB node
+
+<a name="all_dbs-2"></a>
+
+### all_dbs/2 ###
+
+<pre><code>
+all_dbs(Server::<a href="#type-server">server()</a>, Options::<a href="#type-view_options">view_options()</a>) -&gt; {ok, iolist()}
+</code></pre>
+<br />
+
+get list of databases on a CouchDB node with optional filter
 
 <a name="compact-1"></a>
 
@@ -280,6 +291,12 @@ delete a list of documents
 if you want to make sure the doc it emptied on delete, use the option
 {empty_on_delete,  true} or pass a doc with just _id and _rev
 members.
+
+<a name="design_info-2"></a>
+
+### design_info/2 ###
+
+`design_info(Db, DesignName) -> any()`
 
 <a name="doc_exists-2"></a>
 
@@ -812,4 +829,10 @@ stream_doc(X1::<a href="#type-doc_stream">doc_stream()</a>) -&gt; {doc, <a href=
 stream the multipart response of the doc API. Use this function
 when you get `{ok, {multipart, State}}` from the function
 `couchbeam:open_doc/3`.
+
+<a name="view_cleanup-1"></a>
+
+### view_cleanup/1 ###
+
+`view_cleanup(Db) -> any()`
 
