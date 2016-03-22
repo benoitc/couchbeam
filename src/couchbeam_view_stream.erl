@@ -348,7 +348,7 @@ collect_object({_, Event}, {_, NestCount, [Last|Terms], ViewSt}) ->
     {collect_object, NestCount, [[Event] ++ Last] ++ Terms, ViewSt}.
 
 send_row(Row, #viewst{owner=Owner, ref=Ref}=ViewSt) ->
-    Owner ! {Ref, {row, Row}},
+    Owner ! {Ref, {row, couchbeam_ejson:post_decode(Row)}},
     maybe_continue_decoding(ViewSt).
 
 %% eventually wait for the next call from the parent

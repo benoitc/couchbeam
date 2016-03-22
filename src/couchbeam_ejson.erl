@@ -7,6 +7,7 @@
 -module(couchbeam_ejson).
 
 -export([encode/1, decode/1]).
+-export([post_decode/1]).
 
 -include("couchbeam.hrl").
 
@@ -60,11 +61,15 @@ pre_encode(Atom) when is_atom(Atom) ->
 pre_encode(Term) when is_integer(Term); is_float(Term); is_binary(Term) ->
     Term.
 
+post_decode({[{}]}) ->
+    {[]};
 post_decode([{}]) ->
     {[]};
 post_decode([{_Key, _Value} | _Rest] = PropList) ->
     {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
 post_decode(List) when is_list(List) ->
     [ post_decode(Term) || Term <- List];
+post_decode({Term}) ->
+    post_decode(Term);
 post_decode(Term) ->
     Term.
