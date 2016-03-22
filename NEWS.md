@@ -1,6 +1,17 @@
 couchbeam NEWS
 --------------
 
+version 1.3.0 / 2016-03-22
+--------------------------
+
+- add `couchbeam:all_dbs/2`
+- add `couchbeam:view_cleanup/1`
+- add `couchbeam:design_info/2`
+- add `post_decode` function to view stream
+- add Elixir mix support
+- fix: handle http errors in view stream (#140)
+- fix: build with latest rebar3
+
 version 1.2.1 / 2015/11/04
 --------------------------
 
