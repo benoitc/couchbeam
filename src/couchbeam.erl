@@ -575,7 +575,7 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
             JsonDoc = couchbeam_ejson:encode(Doc),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             case couchbeam_httpc:db_request(put, Url, Headers, JsonDoc, Opts,
-                                    [200, 201]) of
+                                    [200, 201, 202]) of
                 {ok, _, _, Ref} ->
                     {JsonProp} = couchbeam_httpc:json_body(Ref),
                     NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
