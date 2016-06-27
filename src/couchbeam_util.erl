@@ -133,11 +133,11 @@ force_param(Key, Value, Options) ->
     end.
 
 %% @doc emulate proplists:get_value/2,3 but use faster lists:keyfind/3
--spec(get_value/2 :: (Key :: term(), Prop :: [term()] ) -> term()).
+-spec get_value(Key :: term(), Prop :: [term()]) -> term().
 get_value(Key, Prop) ->
     get_value(Key, Prop, undefined).
 
--spec(get_value/3 :: (Key :: term(), Prop :: [term()], Default :: term() ) -> term()).
+-spec get_value(Key :: term(), Prop :: [term()], Default :: term()) -> term().
 get_value(Key, Prop, Default) ->
     case lists:keyfind(Key, 1, Prop) of
 	false ->
