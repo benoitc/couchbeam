@@ -1,6 +1,12 @@
 couchbeam NEWS
 --------------
 
+version 1.3.1 / 2016-07-01
+--------------------------
+
+- fix: accept 202 status in `couchbeam:save_doc/4` function (#144)
+- fix: spec syntax to build with Erlang 19 (#145)
+
 version 1.3.0 / 2016-03-22
 --------------------------
 

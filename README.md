@@ -4,7 +4,7 @@
 
 Copyright (c) 2009-2016 Benoît Chesneau.
 
-__Version:__ 1.3.0
+__Version:__ 1.3.1
 
 # couchbeam
 
@@ -34,7 +34,7 @@ the changes in a db or get all changes at once.
 
 The goal of Couchbeam is to ease the access to the Apache CouchDB and RCOUCH HTTP API in erlang.
 
-Read the [NEWS](https://raw.github.com/benoitc/couchbeam/master/NEWS.md) file
+Read the [NEWS](https://raw.github.com/benoitc/couchbeam/master/NEWS) file
 to get last changelog.
 
 ## Installation
