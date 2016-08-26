@@ -121,7 +121,8 @@ stream(Db, ViewName) ->
 %%      <li><code>{stale, Stale}</code>: If stale=ok is set, CouchDB will not refresh the view
 %%      even if it is stale, the benefit is a an improved query latency. If
 %%      stale=update_after is set, CouchDB will update the view after the stale
-%%      result is returned.</li>
+%%      result is returned. If stale=false is set, CouchDB will update the view before
+%%      the query. The default value of this parameter is update_after.</li>
 %%      <li><code>descending</code>: reverse the result</li>
 %%      <li><code>{skip, N}</code>: skip n number of documents</li>
 %%      <li><code>group</code>: the reduce function reduces to a single result
@@ -364,6 +365,9 @@ parse_view_options([{stale, ok}|Rest], #view_query_args{options=Opts}=Args) ->
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, update_after}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{stale, "update_after"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{stale, false}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{stale, "false"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, _}|_Rest], _Args) ->
     {error, "invalid stale value"};

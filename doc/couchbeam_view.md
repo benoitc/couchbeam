@@ -355,7 +355,8 @@ allow pagination for duplicate endkeys)
 * `{stale, Stale}`: If stale=ok is set, CouchDB will not refresh the view
 even if it is stale, the benefit is a an improved query latency. If
 stale=update_after is set, CouchDB will update the view after the stale
-result is returned.
+result is returned. If stale=false is set, CouchDB will update the view before
+the query. The default value of this parameter is update_after.
 
 * `descending`: reverse the result
 
