@@ -124,13 +124,15 @@ do_init_stream(#state{mref=MRef,
                                [couchbeam_httpc:db_url(Db), <<"_changes">>],
                                Options1),
 
+    ConnectOptions = lists:append(ConnOpts1, [{recv_timeout, infinity}]),
+
     {ok, ClientRef} = case DocIds of
         [] ->
-            hackney:request(get, Url, [], <<>>, ConnOpts1);
+            hackney:request(get, Url, [], <<>>, ConnectOptions);
         DocIds ->
             Body =  couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
-            hackney:request(post, Url, Headers, Body, ConnOpts1)
+            hackney:request(post, Url, Headers, Body, ConnectOptions)
     end,
     receive
         {'DOWN', MRef, _, _, _} ->
@@ -261,7 +263,7 @@ decode_data(Data, #state{owner=Owner,
     end;
 decode_data(Data, #state{client_ref=ClientRef,
                          decoder=DecodeFun}=State) ->
-    try 
+    try
         {incomplete, DecodeFun2} = DecodeFun(Data),
         try DecodeFun2(end_stream) of done ->
             %% stop the request
