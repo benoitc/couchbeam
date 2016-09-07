@@ -120,9 +120,9 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
                 {hackney_response, Ref, {status, Status, Reason}} ->
                     {error, {http_error, Status, Reason}};
                 {hackney_response, Ref, {error, Reason}} ->
-                    exit(Reason)
+                    {error, Reason}
             after ?TIMEOUT ->
-                    exit(timeout)
+                    {error, timeout}
             end;
         Error ->
             {error, Error}
