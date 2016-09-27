@@ -20,6 +20,7 @@
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
+-export([proxy_token/2]).
 
 
 
@@ -252,4 +253,17 @@ get_app_env(Env, Default) ->
     case application:get_env(couchbeam, Env) of
         {ok, Val} -> Val;
         undefined -> Default
+    end.
+
+proxy_token(Secret,UserName) ->
+    hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
+
+hmac(Alg, Key, Data) ->
+    case {Alg, erlang:function_exported(crypto, hmac, 3)} of
+        {_, true} ->
+            crypto:hmac(Alg, Key, Data);
+        {sha, false} ->
+            crypto:sha_mac(Key, Data);
+        {Alg, false} ->
+            throw({unsupported, Alg})
     end.
