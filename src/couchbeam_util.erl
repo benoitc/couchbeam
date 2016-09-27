@@ -20,7 +20,7 @@
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
--export([proxy_token/2]).
+-export([proxy_token/2, proxy_header/3]).
 
 
 
@@ -254,6 +254,15 @@ get_app_env(Env, Default) ->
         {ok, Val} -> Val;
         undefined -> Default
     end.
+
+proxy_header(UserName,Roles,{secret,Secret}) ->
+    proxy_header(UserName,Roles,proxy_token(Secret,UserName));
+
+proxy_header(UserName,Roles,Token) ->
+[{<<"X-Auth-CouchDB-UserName">>, UserName},
+    {<<"X-Auth-CouchDB-Roles">>, Roles},
+    {<<"X-Auth-CouchDB-Token">>, Token}
+].
 
 proxy_token(Secret,UserName) ->
     hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
