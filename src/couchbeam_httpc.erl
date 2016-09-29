@@ -42,9 +42,7 @@ make_headers(Method, Url, Headers, Options) ->
         _ ->
             Headers
     end,
-   {Headers2, Options1} = maybe_oauth_header(Method, Url, Headers1, Options),
-   maybe_proxyauth_header(Headers2, Options1).
-
+    maybe_oauth_header(Method, Url, Headers1, Options).
 
 maybe_oauth_header(Method, Url, Headers, Options) ->
     case couchbeam_util:get_value(oauth, Options) of
@@ -54,14 +52,6 @@ maybe_oauth_header(Method, Url, Headers, Options) ->
             Hdr = couchbeam_util:oauth_header(Url, Method, OauthProps),
             {[Hdr|Headers], proplists:delete(oauth, Options)}
     end.
-
-maybe_proxyauth_header(Headers, Options) ->
-  case couchbeam_util:get_value(proxyauth, Options) of
-    undefined ->
-      {Headers, Options};
-    ProxyauthProps ->
-      {lists:append([ProxyauthProps,Headers]), proplists:delete(proxyauth, Options)}
-  end.
 
 db_resp({ok, Ref}=Resp, _Expect) when is_reference(Ref) ->
     Resp;

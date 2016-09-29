@@ -20,7 +20,6 @@
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
--export([proxy_token/2, proxy_header/3]).
 
 
 
@@ -77,10 +76,12 @@ encode_query_value(K, V) when is_binary(K) ->
 encode_query_value(_K, V) -> V.
 
 % build oauth header
+oauth_header(Url, Action, OauthProps) when is_binary(Url) ->
+    oauth_header(binary_to_list(Url),Action, OauthProps);
 oauth_header(Url, Action, OauthProps) ->
     #hackney_url{qs=QS} = hackney_url:parse_url(Url),
     QSL = [{binary_to_list(K), binary_to_list(V)} || {K,V} <-
-                                                     hackney_url:qs(QS)],
+                                                     hackney_url:parse_qs(QS)],
 
     % get oauth paramerers
     ConsumerKey = to_list(get_value(consumer_key, OauthProps)),
