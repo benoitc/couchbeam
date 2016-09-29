@@ -20,8 +20,12 @@
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
+-export([proxy_token/2, proxy_header/3]).
 
-
+-define(PROXY_AUTH_HEADERS,[
+    {username,<<"X-Auth-CouchDB-UserName">>},
+    {roles,<<"X-Auth-CouchDB-Roles">>},
+    {token,<<"X-Auth-CouchDB-Token">>}]).
 
 -define(ENCODE_DOCID_FUNC, encode_docid1).
 
@@ -256,14 +260,21 @@ get_app_env(Env, Default) ->
         undefined -> Default
     end.
 
-proxy_header(UserName,Roles,{secret,Secret}) ->
-    proxy_header(UserName,Roles,proxy_token(Secret,UserName));
+proxy_header(UserName,Roles,Secret) ->
+    proxy_header(UserName,Roles,Secret,?PROXY_AUTH_HEADERS).
 
-proxy_header(UserName,Roles,Token) ->
-[{<<"X-Auth-CouchDB-UserName">>, UserName},
-    {<<"X-Auth-CouchDB-Roles">>, Roles},
-    {<<"X-Auth-CouchDB-Token">>, Token}
+proxy_header(UserName,Roles,Secret,HeaderNames) ->
+    proxy_header_token(UserName,Roles,proxy_token(Secret,UserName),HeaderNames).
+
+proxy_header_token(UserName,Roles,Token,L) ->
+[
+    {hgv(username,L), UserName},
+    {hgv(roles,L), Roles},
+    {hgv(token,L), Token}
 ].
+
+hgv(N,L) ->
+    get_value(N,L,get_value(N,?PROXY_AUTH_HEADERS)).
 
 proxy_token(Secret,UserName) ->
     hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
