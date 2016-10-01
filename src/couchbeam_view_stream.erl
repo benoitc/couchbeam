@@ -86,7 +86,7 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
 
 do_init_stream({#db{options=Opts, server = Server}, Url, Args}, #state{mref=MRef}=State) ->
     %% we are doing the request asynchronously
-    FinalOpts = [{async, once} | Opts] ++ Server#server.options,
+    FinalOpts = [{async, once} | Opts],
     Reply = case Args#view_query_args.method of
         get ->
             couchbeam_httpc:request(get, Url, [], <<>>, FinalOpts);
