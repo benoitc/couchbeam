@@ -238,27 +238,42 @@ wait_reconnect(#state{parent=Parent,
     end.
 
 
-decode_data(Data, #state{owner=Owner,
-                         ref=Ref,
-                         feed_type=continuous,
-                         decoder=DecodeFun}=State) ->
+seq(Props,#state{owner=Owner,ref=Ref}) ->
+  Seq = couchbeam_util:get_value(<<"seq">>, Props),
+  put(last_seq, Seq),
+  Owner ! {Ref, {change, {Props}}}.
 
-    {incomplete, DecodeFun2} = try DecodeFun of
-        nil ->
-            post_decode(jsx:decode(Data, [stream]));
-        _ ->
-            DecodeFun(Data)
+decode(Data) ->
+  jsx:decode(Data,[return_tail,stream]).
+
+decodefun(nil) ->
+  fun(Data) -> decode(Data) end;
+decodefun(Fun) ->
+  Fun.
+
+decode_with_tail(Data, Fun, State) ->
+  case (decodefun(Fun))(Data) of
+    {with_tail,Props,Rest} ->
+      seq(Props,State),
+      decode_with_tail(Rest,decodefun(nil),State);
+    Other -> Other
+  end.
+
+decode_data(Data, #state{feed_type=continuous,
+  decoder=DecodeFun}=State) ->
+
+  {incomplete, DecodeFun2} =
+    try
+      decode_with_tail(Data,DecodeFun,State)
     catch error:badarg -> exit(badarg)
     end,
 
-    try DecodeFun2(end_stream) of
-        Props ->
-            Seq = couchbeam_util:get_value(<<"seq">>, Props),
-            put(last_seq, Seq),
-            Owner ! {Ref, {change, {Props}}},
-            maybe_continue(State#state{decoder=nil})
-    catch error:badarg -> maybe_continue(State#state{decoder=DecodeFun2})
-    end;
+  try DecodeFun2(end_stream) of
+    Props ->
+      seq(Props,State),
+      maybe_continue(State#state{decoder=nil})
+  catch error:badarg -> maybe_continue(State#state{decoder=DecodeFun2})
+  end;
 decode_data(Data, #state{client_ref=ClientRef,
                          decoder=DecodeFun}=State) ->
     try 
