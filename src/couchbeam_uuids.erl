@@ -27,12 +27,12 @@
 %% @doc return a random uuid
 -spec random() -> binary().
 random() ->
-    list_to_binary(hackney_bstr:to_hex(crypto:rand_bytes(16))).
+    list_to_binary(hackney_bstr:to_hex(crypto:strong_rand_bytes(16))).
 
 %% @doc return a random uuid based on time
 -spec utc_random() -> binary().
 utc_random() ->
-    utc_suffix(couch_util:to_hex(crypto:rand_bytes(9))).
+    utc_suffix(couch_util:to_hex(crypto:strong_rand_bytes(9))).
 
 %% @doc Get a list of uuids from the server
 %% @spec get_uuids(server(), integer()) -> lists()
