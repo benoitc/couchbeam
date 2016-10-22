@@ -105,7 +105,7 @@ do_init_stream(#state{mref=MRef,
                       feed_type=FeedType}=State) ->
     #db{server=Server, options=ConnOpts} = Db,
     %% we are doing the request asynchronously
-    ConnOpts1 = [{async, once} | ConnOpts],
+    ConnOpts1 = [{async, once}, {recv_timeout, infinity}| ConnOpts],
 
     %% if we are filtering the changes using docids, send a POST request
     %% instead of a GET to make sure it will be accepted whatever the
@@ -276,7 +276,7 @@ decode_data(Data, #state{feed_type=continuous,
   end;
 decode_data(Data, #state{client_ref=ClientRef,
                          decoder=DecodeFun}=State) ->
-    try 
+    try
         {incomplete, DecodeFun2} = DecodeFun(Data),
         try DecodeFun2(end_stream) of done ->
             %% stop the request
