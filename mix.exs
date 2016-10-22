@@ -4,7 +4,7 @@ use Mix.Project
     def project do
         [
             app: :couchbeam,
-            version: "1.3.0",
+            version: "1.4.0",
             description: "Erlang CouchDB client",
             deps: deps,
             package: package,
