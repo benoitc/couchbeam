@@ -9,7 +9,7 @@
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#dbname-1">dbname/1</a></td><td></td></tr><tr><td valign="top"><a href="#deprecated-3">deprecated/3</a></td><td></td></tr><tr><td valign="top"><a href="#encode_att_name-1">encode_att_name/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid-1">encode_docid/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid1-1">encode_docid1/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid_noop-1">encode_docid_noop/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_query-1">encode_query/1</a></td><td>Encode needed value of Query proplists in json.</td></tr><tr><td valign="top"><a href="#encode_query_value-2">encode_query_value/2</a></td><td>Encode value in JSON if needed depending on the key.</td></tr><tr><td valign="top"><a href="#force_param-3">force_param/3</a></td><td>replace a value in a proplist.</td></tr><tr><td valign="top"><a href="#get_app_env-2">get_app_env/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>emulate proplists:get_value/2,3 but use faster lists:keyfind/3.</td></tr><tr><td valign="top"><a href="#get_value-3">get_value/3</a></td><td></td></tr><tr><td valign="top"><a href="#oauth_header-3">oauth_header/3</a></td><td></td></tr><tr><td valign="top"><a href="#parse_options-1">parse_options/1</a></td><td>make view options a list.</td></tr><tr><td valign="top"><a href="#parse_options-2">parse_options/2</a></td><td></td></tr><tr><td valign="top"><a href="#propmerge-3">propmerge/3</a></td><td>merge 2 proplists.</td></tr><tr><td valign="top"><a href="#propmerge1-2">propmerge1/2</a></td><td>Update a proplist with values of the second.</td></tr><tr><td valign="top"><a href="#shutdown_sync-1">shutdown_sync/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_app_deps-1">start_app_deps/1</a></td><td>Start depedent applications of App.</td></tr><tr><td valign="top"><a href="#to_atom-1">to_atom/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_binary-1">to_binary/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_integer-1">to_integer/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#dbname-1">dbname/1</a></td><td></td></tr><tr><td valign="top"><a href="#deprecated-3">deprecated/3</a></td><td></td></tr><tr><td valign="top"><a href="#encode_att_name-1">encode_att_name/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid-1">encode_docid/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid1-1">encode_docid1/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_docid_noop-1">encode_docid_noop/1</a></td><td></td></tr><tr><td valign="top"><a href="#encode_query-1">encode_query/1</a></td><td>Encode needed value of Query proplists in json.</td></tr><tr><td valign="top"><a href="#encode_query_value-2">encode_query_value/2</a></td><td>Encode value in JSON if needed depending on the key.</td></tr><tr><td valign="top"><a href="#force_param-3">force_param/3</a></td><td>replace a value in a proplist.</td></tr><tr><td valign="top"><a href="#get_app_env-2">get_app_env/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>emulate proplists:get_value/2,3 but use faster lists:keyfind/3.</td></tr><tr><td valign="top"><a href="#get_value-3">get_value/3</a></td><td></td></tr><tr><td valign="top"><a href="#oauth_header-3">oauth_header/3</a></td><td></td></tr><tr><td valign="top"><a href="#parse_options-1">parse_options/1</a></td><td>make view options a list.</td></tr><tr><td valign="top"><a href="#parse_options-2">parse_options/2</a></td><td></td></tr><tr><td valign="top"><a href="#propmerge-3">propmerge/3</a></td><td>merge 2 proplists.</td></tr><tr><td valign="top"><a href="#propmerge1-2">propmerge1/2</a></td><td>Update a proplist with values of the second.</td></tr><tr><td valign="top"><a href="#proxy_header-3">proxy_header/3</a></td><td></td></tr><tr><td valign="top"><a href="#proxy_token-2">proxy_token/2</a></td><td></td></tr><tr><td valign="top"><a href="#shutdown_sync-1">shutdown_sync/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_app_deps-1">start_app_deps/1</a></td><td>Start depedent applications of App.</td></tr><tr><td valign="top"><a href="#to_atom-1">to_atom/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_binary-1">to_binary/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_integer-1">to_integer/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -141,6 +141,18 @@ value. This a wreapper around dict:merge
 
 Update a proplist with values of the second. In case the same
 key is in 2 proplists, the value from the first are kept.
+
+<a name="proxy_header-3"></a>
+
+### proxy_header/3 ###
+
+`proxy_header(UserName, Roles, Secret) -> any()`
+
+<a name="proxy_token-2"></a>
+
+### proxy_token/2 ###
+
+`proxy_token(Secret, UserName) -> any()`
 
 <a name="shutdown_sync-1"></a>
 

@@ -4,7 +4,7 @@
 
 Copyright (c) 2009-2016 Benoît Chesneau.
 
-__Version:__ 1.3.1
+__Version:__ 1.4.0
 
 # couchbeam
 
@@ -50,6 +50,7 @@ To generate doc, run 'make doc'.
 Or add it to your rebar config
 
 ```
+   erlang
 {deps, [
     ....
     {couchbeam, ".*", {git, "git://github.com/benoitc/couchbeam.git", {branch, "master"}}}
@@ -62,12 +63,14 @@ variable `WITH_JIFFY`.
 if you use rebar, add to your `rebar.config`:
 
 ```
+   erlang
 {erl_opts, [{d, 'WITH_JIFFY'}]}.
 ```
 
 or use the `rebar` command with the `-D` options:
 
 ```
+   sh
 rebar compile -DWITH_JIFFY
 ```
 
@@ -83,6 +86,7 @@ for you.
 To start in the console run:
 
 ```
+   sh
 $ erl -pa ebin
 1> couchbeam:start().
 ok
@@ -91,6 +95,7 @@ ok
 It will start hackney and all of the application it depends on:
 
 ```
+   erlang
 application:start(crypto),
 application:start(asn1),
 application:start(public_key),
@@ -106,6 +111,7 @@ Or add couchbeam to the applications property of your .app in a release
 To create a connection to a server machine:
 
 ```
+   erlang
 Url = "http://localhost:5984",
 Options = [],
 S = couchbeam:server_connection(Url, Options).
@@ -114,6 +120,7 @@ S = couchbeam:server_connection(Url, Options).
 Test the connection with `couchbeam:server_info/1` :
 
 ```
+   erlang
 {ok, _Version} = couchbeam:server_info(S).
 ```
 
@@ -122,6 +129,7 @@ Test the connection with `couchbeam:server_info/1` :
 All document operations are done in databases. To open a database simply do:
 
 ```
+   erlang
 Options = [],
 {ok, Db} = couchbeam:open_db(Server, "testdb", Options).
 ```
@@ -129,6 +137,7 @@ Options = [],
 To create a new one:
 
 ```
+   erlang
 Options = [],
 {ok, Db} = couchbeam:create_db(Server, "testdb", Options).
 ```
@@ -141,6 +150,7 @@ will create a database if it does not exist.
 Make a new document:
 
 ```
+   erlang
 Doc = {[
 {<<"_id">>, <<"test">>},
 {<<"content">>, <<"some text">>}
@@ -150,6 +160,7 @@ Doc = {[
 And save it to the database:
 
 ```
+   erlang
 {ok, Doc1} = couchbeam:save_doc(Db, Doc).
 ```
 
@@ -163,12 +174,14 @@ To change an document property use functions from `couchbeam_doc`.
 To retrieve a document do:
 
 ```
+   erlang
 {ok, Doc2} = couchbeam:open_doc(Db, "test").
 ```
 
 If you want a specific revision:
 
 ```
+   erlang
 Rev = couchbeam_doc:get_rev(Doc1),
 Options = [{rev, Rev}],
 {ok, Doc3} = couchbeam:open_doc(Db, "test", Options).
@@ -183,6 +196,7 @@ To get all documents you have first to create an object
 that will keep all informations.
 
 ```
+   erlang
 Options = [include_docs],
 {ok, AllDocs} = couchbeam_view:all(Db, Options).
 ```
@@ -190,6 +204,7 @@ Options = [include_docs],
 Ex of results:
 
 ```
+   erlang
 {ok,[{[{<<"id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
           {<<"key">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
           {<<"value">>,
@@ -208,6 +223,7 @@ Views are workin like all_docs. You have to create a View object before
 doing anything.
 
 ```
+   erlang
 Options = [],
 DesignName = "designname",
 ViewName = "viewname",
@@ -221,6 +237,7 @@ any querying options from the [view API](http://docs.rcouch.org/en/latest/api/dd
 Design doc are created like any documents:
 
 ```
+   erlang
 DesignDoc = {[
         {<<"_id">>, <<"_design/couchbeam">>},
         {<<"language">>,<<"javascript">>},
@@ -248,6 +265,7 @@ While you can get results using `couchbeam_views:fetch/2`, you can also retrieve
 all rows in a streaming fashion:
 
 ```
+   erlang
 ViewFun = fun(Ref, F) ->
     receive
         {Ref, done} ->
@@ -262,7 +280,7 @@ ViewFun = fun(Ref, F) ->
 end,
 
 {ok, StreamRef} = couchbeam_view:stream(Db, 'all_docs'),
-ViewFun(StartRef, ViewFun),
+ViewFun(StreamRef, ViewFun),
 {ok, StreamRef2} = couchbeam_view:stream(Db, 'all_docs', [include_docs]),
 ViewFun(StreamRef2, ViewFun).
 ```
@@ -270,6 +288,7 @@ ViewFun(StreamRef2, ViewFun).
 You can of course do the same with a view:
 
 ```
+   erlang
 DesignNam = "designname",
 ViewName = "viewname",
 {ok, StreamRef3} = couchbeam_view:stream(Db, {DesignNam, ViewName}, [include_docs]),
@@ -283,6 +302,7 @@ You can add attachments to any documents. Attachments could be anything.
 To send an attachment:
 
 ```
+   erlang
 DocID = "test",
 AttName = "test.txt",
 Att = "some content I want to attach",
@@ -296,6 +316,7 @@ or functions, see `couchbeam:put_attachment/5` for more information.
 To fetch an attachment:
 
 ```
+   erlang
 {ok Att1} = couchbeam:fetch_attachment(Db, DocId, AttName).
 ```
 
@@ -305,6 +326,7 @@ fetch.
 To delete an attachment:
 
 ```
+   erlang
 {ok, Doc4} = couchbeam:open_doc(Db, DocID),
 ok = couchbeam:delete_attachment(Db, Doc4, AttName).
 ```
@@ -317,6 +339,7 @@ This function returns all changes immediately. But you can also retrieve
 all changes rows using longpolling :
 
 ```
+   erlang
 Options = [],
 {ok, LastSeq, Rows} = couchbeam_changes:follow_once(Db, Options).
 ```
@@ -326,6 +349,7 @@ Options can be any Changes query parameters. See the [change API](http://docs.rc
 You can also get [continuous](http://docs.rcouch.org/en/latest/api/database/changes.html#continuous):
 
 ```
+   erlang
 ChangesFun = fun(StreamRef, F) ->
     receive
         {StreamRef, {done, LastSeq}} ->
@@ -359,6 +383,7 @@ server or in `couchbeam:create_db/3`, `couchbeam:open_db/3`,
 To set basic_auth on a server:
 
 ```
+   erlang
 UserName = "guest",
 Password = "test",
 Url = "http://localhost:5984",
