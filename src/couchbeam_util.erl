@@ -20,8 +20,12 @@
 -export([start_app_deps/1, get_app_env/2]).
 -export([encode_docid1/1, encode_docid_noop/1]).
 -export([force_param/3]).
+-export([proxy_token/2, proxy_header/3]).
 
-
+-define(PROXY_AUTH_HEADERS,[
+    {username,<<"X-Auth-CouchDB-UserName">>},
+    {roles,<<"X-Auth-CouchDB-Roles">>},
+    {token,<<"X-Auth-CouchDB-Token">>}]).
 
 -define(ENCODE_DOCID_FUNC, encode_docid1).
 
@@ -76,10 +80,12 @@ encode_query_value(K, V) when is_binary(K) ->
 encode_query_value(_K, V) -> V.
 
 % build oauth header
+oauth_header(Url, Action, OauthProps) when is_binary(Url) ->
+    oauth_header(binary_to_list(Url),Action, OauthProps);
 oauth_header(Url, Action, OauthProps) ->
     #hackney_url{qs=QS} = hackney_url:parse_url(Url),
     QSL = [{binary_to_list(K), binary_to_list(V)} || {K,V} <-
-                                                     hackney_url:qs(QS)],
+                                                     hackney_url:parse_qs(QS)],
 
     % get oauth paramerers
     ConsumerKey = to_list(get_value(consumer_key, OauthProps)),
@@ -252,4 +258,33 @@ get_app_env(Env, Default) ->
     case application:get_env(couchbeam, Env) of
         {ok, Val} -> Val;
         undefined -> Default
+    end.
+
+proxy_header(UserName,Roles,Secret) ->
+    proxy_header(UserName,Roles,Secret,?PROXY_AUTH_HEADERS).
+
+proxy_header(UserName,Roles,Secret,HeaderNames) ->
+    proxy_header_token(UserName,Roles,proxy_token(Secret,UserName),HeaderNames).
+
+proxy_header_token(UserName,Roles,Token,L) ->
+[
+    {hgv(username,L), UserName},
+    {hgv(roles,L), Roles},
+    {hgv(token,L), Token}
+].
+
+hgv(N,L) ->
+    get_value(N,L,get_value(N,?PROXY_AUTH_HEADERS)).
+
+proxy_token(Secret,UserName) ->
+    hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
+
+hmac(Alg, Key, Data) ->
+    case {Alg, erlang:function_exported(crypto, hmac, 3)} of
+        {_, true} ->
+            crypto:hmac(Alg, Key, Data);
+        {sha, false} ->
+            crypto:sha_mac(Key, Data);
+        {Alg, false} ->
+            throw({unsupported, Alg})
     end.

@@ -89,12 +89,12 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
     FinalOpts = [{async, once} | Opts],
     Reply = case Args#view_query_args.method of
         get ->
-            hackney:request(get, Url, [], <<>>, FinalOpts);
+            couchbeam_httpc:request(get, Url, [], <<>>, FinalOpts);
         post ->
             Body = couchbeam_ejson:encode({[{<<"keys">>,
                                              Args#view_query_args.keys}]}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
-            hackney:request(post, Url, Headers, Body, FinalOpts)
+            couchbeam_httpc:request(post, Url, Headers, Body, FinalOpts)
     end,
 
     case Reply of
