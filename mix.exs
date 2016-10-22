@@ -33,7 +33,7 @@ use Mix.Project
 
     def deps do
         [
-            {:hackney, "~> 1.5.7"},
+            {:hackney, "~> 1.6.2"},
             {:jsx, "~> 2.8.0"}
         ]
     end
