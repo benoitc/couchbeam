@@ -62,7 +62,7 @@ fetch(Db, ViewName) ->
 %%    | {keys, list(binary())}</pre>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
-%% <p>Return: {ok, Rows} or {error, Rows, Error}</p>
+%% <p>Return: {ok, Rows} or {error, Error}</p>
 fetch(Db, ViewName, Options) ->
     case stream(Db, ViewName, Options) of
         {ok, Ref} ->

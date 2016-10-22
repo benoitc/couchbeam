@@ -88,10 +88,9 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%
 %%      For a description of SSL Options, look in the <a href="http://www.erlang.org/doc/apps/ssl/index.html">ssl</a> manpage.
 %%
-%% @spec server_connection(Host::string(), Port::integer(),
-%%                        Prefix::string(), Options::optionList())
-%%                        -> Server::server()
-%% optionList() = [option()]
+-spec server_connection(Host::string(), Port::non_neg_integer(), Prefix::string(), OptionsList::list()) ->
+        Server::server().
+%% OptionsList() = [option()]
 %% option() =
 %%          {is_ssl, boolean()}                |
 %%          {ssl_options, [SSLOpt]}            |
@@ -1018,29 +1017,6 @@ maybe_docid(Server, {DocProps}) ->
             {[{<<"_id">>, DocId}|DocProps]};
         _DocId ->
             {DocProps}
-    end.
-
-update_config(#server{url=ServerUrl, options=Opts}, Section, Key, Value,
-           Persist, Method) ->
-    PathParts = [<<"_config">>,
-                 hackney_bstr:to_binary(Section),
-                 hackney_bstr:to_binary(Key)],
-    Url = hackney_url:make_url(ServerUrl, PathParts, []),
-    Headers = [{<<"Content-Type">>, <<"application/json">>},
-               {<<"X-Couch-Persist">>, atom_to_binary(Persist, latin1)}],
-
-    Body = case Method of
-        delete -> <<>>;
-        put -> couchbeam_ejson:encode(Value)
-    end,
-
-    Resp = couchbeam_httpc:db_request(Method, Url, Headers, Body, Opts,
-                                      [200]),
-    case Resp of
-        {ok, _, _, Ref} ->
-            {ok, couchbeam_httpc:json_body(Ref)};
-        Error ->
-            Error
     end.
 
 -ifdef(TEST).

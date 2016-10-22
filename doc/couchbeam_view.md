@@ -137,7 +137,7 @@ Options :: view_options() [{key, binary()} | {start_docid, binary()}
 See [`couchbeam_view:stream/4`](couchbeam_view.md#stream-4) for more information about
 options.
 
-Return: {ok, Rows} or {error, Rows, Error}
+Return: {ok, Rows} or {error, Error}
 
 <a name="first-1"></a>
 
