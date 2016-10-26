@@ -462,6 +462,9 @@ collect_view_results(Ref, Acc) ->
             {ok, Rows};
         {Ref, {row, Row}} ->
             collect_view_results(Ref, [Row|Acc]);
+        {Ref, {error, Error}}
+          when Acc =:= []->
+            {error, Error};
         {Ref, {error, Error}} ->
             %% in case we got some results
             Rows = lists:reverse(Acc),

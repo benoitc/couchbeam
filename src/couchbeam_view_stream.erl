@@ -58,8 +58,11 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
 
     Async = proplists:get_value(async, StreamOptions, normal),
 
-    %% monitor the process receiving§ the messages
+    %% monitor the process receiving the messages
     MRef = erlang:monitor(process, Owner),
+
+    %% tell to the parent that we are ok
+    proc_lib:init_ack(Parent, {ok, self()}),
 
     InitState = #state{parent=Parent,
                        owner=Owner,
@@ -73,12 +76,10 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
         {ok, State} ->
             %% register the stream
             ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
-            %% tell to the parent that we are ok
-            proc_lib:init_ack(Parent, {ok, self()}),
             %% start the loop
             loop(State);
         Error ->
-            proc_lib:init_ack(Parent, Error)
+            report_error(Error, StreamRef, Owner)
     end,
     %% stop to monitor the parent
     erlang:demonitor(MRef),
@@ -120,9 +121,9 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
                 {hackney_response, Ref, {status, Status, Reason}} ->
                     {error, {http_error, Status, Reason}};
                 {hackney_response, Ref, {error, Reason}} ->
-                    exit(Reason)
+                    {error, Reason}
             after ?TIMEOUT ->
-                    exit(timeout)
+                    {error, timeout}
             end;
         Error ->
             {error, Error}
