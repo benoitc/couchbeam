@@ -4,7 +4,7 @@ use Mix.Project
     def project do
         [
             app: :couchbeam,
-            version: "1.4.0",
+            version: "1.4.1",
             description: "Erlang CouchDB client",
             deps: deps,
             package: package,
@@ -33,7 +33,7 @@ use Mix.Project
 
     def deps do
         [
-            {:hackney, "~> 1.6.2"},
+            {:hackney, "~> 1.6"},
             {:jsx, "~> 2.8.0"}
         ]
     end
