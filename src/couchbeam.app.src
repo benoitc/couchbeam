@@ -29,14 +29,11 @@
   {files, [
     "src",
     "include",
-    "mix.exs",
-    "mix.lock",
     "rebar.config",
     "rebar.lock",
     "README.md",
     "NEWS.md",
     "LICENSE",
-    "NOTICE"]},
-  {build_tools, [<<"rebar3">>, <<"mix">>]}
+    "NOTICE"]}
  ]
 }.
