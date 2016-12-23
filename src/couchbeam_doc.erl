@@ -9,7 +9,8 @@
 
 -export([set_value/3, get_value/2, get_value/3,
          take_value/2, take_value/3,
-         delete_value/2, extend/2, extend/3]).
+         delete_value/2, extend/2, extend/3,
+         set_values/2]).
 -export([get_id/1, get_rev/1, get_idrev/1, is_saved/1]).
 
 %% @spec get_id(Doc::json_obj()) -> binary()
@@ -48,6 +49,15 @@ set_value(Key, Value, JsonObj) when is_binary(Key) ->
         true -> set_value1(Props, Key, Value, []);
         false-> {lists:reverse([{Key, Value}|lists:reverse(Props)])}
     end.
+
+%% @spec set_values(List, JsonObj::json_obj()) -> term()
+%% @doc set the values of a list of tuples into the jsonobj.
+set_values([], JsonObj) ->
+    JsonObj;
+set_values([Head|Tail], JsonObj) ->
+    {Key, Value} = Head,
+    NewJsonObj = set_value(Key, Value, JsonObj),
+    set_values(Tail, NewJsonObj).
 
 %% @spec get_value(Key::key_val(), JsonObj::json_obj()) -> term()
 %% @type key_val() = lis() | binary()
