@@ -849,7 +849,7 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                                QueryArgs),
 
     case couchbeam_httpc:db_request(put, Url, FinalHeaders, Body, Opts,
-                                   [201]) of
+                                   [201, 202]) of
         {ok, _, _, Ref} ->
             JsonBody = couchbeam_httpc:json_body(Ref),
             {[{<<"ok">>, true}|R]} = JsonBody,
