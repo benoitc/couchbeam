@@ -81,7 +81,7 @@ stream(Db, ViewName) ->
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
         ViewName::string()}, Options::view_options())
-    -> {ok, StartRef::term(), ViewPid::pid()} | {error, term()}.
+    -> {ok, StartRef::term()} | {error, term()}.
 %% @doc stream view results to a pid
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
