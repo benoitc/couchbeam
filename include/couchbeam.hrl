@@ -28,6 +28,9 @@
 -type db_name() :: binary() | string().
 -type docid() :: binary() | string().
 
+-type design_name() :: binary() | string().
+-type view_name() :: binary() | string().
+
 -type ejson() :: ejson_object() | ejson_array().
 
 -type ejson_array() :: [ejson_term()].
