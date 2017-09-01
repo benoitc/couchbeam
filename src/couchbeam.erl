@@ -257,7 +257,8 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                [DbName, <<"_view_cleanup">>],
                                []),
-    Resp = couchbeam_httpc:db_request(post, Url, [], <<>>, Opts, [200]),
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
+    Resp = couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [200, 202]),
     case Resp of
         {ok, _, _, Ref} ->
             catch hackney:skip_body(Ref),
