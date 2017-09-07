@@ -158,9 +158,9 @@ follow_once(Db, Options) ->
 
 cancel_stream(Ref) ->
     with_changes_stream(Ref, fun(Pid) ->
-                case supervisor:terminate_child(couch_view_sup, Pid) of
+                case supervisor:terminate_child(couchbeam_view_sup, Pid) of
                     ok ->
-                        case supervisor:delete_child(couch_view_sup, Pid) of
+                        case supervisor:delete_child(couchbeam_view_sup, Pid) of
                             ok ->ok;
                             {error, not_found} -> ok;
                             Error -> Error
