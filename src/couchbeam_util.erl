@@ -284,7 +284,5 @@ hmac(Alg, Key, Data) ->
         {_, true} ->
             crypto:hmac(Alg, Key, Data);
         {sha, false} ->
-            crypto:sha_mac(Key, Data);
-        {Alg, false} ->
-            throw({unsupported, Alg})
+            crypto:sha_mac(Key, Data)
     end.

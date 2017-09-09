@@ -76,7 +76,7 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 server_connection(URL, Options) when is_list(Options) ->
     #server{url=hackney_url:fix_path(URL), options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
-    server_connection(Host, Port, "", []).
+    server_connection(Host, Port, <<>>, []).
 
 
 %% @doc Create a server for connectiong to a CouchDB node
