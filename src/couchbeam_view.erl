@@ -73,14 +73,14 @@ fetch(Db, ViewName, Options) ->
 
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
-        ViewName::string()}) -> {ok, StartRef::ref()} | {error, term()}.
+        ViewName::string()}) -> {ok, StartRef::reference()} | {error, term()}.
 %% @equiv stream(Db, ViewName, Client, [])
 stream(Db, ViewName) ->
     stream(Db, ViewName, []).
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
         ViewName::string()}, Options::view_options())
-    -> {ok, StartRef::ref()} | {error, term()}.
+    -> {ok, StartRef::reference()} | {error, term()}.
 %% @doc stream view results to a pid
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: 'all_docs' to get all docs or {DesignName,

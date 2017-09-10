@@ -88,8 +88,8 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%
 %%      For a description of SSL Options, look in the <a href="http://www.erlang.org/doc/apps/ssl/index.html">ssl</a> manpage.
 %%
--spec server_connection(Host::string(), Port::non_neg_integer(), Prefix::string(), OptionsList::list()) ->
-        Server::server().
+%-spec server_connection(Host::string(), Port::non_neg_integer(), Prefix::string(), OptionsList::list()) ->
+%        Server::server().
 %% OptionsList() = [option()]
 %% option() =
 %%          {is_ssl, boolean()}                |
@@ -463,7 +463,7 @@ stream_doc({_Ref, Cont}) ->
 
 %% @doc stop to receive the multipart response of the doc api and close
 %% the connection.
--spec end_doc_stream(doc_stream()) -> ok.
+%-spec end_doc_stream(doc_stream()) -> ok.
 end_doc_stream({Ref, _Cont}) ->
     hackney:close(Ref).
 
@@ -523,8 +523,8 @@ save_doc(Db, Doc, Options) ->
 %% `<<"identity">>' if normal or `<<"gzip">>' if the attachments is
 %% gzipped.
 
--spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
-    {ok, doc()} | {error, term()}.
+%-spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
+%    {ok, doc()} | {error, term()}.
 save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
     DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
         undefined ->
@@ -739,9 +739,9 @@ fetch_attachment(Db, DocId, Name) ->
 %% <li>Other options that can be sent using the REST API</li>
 %% </ul>
 %%
--spec fetch_attachment(db(), string(), string(),
-                       list())
-    -> {ok, binary()}| {ok, atom()} |{error, term()}.
+%-spec fetch_attachment(db(), string(), string(),
+%                       list())
+%    -> {ok, binary()}| {ok, atom()} |{error, term()}.
 fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
     {Stream, Options} = case couchbeam_util:get_value(stream, Options0) of
         undefined ->
