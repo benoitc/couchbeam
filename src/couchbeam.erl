@@ -843,7 +843,7 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
         end, Headers, Options),
 
     DocId1 = couchbeam_util:encode_docid(DocId),
-    AttName = couchbeam_util:encode_att_name(Name),
+    AttName = couchbeam_util:to_binary(Name),%encode_att_name(Name),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db), DocId1,
                                                     AttName],
                                QueryArgs),
