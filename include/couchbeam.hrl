@@ -28,9 +28,9 @@
 -type db_name() :: binary() | string().
 -type docid() :: binary() | string().
 
--type ejson() :: ejson_object() | ejson_array().
+-type ejson() :: ejson_term().
 
--type ejson_array() :: [ejson_term()].
+-type ejson_array() :: [ejson_term()] | [{ejson_key(), ejson_term()}].
 -type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
 
 -type ejson_key() :: binary() | atom().
@@ -39,6 +39,7 @@
     | ejson_object()
     | ejson_string()
     | ejson_number()
+    | ejson_key()
     | true | false | null.
 
 -type ejson_string() :: binary().
