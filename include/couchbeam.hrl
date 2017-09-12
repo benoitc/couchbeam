@@ -52,6 +52,7 @@
     | include_docs | {since, integer()} | {since, now}
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
+    | {binary(),binary()}
     | {filter, string() | binary()} | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()}
 )}
     | conflicts | {style, string()} | descending.
