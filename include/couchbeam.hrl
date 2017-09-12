@@ -49,10 +49,10 @@
 -type doc() :: ejson_object().
 
 -type changes_option() :: continuous | longpoll | normal
-    | include_docs | {since, integer()}
+    | include_docs | {since, integer()} | {since, now}
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
-    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+    | {filter, string() | binary()} | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()}
 )}
     | conflicts | {style, string()} | descending.
 -type changes_options() :: list(changes_option()).
@@ -61,8 +61,7 @@
     | include_docs | {since, integer()}
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
-    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
-)}
+    | {filter, string() | binary()} | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()})}
     | conflicts | {style, string()} | descending.
 -type changes_options1() :: list(changes_option1()).
 
@@ -72,7 +71,7 @@
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
     | {filter, string() | binary()}
-    | {filter, string() | binary(), list({string(), string() | integer()})}
+    | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()})}
     | conflicts
     | {style, string() | binary()}
     | descending
