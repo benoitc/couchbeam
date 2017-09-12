@@ -82,9 +82,9 @@
 
 -type stale() :: ok | update_after.
 
--type view_option() :: {key, binary()} | {start_docid, binary()}
-    | {end_docid, binary()} | {start_key, binary()}
-    | {end_key, binary()} | {limit, integer()}
+-type view_option() :: {key, ejson()} | {start_docid, binary()}
+    | {end_docid, binary()} | {start_key, ejson()}
+    | {end_key, ejson()} | {limit, integer()}
     | {stale, stale()}
     | descending
     | {skip, integer()}
