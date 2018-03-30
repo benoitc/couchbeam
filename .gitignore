@@ -9,4 +9,5 @@ erl_crash.dump
 mime.types
 .rebar
 *.plt
-.rebar
+.idea
+*.iml
