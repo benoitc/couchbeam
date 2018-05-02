@@ -166,9 +166,9 @@ stream(Db, ViewName, Options) ->
 
 cancel_stream(Ref) ->
     with_view_stream(Ref, fun(Pid) ->
-                case supervisor:terminate_child(couch_view_sup, Pid) of
+                case supervisor:terminate_child(couchbeam_view_sup, Pid) of
                     ok ->
-                        case supervisor:delete_child(couch_view_sup,
+                        case supervisor:delete_child(couchbeam_view_sup,
                                                      Pid) of
                             ok ->
                                 ok;
