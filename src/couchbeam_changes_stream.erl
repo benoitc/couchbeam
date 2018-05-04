@@ -242,8 +242,13 @@ wait_reconnect(#state{parent=Parent,
 
 seq(Props,#state{owner=Owner,ref=Ref}) ->
   Seq = couchbeam_util:get_value(<<"seq">>, Props),
-  put(last_seq, Seq),
-  Owner ! {Ref, {change, {Props}}}.
+  case Seq of
+    undefined ->
+      ok;
+    Seq ->
+      put(last_seq, Seq),
+      Owner ! {Ref, {change, {Props}}}
+  end.
 
 decode(Data) ->
   jsx:decode(Data,[return_tail,stream]).
