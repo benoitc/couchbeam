@@ -469,7 +469,7 @@ collect_view_results(Ref, Acc) ->
             %% in case we got some results
             Rows = lists:reverse(Acc),
             {error, Error, Rows}
-    after 10000 ->
+    after 20000 ->
               {error, timeout}
     end.
 
