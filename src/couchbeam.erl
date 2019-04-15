@@ -400,20 +400,6 @@ doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
         _Error -> false
     end.
 
--ifdef('MAPS_SUPPORT'). 
-get_return_params(Params) -> 
-    case proplists:get_value(return_maps, Params) == true of 
-        true  -> {[return_maps], proplists:delete(return_maps, Params)}; 
-        false -> {[], Params} 
-    end. 
--else. 
-get_return_params(Params) -> 
-    case proplists:get_value(return_maps, Params) == true of 
-        true  -> {[], proplists:delete(return_maps, Params)}; 
-        false -> {[], Params} 
-    end. 
--endif. 
-
 %% @doc open a document
 %% @equiv open_doc(Db, DocId, [])
 open_doc(Db, DocId) ->
@@ -431,10 +417,6 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
         unefined -> {any, Params};
         A -> {A, proplists:delete(accept, Params)}
     end,
-    
-    %% Set return format
-    {ReturnOptions, Params2} = get_return_params(Params1),
-
     %% set the headers with the accepted content-type if needed
     Headers = case {Accept, proplists:get_value("attachments", Params)} of
         {any, true} ->
@@ -448,7 +430,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
             []
     end,
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1),
-                               Params2),
+                               Params1),
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
         {ok, _, RespHeaders, Ref} ->
@@ -460,7 +442,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
                             end},
                     {ok, {multipart, InitialState}};
                 _ ->
-                    {ok, couchbeam_httpc:json_body(Ref, ReturnOptions)}
+                    {ok, couchbeam_httpc:json_body(Ref)}
             end;
         Error ->
             Error
@@ -543,8 +525,14 @@ save_doc(Db, Doc, Options) ->
 
 -spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
     {ok, doc()} | {error, term()}.
-save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
-    DocId = get_doc_id(Doc, Server),
+save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
+    DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
+        undefined ->
+            [Id] = get_uuid(Server),
+            Id;
+        DocId1 ->
+            couchbeam_util:encode_docid(DocId1)
+    end,
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId),
                                Options),
     case Atts of
@@ -557,7 +545,8 @@ save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
                     {JsonProp} = couchbeam_httpc:json_body(Ref),
                     NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
                     NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
-                    Doc1 = form_return_doc(Doc, NewRev, NewDocId),
+                    Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
+                        couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
                     {ok, Doc1};
                 Error ->
                     Error
@@ -584,50 +573,6 @@ save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) ->
                     Error
             end
     end.
-
--ifdef('MAPS_SUPPORT'). 
-form_return_doc(Doc = #{}, NewRev, NewDocId) ->  
-    Doc#{<<"_rev">> => NewRev, <<"_id">> => NewDocId}; 
-form_return_doc(Doc, NewRev, NewDocId) -> 
-    couchbeam_doc:set_value(<<"_rev">>, NewRev, 
-			    couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)); 
-form_return_doc(Doc, NewRev, NewDocId) -> 
-    couchbeam_doc:set_value(<<"_rev">>, NewRev, 
-			    couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)). 
--else. 
-form_return_doc(Doc, NewRev, NewDocId) -> 
-    couchbeam_doc:set_value(<<"_rev">>, NewRev, 
-			    couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)). 
--endif. 
- 
--ifdef('MAPS_SUPPORT'). 
-get_doc_id(Doc = #{<<"_id">> := DocId1}, _Server) -> 
-    couchbeam_util:encode_docid(DocId1);
-get_doc_id(Doc = #{'_id' := DocId1}, _Server) -> 
-    couchbeam_util:encode_docid(DocId1); 
-get_doc_id(Doc = #{}, Server) -> 
-    [Id] = get_uuid(Server), 
-    Id; 
-get_doc_id({Props}, Server) -> 
-    case couchbeam_util:get_value(<<"_id">>, Props) of 
-        undefined -> 
-            [Id] = get_uuid(Server), 
-	    Id; 
-        DocId1 -> 
-	    couchbeam_util:encode_docid(DocId1) 
-    end. 
--else. 
-get_doc_id({Props}, Server) -> 
-    case couchbeam_util:get_value(<<"_id">>, Props) of 
-        undefined -> 
-            [Id] = get_uuid(Server), 
-            Id; 
-        DocId1 -> 
-            couchbeam_util:encode_docid(DocId1) 
-    end. 
--endif.
-
- 
 
 %% @doc delete a document
 %% @equiv delete_doc(Db, Doc, [])

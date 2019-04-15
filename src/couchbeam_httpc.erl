@@ -7,7 +7,7 @@
 
 -export([request/5,
          db_request/5, db_request/6,
-         json_body/1, json_body/2,
+         json_body/1,
          db_resp/2,
          make_headers/4,
          maybe_oauth_header/4]).
@@ -32,10 +32,8 @@ db_request(Method, Url, Headers, Body, Options, Expect) ->
     db_resp(Resp, Expect).
 
 json_body(Ref) ->
-    json_body(Ref, []).
-json_body(Ref, Options) ->
     {ok, Body} = hackney:body(Ref),
-    couchbeam_ejson:decode(Body, Options).
+    couchbeam_ejson:decode(Body).
 
 make_headers(Method, Url, Headers, Options) ->
     Headers1 = case couchbeam_util:get_value(<<"Accept">>, Headers) of
