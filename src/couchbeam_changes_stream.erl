@@ -124,6 +124,11 @@ do_init_stream(#state{mref=MRef,
                                [couchbeam_httpc:db_url(Db), <<"_changes">>],
                                Options1),
 
+    Timeout = case {FeedType, proplists:get_value(since, Options, 0)} of
+                  {continuous, now} -> infinity;
+                  _ -> ?TIMEOUT
+              end,
+
     {ok, ClientRef} = case DocIds of
         [] ->
             couchbeam_httpc:request(get, Url, [], <<>>, ConnOpts1);
@@ -147,7 +152,7 @@ do_init_stream(#state{mref=MRef,
             {ok, State1#state{decoder=DecoderFun}};
         {hackney_response, ClientRef, {error, Reason}} ->
             exit(Reason)
-    after ?TIMEOUT ->
+    after Timeout ->
            exit(timeout)
     end.
 
