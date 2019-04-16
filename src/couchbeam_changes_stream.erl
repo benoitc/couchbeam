@@ -124,11 +124,6 @@ do_init_stream(#state{mref=MRef,
                                [couchbeam_httpc:db_url(Db), <<"_changes">>],
                                Options1),
 
-    Timeout = case {FeedType, proplists:get_value(since, Options, 0)} of
-                  {continuous, now} -> infinity;
-                  _ -> ?TIMEOUT
-              end,
-
     {ok, ClientRef} = case DocIds of
         [] ->
             couchbeam_httpc:request(get, Url, [], <<>>, ConnOpts1);
@@ -137,25 +132,30 @@ do_init_stream(#state{mref=MRef,
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:request(post, Url, Headers, Body, ConnOpts1)
     end,
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            %% parent exited there is no need to continue
-            exit(normal);
-        {hackney_response, ClientRef, {status, 200, _}} ->
-            State1 = State#state{client_ref=ClientRef},
-            DecoderFun = case FeedType of
-                longpoll ->
-                    jsx:decoder(?MODULE, [State1], [stream]);
-                _ ->
-                    nil
-            end,
-            {ok, State1#state{decoder=DecoderFun}};
-        {hackney_response, ClientRef, {error, Reason}} ->
-            exit(Reason)
-    after Timeout ->
-           exit(timeout)
-    end.
 
+    case {FeedType, proplists:get_value(since, Options, 0)} of
+        {continuous, now} ->
+            {ok, State#state{decoder = nil, client_ref=ClientRef}};
+        _ ->
+            receive
+                {'DOWN', MRef, _, _, _} ->
+                    %% parent exited there is no need to continue
+                    exit(normal);
+                {hackney_response, ClientRef, {status, 200, _}} ->
+                    State1 = State#state{client_ref=ClientRef},
+                    DecoderFun = case FeedType of
+                                     longpoll ->
+                                         jsx:decoder(?MODULE, [State1], [stream]);
+                                     _ ->
+                                         nil
+                                 end,
+                    {ok, State1#state{decoder=DecoderFun}};
+                {hackney_response, ClientRef, {error, Reason}} ->
+                    exit(Reason)
+            after ?TIMEOUT ->
+                    exit(timeout)
+            end
+    end.
 
 loop(#state{owner=Owner,
             ref=StreamRef,
@@ -169,6 +169,8 @@ loop(#state{owner=Owner,
             %% parent exited there is no need to continue
             exit(normal);
         {hackney_response, ClientRef, {headers, _Headers}} ->
+            loop(State);
+        {hackney_response, ClientRef, {status, 200, V}} ->
             loop(State);
         {hackney_response, ClientRef, done} ->
             maybe_reconnect(State);
