@@ -90,7 +90,7 @@ show(Db, ShowName) ->
 show(Db, ShowName, DocId) ->
     show(Db, ShowName, DocId, []).
 
--type show_option() :: {'accept', binary()}.
+-type show_option() :: {'query_string', binary()}. % "foo=bar&baz=biz"
 -type show_options() :: [show_option()].
 
 -spec show(db(), {binary(), binary()}, 'null' | binary(), show_options()) ->
@@ -101,7 +101,6 @@ show(#db{server=Server, options=DBOptions}=Db
     ,DocId
     ,Options
     ) ->
-
     URL = hackney_url:make_url(couchbeam_httpc:server_url(Server)
                               ,iolist_to_binary([pcouchbeam_httpc:db_url(Db)
                                                 ,<<"/_design/">>
@@ -109,6 +108,7 @@ show(#db{server=Server, options=DBOptions}=Db
                                                 ,<<"/_show/">>
                                                 ,ShowName
                                                 ,show_doc_id(DocId)
+                                                ,get_query_string(Options)
                                                 ]
                                                )
                               ,Options
@@ -118,6 +118,13 @@ show(#db{server=Server, options=DBOptions}=Db
         {ok, _, _, Ref} ->
             {'ok', couchbeam_httpc:json_body(Ref)};
         Error -> Error
+    end.
+
+get_query_string(Options) ->
+    case proplists:get_value('query_string', Options) of
+        'undefined' -> <<>>;
+        <<>> -> <<>>;
+        <<KVs/binary>> -> <<"?", KVs/binary>>
     end.
 
 show_doc_id('null') -> <<>>;
