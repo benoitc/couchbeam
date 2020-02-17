@@ -1008,7 +1008,7 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
 
 find_docs(#db{server=Server, options=Opts}=Db, Selector, Params) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), 
-        [couchbeam_httpc:db_url(Db), <<"_find">>]),
+        [couchbeam_httpc:db_url(Db), <<"_find">>], []),
     Headers = [ {<<"content-type">>, <<"application/json">>}, 
                 {<<"accept">>, <<"application/json">>} ],
     BodyJson = {[{selector, Selector} | Params]},
