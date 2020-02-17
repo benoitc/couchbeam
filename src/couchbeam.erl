@@ -1006,13 +1006,13 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
             Error
     end.
 
-find_docs(#db{server=Server, options=Opts}=Db, Query, Params) ->
+find_docs(#db{server=Server, options=Opts}=Db, Selector, Params) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), 
-        [couchbeam_httpc:db_url(Db), <<"_find">>],
-        Params),
+        [couchbeam_httpc:db_url(Db), <<"_find">>]),
     Headers = [ {<<"content-type">>, <<"application/json">>}, 
                 {<<"accept">>, <<"application/json">>} ],
-    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(Query), Opts,
+    BodyJson = {[{selector, Selector} | Params]},
+    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts,
                                     [200, 201]) of
         {ok, _, RespHeaders, Ref} ->
             case hackney_headers:parse(<<"content-type">>, RespHeaders) of
