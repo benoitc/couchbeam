@@ -38,7 +38,7 @@
          ensure_full_commit/1, ensure_full_commit/2,
          compact/1, compact/2,
          get_missing_revs/2,
-         find_docs/3]).
+         find_docs/3, create_index/2]).
 
 -opaque doc_stream() :: {atom(), any()}.
 -export_type([doc_stream/0]).
@@ -1029,6 +1029,28 @@ find_docs(#db{server=Server, options=Opts}=Db, Selector, Params) ->
             Error
     end.
 
+create_index(#db{server=Server, options=Opts}=Db, Params) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), 
+        [couchbeam_httpc:db_url(Db), <<"_index">>], []),
+    Headers = [ {<<"content-type">>, <<"application/json">>}, 
+                {<<"accept">>, <<"application/json">>} ],
+    BodyJson = {Params},
+    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts,
+                                    [200, 201]) of
+        {ok, _, RespHeaders, Ref} ->
+            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
+                {<<"multipart">>, _, _} ->
+                    %% we get a multipart request, start to parse it.
+                    InitialState =  {Ref, fun() ->
+                                    couchbeam_httpc:wait_mp_doc(Ref, <<>>)
+                            end},
+                    {ok, {multipart, InitialState}};
+                _ ->
+                    {ok, couchbeam_httpc:json_body(Ref)}
+            end;
+        Error ->
+            Error
+    end.
 
 %% --------------------------------------------------------------------
 %% private functions.
