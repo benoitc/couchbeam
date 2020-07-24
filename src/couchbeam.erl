@@ -37,7 +37,8 @@
          put_attachment/4, put_attachment/5, send_attachment/2,
          ensure_full_commit/1, ensure_full_commit/2,
          compact/1, compact/2,
-         get_missing_revs/2]).
+         get_missing_revs/2,
+         find/3]).
 
 -opaque doc_stream() :: {atom(), any()}.
 -export_type([doc_stream/0]).
@@ -1004,6 +1005,23 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
                             {Id, MissingRevs, PossibleAncestors}
                     end, Props),
             {ok, Res};
+        Error ->
+            Error
+    end.
+
+-spec find(Db::db(), Selector::doc(), Params::list()) -> {ok, Doc::doc()} | {error, any()}.
+find(#db{server=Server, options=Opts}=Db, Selector, Params) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server)
+                              ,[couchbeam_httpc:db_url(Db), <<"_find">>]
+                              ,[]
+                              ),
+    Headers = [{<<"content-type">>, <<"application/json">>}
+              ,{<<"accept">>, <<"application/json">>}
+              ],
+    BodyJson = {[{selector, Selector} | Params]},
+    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts, [200, 201]) of
+        {ok, _, _, Ref} ->
+            {ok, couchbeam_httpc:json_body(Ref)};
         Error ->
             Error
     end.
