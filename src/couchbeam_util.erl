@@ -42,7 +42,7 @@ encode_att_name(Name) ->
     Parts = lists:foldl(fun(P, Att) ->
                [xmerl_ucs:to_utf8(P)|Att]
        end, [], string:tokens(Name, "/")),
-    lists:flatten(Parts).
+    ?MODULE:to_binary(lists:flatten(Parts)).
 
 encode_docid(DocId) when is_list(DocId) ->
     encode_docid(list_to_binary(DocId));
