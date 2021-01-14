@@ -103,13 +103,16 @@ db_resp({ok, _, _, _}=Resp, []) ->
 db_resp({ok, Status, Headers, Ref}=Resp, Expect) ->
     case lists:member(Status, Expect) of
         true -> Resp;
-        false ->
-            {ok, Body} = hackney:body(Ref),
-            {error, {bad_response, {Status, Headers, Body}}}
+        false -> {error, {bad_response, {Status, Headers, db_resp_body(Ref)}}}
     end;
 db_resp(Error, _Expect) ->
     Error.
 
+db_resp_body(Ref) ->
+    case hackney:body(Ref) of
+        {ok, Body} -> Body;
+        _ -> <<>>
+    end.
 
 %% @doc Asemble the server URL for the given client
 %% @spec server_url({Host, Port}) -> iolist()
