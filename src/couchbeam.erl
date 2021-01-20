@@ -118,9 +118,9 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%          {consumer_secret, string()} |
 %%          {signature_method, string()}
 %%
-%% proxyOpt = {X-Auth-CouchDB-UserName, username :: string()} |
-%%            {X-Auth-CouchDB-Roles, roles :: string} | list_of_user_roles_separated_by_a_comma
-%%            {X-Auth-CouchDB-Token: token :: string()} | authentication token. Optional, but strongly recommended to force token be required to prevent requests from untrusted sources.
+%% proxyauthOpt = {X-Auth-CouchDB-UserName, username :: string()} |
+%%                {X-Auth-CouchDB-Roles, roles :: string} | list_of_user_roles_separated_by_a_comma
+%%                {X-Auth-CouchDB-Token: token :: string()} | authentication token. Optional, but strongly recommended to force token be required to prevent requests from untrusted sources.
 
 
 
