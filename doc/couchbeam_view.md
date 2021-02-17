@@ -122,8 +122,8 @@ ViewName}`
 
 
 ```
-Options :: view_options() [{key, binary()} | {start_docid, binary()}
-     | {end_docid, binary()} | {start_key, binary()}
+Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
+     | {endkey_docid, binary()} | {start_key, binary()}
      | {end_key, binary()} | {limit, integer()}
      | {stale, stale()}
      | descending
@@ -179,8 +179,8 @@ ViewName}
 
 
 ```
-Options :: view_options() [{key, binary()} | {start_docid, binary()}
-     | {end_docid, binary()} | {start_key, binary()}
+Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
+     | {endkey_docid, binary()} | {start_key, binary()}
      | {end_key, binary()} | {limit, integer()}
      | {stale, stale()}
      | descending
@@ -324,8 +324,8 @@ happend.</dd>
 
 
 ```
-Options :: view_options() [{key, binary()} | {start_docid, binary()}
-     | {end_docid, binary()} | {start_key, binary()}
+Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
+     | {endkey_docid, binary()} | {start_key, binary()}
      | {end_key, binary()} | {limit, integer()}
      | {stale, stale()}
      | descending
@@ -340,10 +340,10 @@ Options :: view_options() [{key, binary()} | {start_docid, binary()}
 
 * `{key, Key}`: key value
 
-* `{start_docid, DocId}`: document id to start with (to allow pagination
+* `{startkey_docid, DocId}`: document id to start with (to allow pagination
 for duplicate start keys
 
-* `{end_docid, DocId}`: last document id to include in the result (to
+* `{endkey_docid, DocId}`: last document id to include in the result (to
 allow pagination for duplicate endkeys)
 
 * `{start_key, Key}`: start result from key value
