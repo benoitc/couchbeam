@@ -1,4 +1,5 @@
-IsRebar3 = erlang:function_exported(rebar3, main, 1),
+% assume that if we are inside mix, we will be using rebar3
+IsRebar3 = erlang:function_exported(rebar3, main, 1) orelse erlang:module_loaded('Elixir.Mix'),
 
 Rebar2Deps = [
     {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git",
