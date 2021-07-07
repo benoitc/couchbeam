@@ -148,6 +148,8 @@ loop(#state{owner=Owner,
             ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done};
+        {hackney_response, ClientRef, <<>>} -> %cause hackney send buffer on close, which could be empty
+            loop(State);
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->

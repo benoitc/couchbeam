@@ -169,6 +169,8 @@ loop(#state{owner=Owner,
             maybe_reconnect(State);
         {hackney_response, ClientRef, <<"\n">>} ->
              maybe_continue(State);
+        {hackney_response, ClientRef, <<>>} -> %cause hackney send buffer on close, which could be empty
+            loop(State);
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->
@@ -240,8 +242,13 @@ wait_reconnect(#state{parent=Parent,
 
 seq(Props,#state{owner=Owner,ref=Ref}) ->
   Seq = couchbeam_util:get_value(<<"seq">>, Props),
-  put(last_seq, Seq),
-  Owner ! {Ref, {change, {Props}}}.
+  case Seq of
+    undefined ->
+      ok;
+    Seq ->
+      put(last_seq, Seq),
+      Owner ! {Ref, {change, {Props}}}
+  end.
 
 decode(Data) ->
   jsx:decode(Data,[return_tail,stream]).
@@ -296,6 +303,7 @@ maybe_continue(#state{parent=Parent,
                       owner=Owner,
                       ref=Ref,
                       mref=MRef,
+                      client_ref=ClientRef,
                       async=once}=State) ->
 
     receive
@@ -313,6 +321,8 @@ maybe_continue(#state{parent=Parent,
         {system, From, Request} ->
             sys:handle_system_msg(Request, From, Parent, ?MODULE, [],
                                   {loop, State});
+        {hackney_response, ClientRef, done} ->
+            maybe_reconnect(State);
         Else ->
             error_logger:error_msg("Unexpected message: ~w~n", [Else]),
             %% unregister the stream
@@ -326,6 +336,7 @@ maybe_continue(#state{parent=Parent,
 maybe_continue(#state{parent=Parent,
                       owner=Owner,
                       ref=Ref,
+                      client_ref=ClientRef,
                       mref=MRef}=State) ->
     receive
         {'DOWN', MRef, _, _, _} ->
@@ -344,6 +355,8 @@ maybe_continue(#state{parent=Parent,
         {system, From, Request} ->
             sys:handle_system_msg(Request, From, Parent, ?MODULE, [],
                                   {loop, State});
+        {hackney_response, ClientRef, done} ->
+            maybe_reconnect(State);
         Else ->
             error_logger:error_msg("Unexpected message: ~w~n", [Else]),
             %% unregister the stream

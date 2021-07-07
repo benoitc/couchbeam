@@ -40,7 +40,8 @@
          put_attachment/4, put_attachment/5, send_attachment/2,
          ensure_full_commit/1, ensure_full_commit/2,
          compact/1, compact/2,
-         get_missing_revs/2]).
+         get_missing_revs/2,
+         find_docs/3, create_index/2]).
 
 -opaque doc_stream() :: {atom(), any()}.
 -export_type([doc_stream/0]).
@@ -79,7 +80,7 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 server_connection(URL, Options) when is_list(Options) ->
     #server{url=hackney_url:fix_path(URL), options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
-    server_connection(Host, Port, "", []).
+    server_connection(Host, Port, <<>>, []).
 
 
 %% @doc Create a server for connectiong to a CouchDB node
@@ -91,8 +92,8 @@ server_connection(Host, Port) when is_integer(Port) ->
 %%
 %%      For a description of SSL Options, look in the <a href="http://www.erlang.org/doc/apps/ssl/index.html">ssl</a> manpage.
 %%
--spec server_connection(Host::string(), Port::non_neg_integer(), Prefix::string(), OptionsList::list()) ->
-        Server::server().
+%-spec server_connection(Host::string(), Port::non_neg_integer(), Prefix::string(), OptionsList::list()) ->
+%        Server::server().
 %% OptionsList() = [option()]
 %% option() =
 %%          {is_ssl, boolean()}                |
@@ -506,7 +507,7 @@ stream_doc({_Ref, Cont}) ->
 
 %% @doc stop to receive the multipart response of the doc api and close
 %% the connection.
--spec end_doc_stream(doc_stream()) -> ok.
+%-spec end_doc_stream(doc_stream()) -> ok.
 end_doc_stream({Ref, _Cont}) ->
     hackney:close(Ref).
 
@@ -566,8 +567,8 @@ save_doc(Db, Doc, Options) ->
 %% `<<"identity">>' if normal or `<<"gzip">>' if the attachments is
 %% gzipped.
 
--spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
-    {ok, doc()} | {error, term()}.
+%-spec save_doc(Db::db(), doc(), mp_attachments(), Options::list()) ->
+%    {ok, doc()} | {error, term()}.
 save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
     DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
         undefined ->
@@ -782,9 +783,9 @@ fetch_attachment(Db, DocId, Name) ->
 %% <li>Other options that can be sent using the REST API</li>
 %% </ul>
 %%
--spec fetch_attachment(db(), string(), string(),
-                       list())
-    -> {ok, binary()}| {ok, atom()} |{error, term()}.
+%-spec fetch_attachment(db(), string(), string(),
+%                       list())
+%    -> {ok, binary()}| {ok, atom()} |{error, term()}.
 fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
     {Stream, Options} = case couchbeam_util:get_value(stream, Options0) of
         undefined ->
@@ -886,7 +887,7 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
         end, Headers, Options),
 
     DocId1 = couchbeam_util:encode_docid(DocId),
-    AttName = couchbeam_util:encode_att_name(Name),
+    AttName = couchbeam_util:to_binary(Name),%encode_att_name(Name),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db), DocId1,
                                                     AttName],
                                QueryArgs),
@@ -1044,6 +1045,52 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
                             {Id, MissingRevs, PossibleAncestors}
                     end, Props),
             {ok, Res};
+        Error ->
+            Error
+    end.
+
+find_docs(#db{server=Server, options=Opts}=Db, Selector, Params) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), 
+        [couchbeam_httpc:db_url(Db), <<"_find">>], []),
+    Headers = [ {<<"content-type">>, <<"application/json">>}, 
+                {<<"accept">>, <<"application/json">>} ],
+    BodyJson = {[{selector, Selector} | Params]},
+    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts,
+                                    [200, 201]) of
+        {ok, _, RespHeaders, Ref} ->
+            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
+                {<<"multipart">>, _, _} ->
+                    %% we get a multipart request, start to parse it.
+                    InitialState =  {Ref, fun() ->
+                                    couchbeam_httpc:wait_mp_doc(Ref, <<>>)
+                            end},
+                    {ok, {multipart, InitialState}};
+                _ ->
+                    {ok, couchbeam_httpc:json_body(Ref)}
+            end;
+        Error ->
+            Error
+    end.
+
+create_index(#db{server=Server, options=Opts}=Db, Params) ->
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), 
+        [couchbeam_httpc:db_url(Db), <<"_index">>], []),
+    Headers = [ {<<"content-type">>, <<"application/json">>}, 
+                {<<"accept">>, <<"application/json">>} ],
+    BodyJson = {Params},
+    case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts,
+                                    [200, 201]) of
+        {ok, _, RespHeaders, Ref} ->
+            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
+                {<<"multipart">>, _, _} ->
+                    %% we get a multipart request, start to parse it.
+                    InitialState =  {Ref, fun() ->
+                                    couchbeam_httpc:wait_mp_doc(Ref, <<>>)
+                            end},
+                    {ok, {multipart, InitialState}};
+                _ ->
+                    {ok, couchbeam_httpc:json_body(Ref)}
+            end;
         Error ->
             Error
     end.
