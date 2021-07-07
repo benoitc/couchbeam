@@ -73,15 +73,14 @@ fetch(Db, ViewName, Options) ->
 
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
-        ViewName::string()}) -> {ok, StartRef::term(),
-        ViewPid::pid()} | {error, term()}.
+        ViewName::string()}) -> {ok, StartRef::reference()} | {error, term()}.
 %% @equiv stream(Db, ViewName, Client, [])
 stream(Db, ViewName) ->
     stream(Db, ViewName, []).
 
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::string(),
         ViewName::string()}, Options::view_options())
-    -> {ok, StartRef::term(), ViewPid::pid()} | {error, term()}.
+    -> {ok, StartRef::reference()} | {error, term()}.
 %% @doc stream view results to a pid
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
@@ -167,9 +166,9 @@ stream(Db, ViewName, Options) ->
 
 cancel_stream(Ref) ->
     with_view_stream(Ref, fun(Pid) ->
-                case supervisor:terminate_child(couch_view_sup, Pid) of
+                case supervisor:terminate_child(couchbeam_view_sup, Pid) of
                     ok ->
-                        case supervisor:delete_child(couch_view_sup,
+                        case supervisor:delete_child(couchbeam_view_sup,
                                                      Pid) of
                             ok ->
                                 ok;
