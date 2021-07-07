@@ -420,16 +420,23 @@ parse_view_options([_|Rest], Args) ->
 
 make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
     Args = parse_view_options(Options),
+    ListName = proplists:get_value(list, Options),
     case ViewName of
         'all_docs' ->
             Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                        [couchbeam_httpc:db_url(Db), <<"_all_docs">>],
                                        Args#view_query_args.options),
             Fun(Args, Url);
-        {DName, VName} ->
+        {DName, VName} when ListName =:= 'undefined' ->
             Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                        [couchbeam_httpc:db_url(Db), <<"_design">>,
                                         DName, <<"_view">>, VName],
+                                       Args#view_query_args.options),
+            Fun(Args, Url);
+        {DName, VName} ->
+            Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                                       [couchbeam_httpc:db_url(Db), <<"_design">>,
+                                        DName, <<"_list">>, ListName, VName],
                                        Args#view_query_args.options),
             Fun(Args, Url);
         _ ->

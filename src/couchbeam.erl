@@ -16,6 +16,9 @@
          server_info/1,
          get_uuid/1, get_uuids/2,
          replicate/2, replicate/3, replicate/4,
+         get_config/1, get_config/2, get_config/3,
+         set_config/4, set_config/5,
+         delete_config/3, delete_config/4,
          all_dbs/1, all_dbs/2, db_exists/2,
          create_db/2, create_db/3, create_db/4,
          open_db/2, open_db/3,
@@ -223,6 +226,45 @@ replicate(Server, Source, Target, Options) ->
     ],
     replicate(Server, {RepProp}).
 
+%% @doc retrieve all the configuration from a couchdb node.
+get_config(Server) ->
+    get_config(Server, <<>>, <<>>).
+
+%% @doc retrieve all the configuration from a section in the couchdb
+%% config.
+get_config(Server, Section) ->
+    get_config(Server, Section, <<>>).
+
+%% @doc retrieve a key value from the couchdb config
+get_config(#server{url=ServerUrl, options=Opts}, Section, Key) ->
+    PathParts = [<<"_config">>,
+                 hackney_bstr:to_binary(Section),
+                 hackney_bstr:to_binary(Key)],
+    PathParts1 = [P || P <- PathParts, P /= <<>>],
+
+    Url = hackney_url:make_url(ServerUrl, PathParts1, []),
+    Resp = couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]),
+    case Resp of
+        {ok, _, _, Ref} ->
+            {ok, couchbeam_httpc:json_body(Ref)};
+        Error ->
+            Error
+    end.
+
+%% @doc set a key, value in the couchdb config
+set_config(Server, Section, Key, Value) ->
+    set_config(Server, Section, Key, Value, true).
+
+set_config(Server, Section, Key, Value, Persist) ->
+    update_config(Server,  Section, Key, Value, Persist, put).
+
+%% @doc delete a key from the couchdb config
+delete_config(Server, Section, Key) ->
+    delete_config(Server, Section, Key, true).
+
+delete_config(Server, Section, Key, Persist) ->
+    update_config(Server,  Section, Key, <<>>, Persist, delete).
+
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
 all_dbs(#server{}=Server) -> all_dbs(Server, []).
@@ -258,7 +300,8 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                [DbName, <<"_view_cleanup">>],
                                []),
-    Resp = couchbeam_httpc:db_request(post, Url, [], <<>>, Opts, [200]),
+    Headers = [{<<"Content-Type">>, <<"application/json">>}],
+    Resp = couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [200, 202]),
     case Resp of
         {ok, _, _, Ref} ->
             catch hackney:skip_body(Ref),
@@ -850,7 +893,7 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                                QueryArgs),
 
     case couchbeam_httpc:db_request(put, Url, FinalHeaders, Body, Opts,
-                                   [201]) of
+                                   [201, 202]) of
         {ok, _, _, Ref} ->
             JsonBody = couchbeam_httpc:json_body(Ref),
             {[{<<"ok">>, true}|R]} = JsonBody,
@@ -1064,6 +1107,29 @@ maybe_docid(Server, {DocProps}) ->
             {[{<<"_id">>, DocId}|DocProps]};
         _DocId ->
             {DocProps}
+    end.
+
+update_config(#server{url=ServerUrl, options=Opts}, Section, Key, Value,
+           Persist, Method) ->
+    PathParts = [<<"_config">>,
+                 hackney_bstr:to_binary(Section),
+                 hackney_bstr:to_binary(Key)],
+    Url = hackney_url:make_url(ServerUrl, PathParts, []),
+    Headers = [{<<"Content-Type">>, <<"application/json">>},
+               {<<"X-Couch-Persist">>, atom_to_binary(Persist, latin1)}],
+
+    Body = case Method of
+        delete -> <<>>;
+        put -> couchbeam_ejson:encode(Value)
+    end,
+
+    Resp = couchbeam_httpc:db_request(Method, Url, Headers, Body, Opts,
+                                      [200]),
+    case Resp of
+        {ok, _, _, Ref} ->
+            {ok, couchbeam_httpc:json_body(Ref)};
+        Error ->
+            Error
     end.
 
 -ifdef(TEST).
@@ -1337,6 +1403,22 @@ replicate_test() ->
 
     {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
     ?assert(is_binary(InstanceStartTime)),
+    ok.
+
+config_test() ->
+    Server = couchbeam:server_connection(),
+    {ok, {AllConfig}} = couchbeam:get_config(Server),
+    ?assert(proplists:is_defined(<<"httpd">>, AllConfig)),
+    {ok, {HttpdConfig}} = couchbeam:get_config(Server, <<"httpd">>),
+    ?assert(proplists:is_defined(<<"port">>, HttpdConfig)),
+    {ok, Port} = couchbeam:get_config(Server, <<"httpd">>, <<"port">>),
+    ?assertEqual(<<"5984">>, Port),
+    ?assertMatch({ok, <<>>}, couchbeam:set_config(Server, <<"couchbeam">>,<<"test">>, <<"1">>, false)),
+    ?assertEqual({ok, <<"1">>}, couchbeam:get_config(Server, <<"couchbeam">>,<<"test">>)),
+    ?assertEqual({ok, <<"1">>}, couchbeam:set_config(Server, <<"couchbeam">>,<<"test">>, <<"2">>,  false)),
+    ?assertEqual({ok, <<"2">>}, couchbeam:get_config(Server, <<"couchbeam">>, <<"test">>)),
+    ?assertEqual({ok, <<"2">>}, couchbeam:delete_config(Server, <<"couchbeam">>, <<"test">>, false)),
+    ?assertEqual({error, not_found}, couchbeam:get_config(Server, <<"couchbeam">>,  <<"test">>)),
     ok.
 
 collect_mp({doc, Doc, Next}, Acc) ->
