@@ -280,11 +280,4 @@ proxy_token(Secret,UserName) ->
     hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
 
 hmac(Alg, Key, Data) ->
-    case {Alg, erlang:function_exported(crypto, hmac, 3)} of
-        {_, true} ->
-            crypto:hmac(Alg, Key, Data);
-        {sha, false} ->
-            crypto:sha_mac(Key, Data);
-        {Alg, false} ->
-            throw({unsupported, Alg})
-    end.
+    crypto:mac(hmac, Alg, Key, Data).
