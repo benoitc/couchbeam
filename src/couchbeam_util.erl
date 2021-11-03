@@ -280,4 +280,5 @@ proxy_token(Secret,UserName) ->
     hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
 
 hmac(Alg, Key, Data) ->
+    code:ensure_loaded(crypto),
     crypto:mac(hmac, Alg, Key, Data).

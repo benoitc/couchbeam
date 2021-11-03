@@ -4,8 +4,8 @@ Rebar2Deps = [
     {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git",
                  {tag,"2.8.0"}}},
 
-    {hackney, ".*", {git, "https://github.com/benoitc/hackney.git",
-                     {tag, "1.6.4"}}}
+    {hackney, ".*", {git, "https://github.com/obi458/hackney.git",
+                     {tag, "v1.9.1"}}}
 ],
 
 case IsRebar3 of

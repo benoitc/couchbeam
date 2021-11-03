@@ -28,9 +28,9 @@
 -type db_name() :: binary() | string().
 -type docid() :: binary() | string().
 
--type ejson() :: ejson_object() | ejson_array().
+-type ejson() :: ejson_term().
 
--type ejson_array() :: [ejson_term()].
+-type ejson_array() :: [ejson_term()] | [{ejson_key(), ejson_term()}].
 -type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
 
 -type ejson_key() :: binary() | atom().
@@ -39,6 +39,7 @@
     | ejson_object()
     | ejson_string()
     | ejson_number()
+    | ejson_key()
     | true | false | null.
 
 -type ejson_string() :: binary().
@@ -48,10 +49,11 @@
 -type doc() :: ejson_object().
 
 -type changes_option() :: continuous | longpoll | normal
-    | include_docs | {since, integer()}
+    | include_docs | {since, integer()} | {since, now}
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
-    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
+    | {binary(),binary()}
+    | {filter, string() | binary()} | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()}
 )}
     | conflicts | {style, string()} | descending.
 -type changes_options() :: list(changes_option()).
@@ -60,8 +62,7 @@
     | include_docs | {since, integer()}
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
-    | {filter, string()} | {filter, string(), list({string(), string() | integer()}
-)}
+    | {filter, string() | binary()} | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()})}
     | conflicts | {style, string()} | descending.
 -type changes_options1() :: list(changes_option1()).
 
@@ -71,7 +72,7 @@
     | {timeout, integer()}
     | heartbeat | {heartbeat, integer()}
     | {filter, string() | binary()}
-    | {filter, string() | binary(), list({string(), string() | integer()})}
+    | {filter, string() | binary(), list({string() | binary(), string() | binary() | integer()})}
     | conflicts
     | {style, string() | binary()}
     | descending
@@ -81,9 +82,9 @@
 
 -type stale() :: ok | update_after.
 
--type view_option() :: {key, binary()} | {start_docid, binary()}
-    | {end_docid, binary()} | {start_key, binary()}
-    | {end_key, binary()} | {limit, integer()}
+-type view_option() :: {key, ejson()} | {start_docid, binary()}
+    | {end_docid, binary()} | {start_key, ejson()}
+    | {end_key, ejson()} | {limit, integer()}
     | {stale, stale()}
     | descending
     | {skip, integer()}
@@ -112,7 +113,7 @@
 % record to keep database information
 -record(db, {
     server :: server(),
-    name :: string(),
+    name :: binary(),
     options = [] :: list()
 }).
 
