@@ -11,30 +11,21 @@
 
 -include("couchbeam.hrl").
 
-
--ifndef('WITH_JIFFY').
--define(JSON_ENCODE(D), jsx:encode(pre_encode(D))).
--define(JSON_DECODE(D), post_decode(jsx:decode(D))).
-
--else.
--define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).
--define(JSON_DECODE(D), jiffy:decode(D)).
--endif.
-
-
 -spec encode(ejson()) -> binary().
 
 %% @doc encode an erlang term to JSON. Throw an exception if there is
 %% any error.
 encode(D) ->
-    ?JSON_ENCODE(D).
+    {M, F, A} = application:get_env(couchbeam, json_encode, {jsx, encode, []}),
+    apply(M, F, [D | A]).
 
 -spec decode(binary()) -> ejson().
 %% @doc decode a binary to an EJSON term. Throw an exception if there is
 %% any error.
 decode(D) ->
     try
-        ?JSON_DECODE(D)
+        {M, F, A} = application:get_env(couchbeam, json_decode, {jsx, decode, []}),
+        apply(M, F, [D | A])
     catch
         throw:Error ->
             throw({invalid_json, Error});
