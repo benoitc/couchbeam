@@ -22,20 +22,28 @@
 
 -define(COLLECT_TIMEOUT, 10000).
 
--spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
+-spec all(Db::db()) ->
+          {ok, Rows::list(ejson_object())} |
+          {error, term()} |
+          {error, term(), Rows::list(ejson_object())}.
 %% @doc fetch all docs
 %% @equiv fetch(Db, 'all_docs', [])
 all(Db) ->
     fetch(Db, 'all_docs', []).
 
--spec all(Db::db(), Options::view_options())
-         -> {ok, Rows::list(ejson_object())} | {error, term()}.
+-spec all(Db::db(), Options::view_options()) ->
+          {ok, Rows::list(ejson_object())} |
+          {error, term()} |
+          {error, term(), Rows::list(ejson_object())}.
 %% @doc fetch all docs
 %% @equiv fetch(Db, 'all_docs', Options)
 all(Db, Options) ->
     fetch(Db, 'all_docs', Options).
 
--spec fetch(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
+-spec fetch(Db::db()) ->
+          {ok, Rows::list(ejson_object())} |
+          {error, term()} |
+          {error, term(), Rows::list(ejson_object())}.
 %% @equiv fetch(Db, 'all_docs', [])
 fetch(Db) ->
     fetch(Db, 'all_docs', []).
@@ -78,14 +86,14 @@ fetch(Db, ViewName, Options) ->
             Error
     end.
 
--spec show(db(), {string(), string()}) ->
-          {'ok', [ejson_object()]} |
+-spec show(db(), {binary(), binary()}) ->
+          {'ok', ejson_object()} |
           {'error', term()}.
 show(Db, ShowName) ->
     show(Db, ShowName, <<>>).
 
--spec show(db(), {string(), string()}, binary()) ->
-          {'ok', [ejson_object()]} |
+-spec show(db(), {binary(), binary()}, binary()) ->
+          {'ok', ejson_object()} |
           {'error', term()}.
 show(Db, ShowName, DocId) ->
     show(Db, ShowName, DocId, []).
@@ -94,7 +102,7 @@ show(Db, ShowName, DocId) ->
 -type show_options() :: [show_option()].
 
 -spec show(db(), {binary(), binary()}, 'null' | binary(), show_options()) ->
-          {'ok', [ejson_object()]} |
+          {'ok', ejson_object()} |
           {'error', term()}.
 show(#db{server=Server, options=DBOptions}=Db
     ,{<<DesignName/binary>>, <<ShowName/binary>>}
@@ -152,15 +160,9 @@ stream(Db, ViewName) ->
 %%      <dt>{row, StartRef, Row :: ejson_object()}</dt>
 %%          <dd>A row in the view</dd>
 %%      <dt>{error, StartRef, Error}</dt>
-%%          <dd>Got an error, connection is closed when an error
 %%          happend.</dd>
 %%  </dl></p>
 %%  <p><pre>Options :: view_options() [{key, binary()}
-%%    | {start_docid, binary()} | {startkey_docid, binary()}
-%%    | {end_docid, binary()} | {endkey_docid, binary()}
-%%    | {start_key, binary()} | {end_key, binary()}
-%%    | {limit, integer()}
-%%    | {stale, stale()}
 %%    | descending
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
@@ -282,7 +284,6 @@ count(Db, ViewName, Options)->
                                       end).
 
 -spec first(Db::db()) -> {ok, Row::ejson_object()} | {error, term()}.
-%% @equiv first(Db, 'all_docs', [])
 first(Db) ->
     first(Db, 'all_docs', []).
 
@@ -533,8 +534,10 @@ fold_view_results(Ref, Fun, Acc) ->
             {error, Acc, Error}
     end.
 
-
-
+-spec collect_view_results(reference(), Rows::list(ejson_object()), Timeout::timeout()) ->
+          {ok, Rows::list(ejson_object())} |
+          {error, term()} |
+          {error, term(), Rows::list(ejson_object())}.
 collect_view_results(Ref, Acc, Timeout) ->
     receive
         {Ref, done} ->
