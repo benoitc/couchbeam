@@ -81,8 +81,8 @@
 
 -type stale() :: ok | update_after.
 
--type view_option() :: {key, binary()} | {start_docid, binary()}
-    | {end_docid, binary()} | {start_key, binary()}
+-type view_option() :: {key, binary()} | {startkey_docid, binary()}
+    | {endkey_docid, binary()} | {start_key, binary()}
     | {end_key, binary()} | {limit, integer()}
     | {stale, stale()}
     | descending
