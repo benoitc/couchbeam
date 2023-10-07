@@ -28,6 +28,9 @@
 -type db_name() :: binary() | string().
 -type docid() :: binary() | string().
 
+-type design_name() :: binary() | string().
+-type view_name() :: binary() | string().
+
 -type ejson() :: ejson_object() | ejson_array().
 
 -type ejson_array() :: [ejson_term()].
@@ -81,7 +84,7 @@
 
 -type stale() :: ok | update_after.
 
--type view_option() :: {key, binary()}
+-type view_option() :: {key, binary()} | {startkey_docid, binary()}
     | {start_docid, binary()} | {startkey_docid, binary()}
     | {end_docid, binary()} | {endkey_docid, binary()}
     | {start_key, binary()} | {end_key, binary()}
@@ -114,7 +117,7 @@
 % record to keep database information
 -record(db, {
     server :: server(),
-    name :: string(),
+    name :: binary(),
     options = [] :: list()
 }).
 
