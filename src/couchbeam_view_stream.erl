@@ -168,7 +168,7 @@ decode_data(Data, #state{owner=Owner,
             {ok, _} = hackney:stop_async(ClientRef),
             %% skip the rest of the body so the socket is
             %% replaced in the pool
-            hackney:skip_body(ClientRef),
+            catch hackney:skip_body(ClientRef),
             %% unregister the stream
             ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
