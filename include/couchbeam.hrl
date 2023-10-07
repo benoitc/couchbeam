@@ -82,7 +82,7 @@
     | {doc_ids, list()}.
 -type changes_stream_options() :: list(changes_stream_option()).
 
--type stale() :: ok | update_after.
+-type stale() :: ok | update_after | false.
 
 -type view_option() :: {key, binary()} | {startkey_docid, binary()}
     | {start_docid, binary()} | {startkey_docid, binary()}
