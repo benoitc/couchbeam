@@ -170,7 +170,7 @@ loop(#state{owner=Owner,
             exit(normal);
         {hackney_response, ClientRef, {headers, _Headers}} ->
             loop(State);
-        {hackney_response, ClientRef, {status, 200, V}} ->
+        {hackney_response, ClientRef, {status, 200, _V}} ->
             loop(State);
         {hackney_response, ClientRef, done} ->
             maybe_reconnect(State);
@@ -565,11 +565,11 @@ maybe_close(#state{client_ref=nil}) ->
 maybe_close(#state{client_ref=Ref}) ->
     hackney:close(Ref).
 
-post_decode([{}]) ->
-    {[]};
-post_decode([{_Key, _Value} | _Rest] = PropList) ->
-    {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
-post_decode(List) when is_list(List) ->
-    [ post_decode(Term) || Term <- List];
-post_decode(Term) ->
-    Term.
+%post_decode([{}]) ->
+%    {[]};
+%post_decode([{_Key, _Value} | _Rest] = PropList) ->
+%  {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
+%post_decode(List) when is_list(List) ->
+%  [ post_decode(Term) || Term <- List];
+%post_decode(Term) ->
+%  Term.
