@@ -51,9 +51,11 @@ fetch(Db, ViewName) ->
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: <code>'all_docs'</code> to get all docs or <code>{DesignName,
 %%  ViewName}</code></p>
-%%  <pre>Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
-%%    | {endkey_docid, binary()} | {start_key, binary()}
-%%    | {end_key, binary()} | {limit, integer()}
+%%  <pre>Options :: view_options() [{key, binary()}
+%%    | {start_docid, binary()} | {startkey_docid, binary()}
+%%    | {end_docid, binary()} | {endkey_docid, binary()}
+%%    | {start_key, binary()} | {end_key, binary()}
+%%    | {limit, integer()}
 %%    | {stale, stale()}
 %%    | descending
 %%    | {skip, integer()}
@@ -96,9 +98,11 @@ stream(Db, ViewName) ->
 %%          <dd>Got an error, connection is closed when an error
 %%          happend.</dd>
 %%  </dl></p>
-%%  <p><pre>Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
-%%    | {endkey_docid, binary()} | {start_key, binary()}
-%%    | {end_key, binary()} | {limit, integer()}
+%%  <p><pre>Options :: view_options() [{key, binary()}
+%%    | {start_docid, binary()} | {startkey_docid, binary()}
+%%    | {end_docid, binary()} | {endkey_docid, binary()}
+%%    | {start_key, binary()} | {end_key, binary()}
+%%    | {limit, integer()}
 %%    | {stale, stale()}
 %%    | descending
 %%    | {skip, integer()}
@@ -111,9 +115,9 @@ stream(Db, ViewName) ->
 %%
 %%  <ul>
 %%      <li><code>{key, Key}</code>: key value</li>
-%%      <li><code>{startkey_docid, DocId}</code>: document id to start with (to allow pagination
+%%      <li><code>{start_docid, DocId}</code> | <code>{startkey_docid, DocId}</code>: document id to start with (to allow pagination
 %%          for duplicate start keys</li>
-%%      <li><code>{endkey_docid, DocId}</code>: last document id to include in the result (to
+%%      <li><code>{end_docid, DocId}</code> | <code>{endkey_docid, DocId}</code>: last document id to include in the result (to
 %%          allow pagination for duplicate endkeys)</li>
 %%      <li><code>{start_key, Key}</code>: start result from key value</li>
 %%      <li><code>{end_key, Key}</code>: end result from key value</li>
@@ -239,9 +243,11 @@ first(Db, ViewName) ->
 %%  <p>Db: a db record</p>
 %%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
 %%  ViewName}</p>
-%%  <pre>Options :: view_options() [{key, binary()} | {startkey_docid, binary()}
-%%    | {endkey_docid, binary()} | {start_key, binary()}
-%%    | {end_key, binary()} | {limit, integer()}
+%%  <pre>Options :: view_options() [{key, binary()}
+%%    | {start_docid, binary()} | {startkey_docid, binary()}
+%%    | {end_docid, binary()} | {endkey_docid, binary()}
+%%    | {start_key, binary()} | {end_key, binary()}
+%%    | {limit, integer()}
 %%    | {stale, stale()}
 %%    | descending
 %%    | {skip, integer()}
@@ -340,6 +346,12 @@ parse_view_options([{key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{startkey_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{startkey_docid, Value}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{startkey_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{startkey_docid, Value}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{end_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{end_docid, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{endkey_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{endkey_docid, Value}|Opts],
