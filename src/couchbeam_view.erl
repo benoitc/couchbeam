@@ -345,7 +345,7 @@ parse_view_options([], Args) ->
 parse_view_options([{key, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{key, couchbeam_ejson:encode(Value)}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
-parse_view_options([{startkey_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
+parse_view_options([{start_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{startkey_docid, Value}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{startkey_docid, Value}|Rest], #view_query_args{options=Opts}=Args) ->
