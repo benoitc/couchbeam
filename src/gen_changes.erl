@@ -4,7 +4,7 @@
 %%% See the NOTICE for more information.
 
 %% @doc gen_changes CouchDB continuous changes consumer behavior
-%% This behaviour allws you to create easily a server that consume
+%% This behaviour allows you to create easily a server that consume
 %% Couchdb continuous changes
 
 -module(gen_changes).
