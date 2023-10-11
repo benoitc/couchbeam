@@ -1,6 +1,13 @@
 couchbeam NEWS
 --------------
 
+version 1.5.0 / 2023-10-11
+--------------------------
+
+- use hackney 2.20
+- fix compatibility with couchdb 3
+- fix compatibility with Erlang >= 23
+
 version 1.4.1 / 2016-09-26
 --------------------------
 

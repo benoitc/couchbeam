@@ -1,10 +1,10 @@
 
 
-# Couchbeam - simple Barrel and Apache CouchDB client library for Erlang applications #
+# Couchbeam - simple Apache CouchDB client library for Erlang applications #
 
-Copyright (c) 2009-2016 Benoît Chesneau.
+Copyright (c) 2009-2023 Benoît Chesneau.
 
-__Version:__ 1.4.2
+__Version:__ 1.5.0
 
 # couchbeam
 
@@ -399,3 +399,26 @@ in the `couchbeam:server_connection/2` documentation.
 
 For issues, comments or feedback please [create an
 issue](http://github.com/benoitc/couchbeam/issues).
+
+
+## Modules ##
+
+
+<table width="100%" border="0" summary="list of modules">
+<tr><td><a href="couchbeam.md" class="module">couchbeam</a></td></tr>
+<tr><td><a href="couchbeam_app.md" class="module">couchbeam_app</a></td></tr>
+<tr><td><a href="couchbeam_attachments.md" class="module">couchbeam_attachments</a></td></tr>
+<tr><td><a href="couchbeam_changes.md" class="module">couchbeam_changes</a></td></tr>
+<tr><td><a href="couchbeam_changes_stream.md" class="module">couchbeam_changes_stream</a></td></tr>
+<tr><td><a href="couchbeam_changes_sup.md" class="module">couchbeam_changes_sup</a></td></tr>
+<tr><td><a href="couchbeam_doc.md" class="module">couchbeam_doc</a></td></tr>
+<tr><td><a href="couchbeam_ejson.md" class="module">couchbeam_ejson</a></td></tr>
+<tr><td><a href="couchbeam_httpc.md" class="module">couchbeam_httpc</a></td></tr>
+<tr><td><a href="couchbeam_sup.md" class="module">couchbeam_sup</a></td></tr>
+<tr><td><a href="couchbeam_util.md" class="module">couchbeam_util</a></td></tr>
+<tr><td><a href="couchbeam_uuids.md" class="module">couchbeam_uuids</a></td></tr>
+<tr><td><a href="couchbeam_view.md" class="module">couchbeam_view</a></td></tr>
+<tr><td><a href="couchbeam_view_stream.md" class="module">couchbeam_view_stream</a></td></tr>
+<tr><td><a href="couchbeam_view_sup.md" class="module">couchbeam_view_sup</a></td></tr>
+<tr><td><a href="gen_changes.md" class="module">gen_changes</a></td></tr></table>
+
