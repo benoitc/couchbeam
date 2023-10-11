@@ -12,6 +12,7 @@
 -export([encode_docid/1, encode_att_name/1]).
 -export([parse_options/1, parse_options/2]).
 -export([to_list/1, to_binary/1, to_integer/1, to_atom/1]).
+-export([binary_env/2]).
 -export([encode_query/1, encode_query_value/2]).
 -export([oauth_header/3]).
 -export([propmerge/3, propmerge1/2]).
@@ -213,6 +214,11 @@ to_atom(V) when is_binary(V) ->
 to_atom(V) ->
     list_to_atom(lists:flatten(io_lib:format("~p", [V]))).
 
+
+binary_env(Key, Default) ->
+  Value = os:getenv(Key, Default),
+  to_binary(Value).
+
 deprecated(Old, New, When) ->
     io:format(
       <<
@@ -279,5 +285,10 @@ hgv(N,L) ->
 proxy_token(Secret,UserName) ->
     hackney_bstr:to_hex(hmac(sha, Secret, UserName)).
 
+-ifdef(USE_CRYPTO_MAC).
+hmac(Alg, Key, Data) ->
+   crypto:mac(hmac, Alg, Key, Data).
+-else.
 hmac(Alg, Key, Data) ->
    crypto:hmac(Alg, Key, Data).
+-endif.
