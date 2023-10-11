@@ -65,8 +65,10 @@
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection("127.0.0.1", 5984, "", [], false)
 server_connection() ->
-    server_connection(<<"http://127.0.0.1:5984">>, []).
-
+    URL = couchbeam_util:binary_env("COUCHDB_URL", "http://127.0.0.1:5984"),
+    ADMIN = couchbeam_util:binary_env("COUCHDB_ADMIN", "admin"),
+    PASSWORD = couchbeam_util:binary_env("COUCHDB_PASSWORD", "change_me"),
+    server_connection(URL, [{basic_auth, {ADMIN, PASSWORD}}]).
 
 server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
     server_connection(URL, []).
