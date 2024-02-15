@@ -18,6 +18,8 @@
          foreach/3, foreach/4,
          parse_view_options/1]).
 
+-define(COLLECT_TIMEOUT, 10000).
+
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @doc fetch all docs
 %% @equiv fetch(Db, 'all_docs', [])
@@ -68,7 +70,8 @@ fetch(Db, ViewName) ->
 fetch(Db, ViewName, Options) ->
     case stream(Db, ViewName, Options) of
         {ok, Ref} ->
-            collect_view_results(Ref, []);
+            Timeout = proplists:get_value(collect_timeout, Options, ?COLLECT_TIMEOUT),
+            collect_view_results(Ref, [], Timeout);
         Error ->
             Error
     end.
@@ -478,13 +481,13 @@ fold_view_results(Ref, Fun, Acc) ->
 
 
 
-collect_view_results(Ref, Acc) ->
+collect_view_results(Ref, Acc, Timeout) ->
     receive
         {Ref, done} ->
             Rows = lists:reverse(Acc),
             {ok, Rows};
         {Ref, {row, Row}} ->
-            collect_view_results(Ref, [Row|Acc]);
+            collect_view_results(Ref, [Row|Acc], Timeout);
         {Ref, {error, Error}}
           when Acc =:= []->
             {error, Error};
@@ -492,7 +495,7 @@ collect_view_results(Ref, Acc) ->
             %% in case we got some results
             Rows = lists:reverse(Acc),
             {error, Error, Rows}
-    after 10000 ->
+    after Timeout ->
               {error, timeout}
     end.
 
