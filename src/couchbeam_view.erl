@@ -476,7 +476,7 @@ fold_view_results(Ref, Fun, Acc) ->
                     fold_view_results(Ref, Fun, Acc1)
             end;
         {Ref, Error} ->
-            {error, Acc, Error}
+            {error, {fold_view_results, Acc, Error}}
     end.
 
 
@@ -484,19 +484,17 @@ fold_view_results(Ref, Fun, Acc) ->
 collect_view_results(Ref, Acc, Timeout) ->
     receive
         {Ref, done} ->
-            Rows = lists:reverse(Acc),
-            {ok, Rows};
+            {ok, lists:reverse(Acc)};
         {Ref, {row, Row}} ->
             collect_view_results(Ref, [Row|Acc], Timeout);
         {Ref, {error, Error}}
           when Acc =:= []->
-            {error, Error};
+            {error, {collect_view_results, Error}};
         {Ref, {error, Error}} ->
             %% in case we got some results
-            Rows = lists:reverse(Acc),
-            {error, Error, Rows}
+            {error, {collect_view_results, Error, lists:reverse(Acc)}}
     after Timeout ->
-              {error, timeout}
+              {error, {collect_view_results, timeout}}
     end.
 
 view_request(#db{options=Opts}, Url, Args) ->

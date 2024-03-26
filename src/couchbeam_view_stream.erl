@@ -126,7 +126,7 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
                     {error, timeout}
             end;
         Error ->
-            {error, Error}
+            {error, {init_stream, Error}}
     end.
 
 
