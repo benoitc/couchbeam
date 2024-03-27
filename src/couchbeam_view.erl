@@ -485,19 +485,19 @@ fold_view_results(Ref, Fun, Acc) ->
 
 
 collect_view_results(Ref, Acc, Timeout) ->
-    receive
-        {Ref, done} ->
-            {ok, lists:reverse(Acc)};
-        {Ref, {row, Row}} ->
-            collect_view_results(Ref, [Row|Acc], Timeout);
-        {Ref, {error, Error}} ->
-            %% in case we got some results
-            {error, {collect_view_results, Error, lists:reverse(Acc)}};
-        _Else ->
-            {error, {collect_view_results, {unknown_message, _Else}}}
-    after Timeout ->
-              {error, {collect_view_results, timeout}}
-    end.
+  receive
+    {Ref, done} ->
+      {ok, lists:reverse(Acc)};
+    {Ref, {row, Row}} ->
+      collect_view_results(Ref, [Row|Acc], Timeout);
+    {Ref, {error, Error}} ->
+      %% in case we got some results
+      {error, {collect_view_results, Error, lists:reverse(Acc)}};
+    _Else ->
+      {error, {collect_view_results, {unknown_message, _Else}}}
+  after Timeout ->
+          {error, {collect_view_results, timeout, Acc}}
+  end.
 
 view_request(#db{options=Opts}, Url, Args) ->
     case Args#view_query_args.method of
