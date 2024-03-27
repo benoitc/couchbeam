@@ -18,7 +18,7 @@
          foreach/3, foreach/4,
          parse_view_options/1]).
 
--define(COLLECT_TIMEOUT, 10000).
+-define(COLLECT_TIMEOUT, 5000).
 
 -spec all(Db::db()) -> {ok, Rows::list(ejson_object())} | {error, term()}.
 %% @doc fetch all docs
@@ -493,11 +493,9 @@ collect_view_results(Ref, Acc, Timeout) ->
       collect_view_results(Ref, [Row|Acc], Timeout);
     {Ref, {error, Error}} ->
       %% in case we got some results
-      {error, {collect_view_results, Error, lists:reverse(Acc)}};
-    _Else ->
-      {error, {collect_view_results, {unknown_message, _Else}}}
+      {error, {collect_view_results, Error, lists:reverse(Acc)}}
   after Timeout ->
-          {error, {collect_view_results, timeout, Acc}}
+          {error, {collect_view_results, {timeout, Acc}}}
   end.
 
 view_request(#db{options=Opts}, Url, Args) ->
