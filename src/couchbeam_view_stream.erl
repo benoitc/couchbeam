@@ -154,6 +154,10 @@ loop(#state{owner=Owner,
             %% report the error
             report_error(Error, StreamRef, Owner),
             exit(Error)
+        Other ->
+          ets:delete(couchbeam_view_streams, StreamRef),
+          report_error({unkown_message, Other}, StreamRef, Owner),
+          exit({unkown_message, Other})
     end.
 
 decode_data(Data, #state{owner=Owner,
@@ -173,6 +177,7 @@ decode_data(Data, #state{owner=Owner,
             %% tell to the owner that we are done and exit,
             Owner ! {StreamRef, done}
         catch error:badarg ->
+
             maybe_continue(State#state{decoder=DecodeFun2})
         end
     catch error:badarg -> exit(badarg)
