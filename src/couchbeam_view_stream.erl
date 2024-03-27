@@ -153,7 +153,7 @@ loop(#state{owner=Owner,
             ets:delete(couchbeam_view_streams, StreamRef),
             %% report the error
             report_error(Error, StreamRef, Owner),
-            exit(Error)
+            exit(Error);
         Other ->
           ets:delete(couchbeam_view_streams, StreamRef),
           report_error({unkown_message, Other}, StreamRef, Owner),
