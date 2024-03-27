@@ -71,7 +71,10 @@ fetch(Db, ViewName, Options) ->
     case stream(Db, ViewName, Options) of
         {ok, Ref} ->
             Timeout = proplists:get_value(collect_timeout, Options, ?COLLECT_TIMEOUT),
-            collect_view_results(Ref, [], Timeout);
+            try collect_view_results(Ref, [], Timeout)
+            after ->
+              _Cancel = cancel_stream(Ref)
+            end;
         Error ->
             Error
     end.
