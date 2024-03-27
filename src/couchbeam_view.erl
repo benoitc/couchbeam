@@ -486,11 +486,7 @@ collect_view_results(Ref, Acc, Timeout) ->
         {Ref, done} ->
             {ok, lists:reverse(Acc)};
         {Ref, {row, Row}} ->
-            stream_next(Ref),
             collect_view_results(Ref, [Row|Acc], Timeout);
-        {Ref, {error, Error}}
-          when Acc =:= []->
-            {error, {collect_view_results, Error}};
         {Ref, {error, Error}} ->
             %% in case we got some results
             {error, {collect_view_results, Error, lists:reverse(Acc)}};
