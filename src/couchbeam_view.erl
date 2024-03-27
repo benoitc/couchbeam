@@ -495,7 +495,7 @@ collect_view_results(Ref, Acc, Timeout) ->
       %% in case we got some results
       {error, {collect_view_results, Error, lists:reverse(Acc)}}
   after Timeout ->
-          {error, {collect_view_results, {timeout, lists:reverse(Acc)}}}
+          {error, {collect_view_results, timeout, lists:reverse(Acc)}}
   end.
 
 view_request(#db{options=Opts}, Url, Args) ->
