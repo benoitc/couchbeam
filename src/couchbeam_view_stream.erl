@@ -19,8 +19,7 @@
          wait_rows/2,
          wait_rows1/2,
          wait_val/2,
-         collect_object/2,
-         maybe_continue_decoding/1]).
+         collect_object/2]).
 
 
 -include("couchbeam.hrl").
@@ -146,7 +145,8 @@ loop(#state{owner=Owner,
             %% unregister the stream
             ets:delete(couchbeam_view_streams, StreamRef),
             %% tell to the owner that we are done and exit,
-            Owner ! {StreamRef, done};
+            Owner ! {StreamRef, done},
+            exit(normal);
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->
@@ -311,10 +311,8 @@ wait_rows1(end_array, {_, _, _, ViewSt}) ->
 collect_object(start_object, {_, NestCount, Terms, ViewSt}) ->
     {collect_object, NestCount + 1, [[]|Terms], ViewSt};
 
-collect_object(end_object, {_, NestCount, [[], {key, Key}, Last|Terms],
-                           ViewSt}) ->
-    {collect_object, NestCount - 1, [[{Key, {[{}]}}] ++ Last] ++ Terms,
-     ViewSt};
+collect_object(end_object, {_, NestCount, [[], {key, Key}, Last|Terms], ViewSt}) ->
+    {collect_object, NestCount - 1, [[{Key, {[{}]}}] ++ Last] ++ Terms, ViewSt};
 
 collect_object(end_object, {_, NestCount, [Object, {key, Key},
                                            Last|Terms], ViewSt}) ->
@@ -359,70 +357,7 @@ collect_object({_, Event}, {_, NestCount, [Last|Terms], ViewSt}) ->
 
 send_row(Row, #viewst{owner=Owner, ref=Ref}=ViewSt) ->
     Owner ! {Ref, {row, couchbeam_ejson:post_decode(Row)}},
-    maybe_continue_decoding(ViewSt).
-
-%% eventually wait for the next call from the parent
-maybe_continue_decoding(#viewst{parent=Parent,
-                                owner=Owner,
-                                ref=Ref,
-                                mref=MRef,
-                                client_ref=ClientRef,
-                                async=once}=ViewSt) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            %% parent exited there is no need to continue
-            exit(normal);
-        {Ref, stream_next} ->
-            {wait_rows1, 0, [[]], ViewSt};
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            %% unregister the stream
-            ets:delete(couchbeam_view_streams, Ref),
-            %% tell the parent we exited
-            Owner ! {Ref, ok},
-            %% and exit
-            exit(normal);
-        {system, From, Request} ->
-            sys:handle_system_msg(Request, From, Parent, ?MODULE, [],
-                                  {maybe_continue_decoding, ViewSt});
-        Else ->
-            error_logger:error_msg("Unexpected message: ~w~n", [Else]),
-            %% unregister the stream
-            ets:delete(couchbeam_view_streams, Ref),
-            %% report the error
-            report_error(Else, Ref, Owner),
-            exit(Else)
-    after 5000 ->
-            erlang:hibernate(?MODULE, maybe_continue_decoding, [ViewSt])
-    end;
-
-maybe_continue_decoding(#viewst{parent=Parent,
-                                owner=Owner,
-                                ref=Ref,
-                                mref=MRef,
-                                client_ref=ClientRef}=ViewSt) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            %% parent exited there is no need to continue
-            exit(normal);
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            Owner ! {Ref, ok},
-            exit(normal);
-        {Ref, pause} ->
-            erlang:hibernate(?MODULE, maybe_continue_decoding, [ViewSt]);
-        {Ref, resume} ->
-            {wait_rows1, 0, [[]], ViewSt};
-        {system, From, Request} ->
-            sys:handle_system_msg(Request, From, Parent, ?MODULE, [],
-                                  {maybe_continue_decoding, ViewSt});
-        Else ->
-            error_logger:error_msg("Unexpected message: ~w~n", [Else]),
-            report_error(Else, Ref, Owner),
-            exit(Else)
-    after 0 ->
-        {wait_rows1, 0, [[]], ViewSt}
-    end.
+    {wait_rows1, 0, [[]], ViewSt}.
 
 report_error({error, _What}=Error, Ref, Pid) ->
     Pid ! {Ref, Error};
