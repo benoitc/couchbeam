@@ -72,7 +72,7 @@ fetch(Db, ViewName, Options) ->
         {ok, Ref} ->
             Timeout = proplists:get_value(collect_timeout, Options, ?COLLECT_TIMEOUT),
             try collect_view_results(Ref, [], Timeout)
-            after ->
+            after
               _Cancel = cancel_stream(Ref)
             end;
         Error ->
