@@ -73,17 +73,38 @@ fetch(Db, ViewName) ->
 %%    | {skip, integer()}
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}</pre>
+%%    | {keys, list(binary())}
+%%    | async_query</pre>
 %% <p>See {@link couchbeam_view:stream/4} for more information about
 %% options.</p>
 %% <p>Return: {ok, Rows} or {error, Error}</p>
 fetch(Db, ViewName, Options) ->
+    case proplists:is_defined(async_query, Options) of
+        true -> fetch_async(Db, ViewName, Options);
+        false -> fetch_sync(Db, ViewName, Options)
+    end.
+
+fetch_async(Db, ViewName, Options) ->
     case stream(Db, ViewName, Options) of
         {ok, Ref} ->
             Timeout = proplists:get_value(collect_timeout, Options, ?COLLECT_TIMEOUT),
             collect_view_results(Ref, [], Timeout);
         Error ->
             Error
+    end.
+
+fetch_sync(Db, ViewName, Options) ->
+    make_view(Db, ViewName, Options, fetch_sync_fun(Db)).
+
+fetch_sync_fun(Db) ->
+    fun(Args, Url) ->
+        case view_request(Db, Url, Args) of
+            {ok, _, _, Ref} ->
+                {Props} = couchbeam_httpc:json_body(Ref),
+                {ok, couchbeam_util:get_value(<<"rows">>, Props)};
+            Error ->
+                Error
+        end
     end.
 
 -spec show(db(), {binary(), binary()}) ->
