@@ -100,6 +100,10 @@ do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
 
     case Reply of
         {ok, Ref} ->
+            State = hackney:request_info(Ref),
+            Mod = proplists:get_value(transport, State),
+            S = proplists:get_value(socket, State),
+            Mod:controlling_process(S, self()),
             receive
                 {'DOWN', MRef, _, _, _} ->
                     %% parent exited there is no need to continue
