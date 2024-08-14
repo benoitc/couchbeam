@@ -4,6 +4,11 @@ couchbeam NEWS
 version 1.5.1 / 2024-11-07
 --------------------------
 
+- fix pattern matching
+
+version 1.5.1 / 2024-11-07
+--------------------------
+
 - fix: handle condition that may cause persistent CLOSE-WAIT sockets
 
 version 1.5.0 / 2023-10-11
