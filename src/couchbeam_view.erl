@@ -79,9 +79,9 @@ fetch(Db, ViewName) ->
 %% options.</p>
 %% <p>Return: {ok, Rows} or {error, Error}</p>
 fetch(Db, ViewName, Options) ->
-    case proplists:is_defined(async_query, Options) of
-        true -> fetch_async(Db, ViewName, Options);
-        false -> fetch_sync(Db, ViewName, Options)
+    case proplists:is_defined(sync_query, Options) of
+        true -> fetch_sync(Db, ViewName, Options);
+        false -> fetch_async(Db, ViewName, Options)
     end.
 
 fetch_async(Db, ViewName, Options) ->
