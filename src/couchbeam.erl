@@ -422,7 +422,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
 
     %% is there any accepted content-type passed to the params?
     {Accept, Params1} = case proplists:get_value(accept, Params) of
-                            unefined -> {any, Params};
+                            undefined -> {any, Params};
                             A -> {A, proplists:delete(accept, Params)}
                         end,
     %% set the headers with the accepted content-type if needed
