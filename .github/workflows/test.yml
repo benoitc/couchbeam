@@ -1,0 +1,58 @@
+name: Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      couchdb:
+        image: couchdb:3.3
+        env:
+          COUCHDB_USER: admin
+          COUCHDB_PASSWORD: password
+        ports:
+          - 5984:5984
+        options: >-
+          --health-cmd "curl -f http://localhost:5984/_up || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: '25'
+        rebar3-version: '3.22'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          _build
+          ~/.cache/rebar3
+        key: ${{ runner.os }}-erlang-${{ hashFiles('rebar.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-erlang-
+    
+    - name: Wait for CouchDB
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
+        curl -X PUT http://admin:password@localhost:5984/_users
+        curl -X PUT http://admin:password@localhost:5984/_replicator
+    
+    - name: Compile
+      run: rebar3 compile
+    
+    - name: Run tests
+      run: rebar3 as test eunit
+      env:
+        COUCHDB_URL: http://admin:password@localhost:5984
