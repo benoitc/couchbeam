@@ -96,7 +96,8 @@
     | reduce | {reduce, boolean()}
     | inclusive_end | include_docs | conflicts
     | {list, binary()}
-    | {keys, list(binary())}.
+    | {keys, list(binary())}
+    | async_query.
 
 -type view_options() :: list(view_option()).
 
