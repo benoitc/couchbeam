@@ -1,6 +1,21 @@
 couchbeam NEWS
 --------------
 
+version 1.6.0 / 2025-01-26
+--------------------------
+
+- add support for CouchDB _find endpoint
+- add ability to query _show functions  
+- add option for disabling view_stream usage (enabled by default)
+- fix error handling in gen_changes callback handling
+- fix resource cleanup in stream modules to prevent connection leaks
+- improve replication test reliability and timeout handling
+- update hackney dependency to 1.23
+- update jsx dependency
+- add GitHub Actions for CouchDB testing
+- fix dialyzer complaints and pattern matching issues
+- OTP 27 compatibility improvements
+
 version 1.5.4 / 2025-02-20
 --------------------------
 
