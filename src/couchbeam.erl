@@ -1303,7 +1303,7 @@ replicate_test() ->
     Server = couchbeam:server_connection(),
 
     %% Ensure _replicator database exists
-    {ok, _} = couchbeam:db_exists(Server, <<"_replicator">>),
+    true = couchbeam:db_exists(Server, <<"_replicator">>),
 
     {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
     {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
