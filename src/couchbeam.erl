@@ -1316,6 +1316,8 @@ replicate_test() ->
     Result = couchbeam:replicate(Server, Db, Db2),
     ?assertMatch({ok, _}, Result),
 
+    timer:sleep(100),
+
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
     ?assertEqual(DocRev11_2, DocRev11),
