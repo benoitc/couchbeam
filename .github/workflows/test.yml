@@ -34,6 +34,11 @@ jobs:
         
         # Wait for CouchDB to be ready
         timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
+        
+        # Create system databases
+        curl -X PUT http://admin:change_me@localhost:5984/_users
+        curl -X PUT http://admin:change_me@localhost:5984/_replicator
+        curl -X PUT http://admin:change_me@localhost:5984/_global_changes
     
     - name: Setup Erlang/OTP
       uses: erlef/setup-beam@v1
