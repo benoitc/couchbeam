@@ -2,7 +2,7 @@
 
 # Couchbeam - simple Apache CouchDB client library for Erlang applications #
 
-Copyright (c) 2009-2023 Benoît Chesneau.
+Copyright (c) 2009-2025 Benoît Chesneau.
 
 __Version:__ 1.5.0
 
