@@ -15,7 +15,7 @@ jobs:
         image: couchdb:3.3
         env:
           COUCHDB_USER: admin
-          COUCHDB_PASSWORD: password
+          COUCHDB_PASSWORD: change_me
         ports:
           - 5984:5984
         options: >-
@@ -43,11 +43,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-erlang-
     
-    - name: Wait for CouchDB
+    - name: Wait for CouchDB and setup single node
       run: |
         timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
-        curl -X PUT http://admin:password@localhost:5984/_users
-        curl -X PUT http://admin:password@localhost:5984/_replicator
+        # Setup CouchDB as single node
+        curl -X POST http://admin:change_me@localhost:5984/_cluster_setup \
+          -H "Content-Type: application/json" \
+          -d '{"action": "enable_single_node", "bind_address": "0.0.0.0", "username": "admin", "password": "change_me"}'
+        # Create system databases
+        curl -X PUT http://admin:change_me@localhost:5984/_users
+        curl -X PUT http://admin:change_me@localhost:5984/_replicator
+        curl -X PUT http://admin:change_me@localhost:5984/_global_changes
     
     - name: Compile
       run: rebar3 compile
@@ -55,4 +61,6 @@ jobs:
     - name: Run tests
       run: rebar3 as test eunit
       env:
-        COUCHDB_URL: http://admin:password@localhost:5984
+        COUCHDB_URL: http://localhost:5984
+        COUCHDB_ADMIN: admin
+        COUCHDB_PASSWORD: change_me 

@@ -185,21 +185,17 @@ get_uuids(Server, Count) ->
 %%
 %% @spec replicate(Server::server(), RepObj::{list()})
 %%          -> {ok, Result}|{error, Error}
-replicate(#server{url=ServerUrl, options=Opts}, RepObj) ->
-    Url = hackney_url:make_url(ServerUrl, [<<"_replicate">>], []),
-    Headers = [{<<"Content-Type">>, <<"application/json">>}],
-    JsonObj = couchbeam_ejson:encode(RepObj),
+replicate(#server{}=Server, RepObj) ->
+  case open_db(Server, <<"_replicator">>) of
+    {ok, ReplicatorDb} ->
+      case save_doc(ReplicatorDb, RepObj) of
+        {ok, Doc} ->
 
-    case couchbeam_httpc:request(post, Url, Headers, JsonObj, Opts) of
-        {ok, Status, _, Ref} when Status =:= 200 orelse Status =:= 201 ->
-            Res = couchbeam_httpc:json_body(Ref),
-            {ok, Res};
-        {ok, Status, Headers, Ref} ->
-            {ok, Body} = hackney:body(Ref),
-            {error, {bad_response, {Status, Headers, Body}}};
+          {ok, Doc};
         Error ->
-            Error
-    end.
+          Error
+      end
+  end.
 
 %% @doc Handle replication.
 %% @spec replicate(Server::server(), Source::string(), Target::target())
@@ -208,26 +204,31 @@ replicate(Server, Source, Target) ->
     replicate(Server, Source, Target, []).
 
 %% @doc handle Replication. Allows to pass options with source and
-%% target.  Options is a Json object.
+%% target. Source and target can be either simple URI strings or 
+%% complex document structures with authentication. Options is a Json object.
 %% ex:
 %% ```
-%% Options = [{<<"create_target">>, true}]}
+%% %% Simple URI replication
+%% Options = [{<<"create_target">>, true}]},
 %% couchbeam:replicate(S, "testdb", "testdb2", Options).
+%%
+%% %% Complex replication with authentication
+%% Source = "http://user:pass@remote.com:5984/db",
+%% Target = {[{<<"url">>, <<"http://localhost:5984/target_db">>},
+%%            {<<"auth">>, {[{<<"basic">>, {[{<<"username">>, <<"user">>},
+%%                                           {<<"password">>, <<"pass">>}]}}]}}]},
+%% couchbeam:replicate(S, Source, Target, [{<<"continuous">>, true}]).
 %% '''
 replicate(Server, Source, Target, {Props}) ->
-    replicate(Server, Source, Target, Props);
-replicate(Server, #db{name=Source}, Target, Options) ->
-    replicate(Server, Source, Target, Options);
-replicate(Server, Source, #db{name=Target}, Options) ->
-    replicate(Server, Source, Target, Options);
-replicate(Server, #db{name=Source}, #db{name=Target}, Options) ->
-    replicate(Server, Source, Target, Options);
+  replicate(Server, Source, Target, Props);
 replicate(Server, Source, Target, Options) ->
-    RepProp = [
-               {<<"source">>, couchbeam_util:to_binary(Source)},
-               {<<"target">>, couchbeam_util:to_binary(Target)} | Options
-              ],
-    replicate(Server, {RepProp}).
+  SourceProp = format_replication_endpoint(Source),
+  TargetProp = format_replication_endpoint(Target),
+  RepProp = [
+             {<<"source">>, SourceProp},
+             {<<"target">>, TargetProp} | Options
+            ],
+  replicate(Server, {RepProp}).
 
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
@@ -1042,6 +1043,17 @@ maybe_docid(Server, {DocProps}) ->
             {DocProps}
     end.
 
+%% format replication endpoint for source or target
+%% supports Db record, simple URI strings and complex document structures
+format_replication_endpoint({Props}) when is_list(Props) ->
+    {Props};
+format_replication_endpoint(<<"http://", _/binary>> = Endpoint)->
+    couchbeam_util:to_binary(Endpoint);
+format_replication_endpoint(<<"https://", _/binary>> = Endpoint)->
+    couchbeam_util:to_binary(Endpoint);
+format_replication_endpoint(#db{server=Server, name=DbName}) ->
+    hackney_url:make_url(couchbeam_httpc:server_url(Server) ,[DbName], []).
+
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -1290,13 +1302,18 @@ replicate_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    {ok, Db2} = couchbeam:create_db(Server, "couchbeam_testdb2"),
+    %% Ensure _replicator database exists
+    {ok, _} = couchbeam:db_exists(Server, <<"_replicator">>),
+
+    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
+    {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
 
     {ok, Doc11} = couchbeam:save_doc(Db, {[]}),
     DocId11 = couchbeam_doc:get_id(Doc11),
     DocRev11 = couchbeam_doc:get_rev(Doc11),
-    ?assertMatch({ok, _}, couchbeam:replicate(Server, Db, Db2)),
+    
+    Result = couchbeam:replicate(Server, Db, Db2),
+    ?assertMatch({ok, _}, Result),
 
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
