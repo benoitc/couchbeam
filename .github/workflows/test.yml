@@ -1,0 +1,67 @@
+name: Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup CouchDB with single node configuration
+      run: |
+        # Create local.ini with single node configuration
+        sudo mkdir -p /opt/couchdb/etc/local.d
+        sudo tee /opt/couchdb/etc/local.d/10-single-node.ini > /dev/null <<EOF
+        [couchdb]
+        single_node=true
+        
+        [admins]
+        admin = change_me
+        EOF
+        
+        # Start CouchDB container with the configuration
+        docker run -d \
+          --name couchdb \
+          -p 5984:5984 \
+          -v /opt/couchdb/etc/local.d:/opt/couchdb/etc/local.d \
+          couchdb:3.3
+        
+        # Wait for CouchDB to be ready
+        timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
+        
+        # Create system databases
+        curl -X PUT http://admin:change_me@localhost:5984/_users
+        curl -X PUT http://admin:change_me@localhost:5984/_replicator
+        curl -X PUT http://admin:change_me@localhost:5984/_global_changes
+    
+    - name: Setup Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: '27'
+        rebar3-version: '3.25'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          _build
+          ~/.cache/rebar3
+        key: ${{ runner.os }}-erlang-${{ hashFiles('rebar.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-erlang-
+    
+    - name: Compile
+      run: rebar3 compile
+    
+    - name: Run tests
+      run: rebar3 as test eunit
+      env:
+        COUCHDB_URL: http://localhost:5984
+        COUCHDB_ADMIN: admin
+        COUCHDB_PASSWORD: change_me 

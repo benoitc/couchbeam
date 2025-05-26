@@ -1,0 +1,4684 @@
+[33mcommit 7076885b6bd8286f41bd98c3ff5700da61388928[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32motp27[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon May 26 04:19:36 2025 +0200
+
+    enhance replicate function to support authentication documents
+    
+    Allow source and target parameters to accept both simple URI strings
+    and complex document structures with authentication. This enables
+    replication with basic auth and other authentication methods while
+    maintaining backward compatibility with existing string-based usage.
+
+[33mcommit 8f4a9d6af03925ffde252d4827a18bc4ab079d78[m[33m ([m[1;31morigin/otp27[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon May 26 03:18:44 2025 +0200
+
+    use the replicator db
+
+[33mcommit a36da8ec229d78b01b318320772e109ce70ae7dd[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon May 26 01:20:06 2025 +0200
+
+    fix dialyzer
+
+[33mcommit d61bef0b42fe36f89aef47cadf3e05e7b6b4b3ee[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun May 25 23:53:10 2025 +0200
+
+    add GitHub Action for CouchDB testing
+    
+    Sets up CI workflow that launches CouchDB service and runs eunit tests
+
+[33mcommit 69c8f3d5dcb5d92da133da8738c81cba597d8f5b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun May 25 23:04:03 2025 +0200
+
+    bump hackney to 1.23
+
+[33mcommit 6c74d37ebf4e6d5ebf98dc117a96d227f4946c39[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun May 25 22:05:22 2025 +0200
+
+    bump jsx
+
+[33mcommit 787c106a1a98f1151761fccfc29c5f5553dff94d[m
+Author: romanat-ooma <tarandeep.romana@ooma.com>
+Date:   Wed Mar 26 06:02:32 2025 +0000
+
+    fix typo undefined
+
+[33mcommit 6c034898e9e1ae1b6f81683f47bb047447b67452[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Merge: 6c04e7a 267aaaf
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun May 25 21:33:44 2025 +0200
+
+    Merge pull request #202 from benoitc/feature/changes-from-2600hz
+    
+    Feature/changes from 2600hz
+
+[33mcommit 267aaaf317b60502e36cd708aa06a98d35d1d5f6[m[33m ([m[1;31morigin/feature/changes-from-2600hz[m[33m, [m[1;32mfeature/changes-from-2600hz[m[33m)[m
+Author: James Aimonetti <james@2600hz.com>
+Date:   Mon Jun 3 14:52:22 2024 -0700
+
+    Fix dialyzer complaints
+
+[33mcommit 215415c30fee9c554b80e36e0a4e472461600aab[m
+Author: Luis Azedo <luis.azedo@factorlusitano.com>
+Date:   Fri Sep 6 17:28:34 2024 +0100
+
+    change default to async_query
+
+[33mcommit 87c15148cc155c82c87545669c19818f16b91128[m
+Author: Luis Azedo <luis.azedo@factorlusitano.com>
+Date:   Mon Jul 1 10:41:59 2024 +0100
+
+    add option for disabling view_stream usage and enable it by default
+
+[33mcommit dbcf013e6abbf95a22d5dc3d7d20c2e83aeeed78[m
+Author: Hesaam Farhang <hesaam@2600hz.com>
+Date:   Wed Jul 20 20:07:15 2022 +0000
+
+    fix fetch, all, stream, show and view ddoc types
+
+[33mcommit 79dd6e1437aa55ed08e4b7e48daad49d662758bc[m
+Author: James Aimonetti <james.aimonetti@gmail.com>
+Date:   Fri Aug 30 20:12:04 2019 +0000
+
+    set query string if provided
+    
+    doc the option a bit
+
+[33mcommit 6078b63734dd42f3eb0ab1bc50b0cc6a04ca729a[m
+Author: Hesaam Farhang <hesaam@2600hz.com>
+Date:   Fri Jul 24 04:25:59 2020 -0700
+
+    add super basic function to work with _find
+
+[33mcommit ebb4091f9fc3c1ed0d784e248975fe29b725fbbe[m
+Author: James Aimonetti <james.aimonetti@gmail.com>
+Date:   Fri Aug 30 17:32:58 2019 +0000
+
+    add ability to query _show functions
+
+[33mcommit 6c04e7a94475afd8a94c3b5b8b83b869a38d2370[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Feb 20 23:21:10 2025 +0100
+
+    bump to 1.5.4 to use latest hackney
+
+[33mcommit c1facc4c39ace96f31994770618032b75ac7d1a8[m
+Merge: 7a378de f682b54
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Dec 15 20:12:01 2024 +0100
+
+    Merge pull request #201 from num8er/bump-jsx
+    
+    Bump JSX version to fix issue with undefined variable "package"
+
+[33mcommit f682b5425a56667489ceaa34e5b50ef13b5a78c9[m
+Author: Anar Jafarov <num8er@users.noreply.github.com>
+Date:   Sun Dec 15 02:28:45 2024 +0000
+
+    Bump JSX version to fix issue with undefined method
+    
+    Fix addressed to issue #200 by link: https://github.com/benoitc/couchbeam/issues/200
+
+[33mcommit 7a378deeca9da7f26689b5c00a4ee62f48efd810[m[33m ([m[1;33mtag: [m[1;33m1.5.3[m[33m, [m[1;31m2600hz/master[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Aug 14 22:17:59 2024 +0200
+
+    update changes
+
+[33mcommit 68c17c5fd99a84f0a2fc60bf60813d933b6daba5[m[33m ([m[1;33mtag: [m[1;33m1.5.2[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Aug 14 22:09:40 2024 +0200
+
+    bump 1.5bump 1.5.2
+
+[33mcommit 5d172af86310a2b79a81e61aa40f465e166c84de[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Aug 13 18:46:19 2024 +0200
+
+    fix pattern matching
+
+[33mcommit 13ef9cffca1eba9588a52e86f583a56b24febb60[m[33m ([m[1;33mtag: [m[1;33m1.5.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Jul 11 16:32:45 2024 +0200
+
+    bump to 1.5.1
+
+[33mcommit 3fffee152d7d9fb8f77e9989ce5fd223e8e12d66[m
+Merge: 69802ba 6093a61
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jul 5 16:14:37 2024 +0200
+
+    Merge pull request #199 from cstar/patch-1
+    
+    Fix condition that may cause persistent CLOSE-WAIT sockets
+
+[33mcommit 6093a6124d9b245b93b9f0748e0592d93c15c2cd[m
+Author: Eric Cestari <cstar@users.noreply.github.com>
+Date:   Fri Jul 5 16:10:01 2024 +0200
+
+    Fix condition that may cause persistent CLOSE-WAIT sockets
+    
+    By transferring control to couchbeam_view_stream process, we ensure that the socket is effectively closed on both sides, even in case of crashes or stop of  this process.
+    In some cases increasing numbers of sockets in CLOSE-WAIT state was observed.
+
+[33mcommit 69802bae6d8482b996aa4e0f5cfd28ffb7d82ee3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Feb 15 23:22:18 2024 +0100
+
+    makes view result collection timeout configurable
+    some clusters have a very high latency when collecting view results.
+    
+    To fix it we makes the collection timeout configurable to allow people to adapt their code for it.
+
+[33mcommit 469f3b103ac332311a8878c5c1e885ff79724045[m[33m ([m[1;33mtag: [m[1;33m1.5.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 11 02:38:31 2023 +0200
+
+    bump to 1.5.0
+
+[33mcommit 5bf772da591bac1195bb72c146528ed8c1148af1[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 11 02:33:56 2023 +0200
+
+    remove useless files
+
+[33mcommit 4b552084022676a7f77a118c3d32886f30dd4637[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 11 02:32:30 2023 +0200
+
+    fix compatibility with couchdb 3
+    - fix multipart handling
+    - remove config api
+
+[33mcommit dff86ba4ad1a53b3b4954ec67829de1af7996fb3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 11 02:09:38 2023 +0200
+
+    fix compatibility with OTP >= 23
+
+[33mcommit 6f57241c4b037292ef9797a1b9aefb6e6d2e335b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 11 02:09:04 2023 +0200
+
+    allow environnement configuration
+    add COUCHDB_URL, COUCHDB_ADMIN, COUCHDB_PASSWORD environment variables support to configure the server connection using the environment
+
+[33mcommit 49521721a9c6d32512afa2ec27cdf310886eb779[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 7 17:24:09 2023 +0200
+
+    ignore errors there
+
+[33mcommit f1ebe4e46ec7093dc62be09015b90cb19fcca3f5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:25:22 2023 +0200
+
+    support erlang 20
+
+[33mcommit e87b3b6047e04fa385cdfc2434271b95688fd6e4[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:13:09 2023 +0200
+
+    miscellaneus typecheck errors
+
+[33mcommit e6582e39d2f61379bb983f157cb34ce13b88ad6a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:11:03 2023 +0200
+
+    fix pattern matching
+
+[33mcommit 5360eece6031e3fb3537cd46d60a56d96bf49f82[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:09:32 2023 +0200
+
+    bump to hackney 1.19.1
+
+[33mcommit de473be8307ce256b8ce9f9264b709412fabcef6[m
+Merge: 5d47447 d214c4f
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:04:16 2023 +0200
+
+    Merge pull request #151 from xorver/master
+    
+    Extend stale and keys parameters of view query
+
+[33mcommit 5d47447c1b3f6f8b445bf65e534333952282dde2[m
+Merge: 1a28e97 687d33b
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:03:21 2023 +0200
+
+    Merge pull request #178 from serg-i-o/master
+    
+    Add support for startkey_docid and endkey_docid options couchdb 2
+
+[33mcommit 687d33bf8c6ec1e0eeab92a73e8652137a538f9a[m
+Merge: 40bc2fc 1a28e97
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 16:02:46 2023 +0200
+
+    Merge branch 'master' into master
+
+[33mcommit 1a28e9717e30d5cbb56696f0565739a3e75b668a[m
+Merge: 0defc64 31c50dc
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:54:25 2023 +0200
+
+    Merge pull request #171 from amuino/mix-rebar3-compat
+    
+    Assume rebar3 when running under mix
+
+[33mcommit 0defc640d510a62aefb1fd2d032424987f24f4af[m
+Merge: 5e8cdec 127737a
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:54:04 2023 +0200
+
+    Merge pull request #170 from amuino/fix_some_dialyzer_errors
+    
+    Fix some dialyzer errors
+
+[33mcommit 127737a75c1f9e719fbe92a30ffb97cb5ca7fe28[m
+Merge: 4c40d64 5e8cdec
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:53:41 2023 +0200
+
+    Merge branch 'master' into fix_some_dialyzer_errors
+
+[33mcommit 5e8cdec39a2b4738159f00c15affc245474ee622[m
+Merge: 21166f0 7a08083
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:52:10 2023 +0200
+
+    Merge pull request #172 from amuino/design_and_view_types
+    
+    Design and views are binary or charlist
+
+[33mcommit 21166f0d7db8bead5dd3ed8ff79dcbbd01165761[m
+Merge: 01c75d2 a754fc4
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:48:22 2023 +0200
+
+    Merge pull request #184 from kruegger/HMXOS-1239
+    
+    couchbeam_changes_streams terminates when {since, now} and continuous mode
+
+[33mcommit 01c75d22383b492cf0c75bd670ef65060fa4f000[m
+Merge: 4f11e60 89b524b
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:47:04 2023 +0200
+
+    Merge pull request #189 from carrascoacd/fix-doc
+    
+    Fix typo in proxyauth - server_connection
+
+[33mcommit 4f11e602be72521d3900b082eb8fea85bccab66f[m
+Merge: aa19d0b b2b12cb
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:46:30 2023 +0200
+
+    Merge pull request #168 from vtsatskin/patch-1
+    
+    typo fix
+
+[33mcommit aa19d0b594682422392a5380c992ba847b67b9fe[m
+Merge: 098d4d5 a337467
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 7 15:45:10 2023 +0200
+
+    Merge pull request #175 from jordan0day/fix-view-sup-name-references
+    
+    Fix references to couchbeam_view_sup registered name
+
+[33mcommit 098d4d5b5b4ff2a27350ec849525e5f709e40d4a[m
+Merge: f71c465 ba3e27c
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 20 23:26:24 2023 +0200
+
+    Merge pull request #160 from skorobkov/fix_startkey_docid
+    
+    Fix typo: start_docid -> startkey_docid & end_docid -> endkey_docid
+
+[33mcommit f71c46547958c07f8d2df967a7655b0fbb04c82c[m
+Merge: 8dcba72 bdc5fe6
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 20 23:25:11 2023 +0200
+
+    Merge pull request #188 from voxter/fix-att-name-type
+    
+    Convert att_name to format expected by hackney_url:make_url
+
+[33mcommit 89b524b9a8dfebb898beb70e70eb16b757846d42[m
+Author: Antonio Carrasco <carrasco.acd@gmail.com>
+Date:   Wed Jan 20 16:33:08 2021 +0100
+
+    Fix typo in proxyauth
+
+[33mcommit 8dcba7209b040d7225aceddc2956680340937790[m
+Merge: 9f1bcf4 75d1b5b
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 15 00:34:34 2021 +0100
+
+    Merge pull request #174 from icehess/viewcleanup_ctp
+    
+    view_cleanup expect content-type header
+
+[33mcommit 9f1bcf4c63554ce78e76b081479797f4eb8eb3be[m
+Merge: 760d08c 1e72691
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 15 00:34:05 2021 +0100
+
+    Merge pull request #166 from lazedo/db_resp_body
+    
+    ensure get body doesn’t crash
+
+[33mcommit 760d08cb966a89fc9ed37b5cc516abf469e9ef6d[m
+Merge: b86b1a9 819b5da
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 15 00:33:45 2021 +0100
+
+    Merge pull request #165 from lazedo/config_api
+    
+    add back config api
+
+[33mcommit b86b1a931e0c5d1d1a33b1a98bb0bf3fc02f10f4[m
+Merge: 82586a6 73c2378
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 15 00:33:27 2021 +0100
+
+    Merge pull request #164 from lazedo/patch-4
+    
+    allow 202 result in put_attachment
+
+[33mcommit 82586a615a90f7da2cbdad609d47bdcf48ef2f3c[m
+Merge: e740382 552d752
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 15 00:33:12 2021 +0100
+
+    Merge pull request #158 from k-anderson/_list-support
+    
+    added support for _design document _list functions
+
+[33mcommit bdc5fe6300426dac43e5e0e4e7340aa33369d579[m
+Author: Daniel Finke <danielfinke2011@gmail.com>
+Date:   Fri Sep 25 21:27:25 2020 +0000
+
+    Convert att_name to format expected by hackney_url:make_url
+
+[33mcommit a754fc46fca23c4a5c839a3b607e806a86271b17[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Tue Apr 16 12:11:34 2019 -0700
+
+    HMXOS-1239 Couchbeam_changes crashes when {since, now} and continuous mode
+
+[33mcommit db0b652d75733b7bfec7dfd2ce0e096cd8c6a27e[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 19:02:55 2019 -0700
+
+    Couchbeam_changes crashes when {since, now} and continuous mode
+
+[33mcommit 44a5f615e466483ea8bf499ec2b266fcdf32f572[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 18:17:43 2019 -0700
+
+    Fixing travis build failure issue on erlang-oauth.git
+
+[33mcommit 72a3ffe88111773d2564858acce9de368c994302[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 18:09:48 2019 -0700
+
+    Fixing travis build failure issue on erlang-oauth.git
+
+[33mcommit 53f579812290b895a16e976b728730625fe21518[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 18:03:05 2019 -0700
+
+    Fixing travis build failure issue on erlang-oauth.git
+
+[33mcommit 8c9d9c573e121e4c382824944ba7e8857653bbc8[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Tue Mar 26 12:54:09 2019 -0700
+
+    Fixing parameter endkey_docid and startkey_docid
+
+[33mcommit f7e27e7dc46810dce25a3416a54e3f52d725172f[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 15:38:00 2019 -0700
+
+    Revert " modify rebar.config to support JSONE"
+    
+    This reverts commit 37a1589d7a70d5740c9daf15cc56b03e33d28381.
+
+[33mcommit 1cba2aefb736e287b4d87de4db40635483395d1a[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Mon Apr 15 15:36:04 2019 -0700
+
+    Revert "Add JSONE and MAP support"
+    
+    This reverts commit 4818656d26a7684fa6d7dca7559610ec7823fe7a.
+
+[33mcommit 5a97e0d6b9664370c3a13098073cd48d3da835c6[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Wed Jul 4 00:50:40 2018 -0700
+
+    Enable MAPS support
+
+[33mcommit 37a1589d7a70d5740c9daf15cc56b03e33d28381[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Wed Jul 4 00:45:27 2018 -0700
+
+     modify rebar.config to support JSONE
+
+[33mcommit c1189f394f5d90f731a6c0a7700482d6422a4eba[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Wed Jul 4 00:38:55 2018 -0700
+
+    Revert to original app file specification
+
+[33mcommit 4818656d26a7684fa6d7dca7559610ec7823fe7a[m
+Author: Stephen Han <stephen.han@hmatix.com>
+Date:   Wed Jul 4 00:34:27 2018 -0700
+
+    Add JSONE and MAP support
+
+[33mcommit 40bc2fc1a10a821015b38a17b786ca188623285a[m
+Author: serg-i-o <s.yermolaev@gmail.com>
+Date:   Fri Mar 30 18:04:46 2018 +0700
+
+    bump hackney to 1.6.5 and fix erlang-oauth path in rebar.config
+
+[33mcommit 8987b7a114e5dd4bbd45f3c881728e0169e0543b[m
+Author: serg-i-o <s.yermolaev@gmail.com>
+Date:   Fri Mar 23 12:18:09 2018 +0700
+
+    add support for startkey_docid and endkey_docid options
+
+[33mcommit a33746756ae61aba450cef375b9e741281246afe[m
+Author: Jordan Day <jordand@companykitchen.com>
+Date:   Thu Sep 7 11:07:56 2017 -0500
+
+    Fix references to couchbeam_view_sup registered name
+
+[33mcommit 75d1b5b93c925194af58b0e717d17cd630c4c1fd[m
+Author: Hesaam Farhang <hesaam@2600hz.com>
+Date:   Fri Sep 1 12:30:01 2017 -0700
+
+    _view_cleanup expect content-type header
+    
+    Also the response status code for newer CouchDB version is 202
+
+[33mcommit 7a08083e22d6692a29ebccb27dba33364e1ace74[m
+Author: Abel Muiño Vizcaino <abel.muino@cabify.com>
+Date:   Mon Jun 26 18:02:38 2017 +0200
+
+    Design and views are binary or charlist
+
+[33mcommit 31c50dc2782db0295c03007fa4edc1d2741deec8[m
+Author: Abel Muiño <amuino@gmail.com>
+Date:   Sat Apr 22 20:02:02 2017 +0200
+
+    Bump hackney version, 1.6.4 is not available
+
+[33mcommit 0a4aca801ec248c872800a80b0bba50df194852a[m
+Author: Abel Muiño <amuino@gmail.com>
+Date:   Sat Apr 22 19:04:55 2017 +0200
+
+    Assume rebar3 when running under mix
+
+[33mcommit 4c40d64288942fea3759e1fef818afc6a9e63236[m
+Author: Abel Muiño <amuino@gmail.com>
+Date:   Sat Apr 1 16:28:37 2017 +0200
+
+    Remove ViewPid::pid from the return type of :couchbeam_view.stream/4
+    
+    The function always returns a 2-tuple, so the third element declared causes dialyzer warnings:
+    `The pattern {'ok', Ref} can never match the type {'error',_} | {'ok',_,pid()}`
+    
+    These error propagate to the code consuming the method, which in our case causes the CI system to mark the build failed.
+    
+    ```
+    couchbeam.erl:79: The call couchbeam:server_connection(Host::any(),Port::integer(),[],[]) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()])
+    couchbeam.erl:91: Invalid type specification for function couchbeam:server_connection/4. The success typing is (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()]) -> #server{url::binary(),options::[any()]}
+    couchbeam.erl:466: Invalid type specification for function couchbeam:end_doc_stream/1. The success typing is ({reference() | {'client',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_},_}) -> 'ok' | 'req_not_found' | {'client',_,_,_,_,_,_,_,'nil',_,_,_,_,_,_,_,_,_,_,_,_,'closed',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}
+    couchbeam.erl:526: Invalid type specification for function couchbeam:save_doc/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},{[any()]},[any()],binary() | [{binary(),binary()}]) -> any()
+    couchbeam.erl:742: Invalid type specification for function couchbeam:fetch_attachment/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},binary() | maybe_improper_list(binary() | maybe_improper_list(any(),binary() | []) | byte(),binary() | []),binary(),[any()]) -> {'error',_} | {'ok',_} | {'ok',integer(),[any()]} | {'ok',integer(),[any()],_}
+    couchbeam.erl:809: Function put_attachment/4 has no local return
+    couchbeam.erl:822: Function put_attachment/5 has no local return
+    couchbeam_changes_stream.erl:283: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    couchbeam_changes_stream.erl:561: Function post_decode/1 will never be called
+    couchbeam_httpc.erl:179: The pattern 'mp_mixed' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:183: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:222: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_util.erl:288: The pattern {_, 'false'} can never match since previous clauses completely covered the type {'sha',boolean()}
+    couchbeam_view.erl:68: The pattern {'ok', Ref} can never match the type {'error',_} | {'ok',_,pid()}
+    couchbeam_view.erl:298: The pattern {'ok', Ref} can never match the type {'error',_} | {'ok',_,pid()}
+    couchbeam_view.erl:439: Function fold_view_results/3 will never be called
+    couchbeam_view.erl:458: Function collect_view_results/2 will never be called
+    couchbeam_view_stream.erl:168: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    ```
+    
+    ```
+    couchbeam.erl:79: The call couchbeam:server_connection(Host::any(),Port::integer(),[],[]) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()])
+    couchbeam.erl:91: Invalid type specification for function couchbeam:server_connection/4. The success typing is (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()]) -> #server{url::binary(),options::[any()]}
+    couchbeam.erl:466: Invalid type specification for function couchbeam:end_doc_stream/1. The success typing is ({reference() | {'client',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_},_}) -> 'ok' | 'req_not_found' | {'client',_,_,_,_,_,_,_,'nil',_,_,_,_,_,_,_,_,_,_,_,_,'closed',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}
+    couchbeam.erl:526: Invalid type specification for function couchbeam:save_doc/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},{[any()]},[any()],binary() | [{binary(),binary()}]) -> any()
+    couchbeam.erl:742: Invalid type specification for function couchbeam:fetch_attachment/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},binary() | maybe_improper_list(binary() | maybe_improper_list(any(),binary() | []) | byte(),binary() | []),binary(),[any()]) -> {'error',_} | {'ok',_} | {'ok',integer(),[any()]} | {'ok',integer(),[any()],_}
+    couchbeam.erl:809: Function put_attachment/4 has no local return
+    couchbeam.erl:822: Function put_attachment/5 has no local return
+    couchbeam_changes_stream.erl:283: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    couchbeam_changes_stream.erl:561: Function post_decode/1 will never be called
+    couchbeam_httpc.erl:179: The pattern 'mp_mixed' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:183: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:222: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_util.erl:288: The pattern {_, 'false'} can never match since previous clauses completely covered the type {'sha',boolean()}
+    couchbeam_view_stream.erl:168: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    ```
+
+[33mcommit b1725ac9c9e75124e5c16888cd033b5d66cd108c[m
+Author: Abel Muiño <amuino@gmail.com>
+Date:   Sat Apr 1 11:12:04 2017 +0200
+
+    Change type of `name` on `db` record from `string` to `binary`
+    
+    Running dialyzer on couchbeam reports several "has no local return" errors. Those errors propagate to all code calling those functions (which, in our case, it is caused a CI build failure).
+    
+    The error seems to be caused by a mismatch between how we use the db record name, which is set as a binary via [`couchbeam_util:dbname/1`](https://github.com/amuino/couchbeam/blob/master/src/couchbeam.erl#L327) but is declared as `string()`.
+    
+    ```
+    couchbeam.erl:79: The call couchbeam:server_connection(Host::any(),Port::integer(),[],[]) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()])
+    couchbeam.erl:91: Invalid type specification for function couchbeam:server_connection/4. The success typing is (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()]) -> #server{url::binary(),options::[any()]}
+    couchbeam.erl:243: Function design_info/2 has no local return
+    couchbeam.erl:256: Function view_cleanup/1 has no local return
+    couchbeam.erl:310: Record construction #db{server::#server{options::[any()]},name::binary(),options::[{_,_}]} violates the declared type of field name::string()
+    couchbeam.erl:319: Function open_db/2 has no local return
+    couchbeam.erl:325: Function open_db/3 has no local return
+    couchbeam.erl:327: Record construction #db{server::#server{options::[any()]},name::binary(),options::[]} violates the declared type of field name::string()
+    couchbeam.erl:466: Invalid type specification for function couchbeam:end_doc_stream/1. The success typing is ({reference() | {'client',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_},_}) -> 'ok' | 'req_not_found' | {'client',_,_,_,_,_,_,_,'nil',_,_,_,_,_,_,_,_,_,_,_,_,'closed',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}
+    couchbeam.erl:526: Invalid type specification for function couchbeam:save_doc/4. The success typing is (#db{server::#server{options::[any()]},name::string(),options::[any()]},{[any()]},[any()],binary() | [{binary(),binary()}]) -> any()
+    couchbeam.erl:579: Function delete_doc/2 has no local return
+    couchbeam.erl:587: Function delete_doc/3 has no local return
+    couchbeam.erl:592: Function delete_docs/2 has no local return
+    couchbeam.erl:600: Function delete_docs/3 has no local return
+    couchbeam.erl:621: Function save_docs/2 has no local return
+    couchbeam.erl:626: Function save_docs/3 has no local return
+    couchbeam.erl:731: Function fetch_attachment/3 has no local return
+    couchbeam.erl:745: Function fetch_attachment/4 has no local return
+    couchbeam.erl:809: Function put_attachment/4 has no local return
+    couchbeam.erl:822: Function put_attachment/5 has no local return
+    couchbeam.erl:924: Function ensure_full_commit/1 has no local return
+    couchbeam.erl:931: Function ensure_full_commit/2 has no local return
+    couchbeam.erl:948: Function compact/1 has no local return
+    couchbeam.erl:964: Function compact/2 has no local return
+    couchbeam.erl:983: Function get_missing_revs/2 has no local return
+    couchbeam_changes.erl:205: Function changes_request/2 has no local return
+    couchbeam_changes_stream.erl:48: Function init_stream/5 has no local return
+    couchbeam_changes_stream.erl:102: Function do_init_stream/1 has no local return
+    couchbeam_changes_stream.erl:283: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    couchbeam_changes_stream.erl:561: Function post_decode/1 will never be called
+    couchbeam_httpc.erl:179: The pattern 'mp_mixed' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:183: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:222: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_util.erl:288: The pattern {_, 'false'} can never match since previous clauses completely covered the type {'sha',boolean()}
+    couchbeam_view.erl:68: The pattern {'ok', Ref} can never match the type {'error','invalid_view_name'}
+    couchbeam_view.erl:298: The pattern {'ok', Ref} can never match the type {'error','invalid_view_name'}
+    couchbeam_view.erl:439: Function fold_view_results/3 will never be called
+    couchbeam_view.erl:458: Function collect_view_results/2 will never be called
+    couchbeam_view_stream.erl:168: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    ```
+    
+    ```
+    couchbeam.erl:79: The call couchbeam:server_connection(Host::any(),Port::integer(),[],[]) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()])
+    couchbeam.erl:91: Invalid type specification for function couchbeam:server_connection/4. The success typing is (binary() | maybe_improper_list(any(),binary() | []) | byte(),integer(),binary(),[any()]) -> #server{url::binary(),options::[any()]}
+    couchbeam.erl:466: Invalid type specification for function couchbeam:end_doc_stream/1. The success typing is ({reference() | {'client',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_},_}) -> 'ok' | 'req_not_found' | {'client',_,_,_,_,_,_,_,'nil',_,_,_,_,_,_,_,_,_,_,_,_,'closed',_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}
+    couchbeam.erl:526: Invalid type specification for function couchbeam:save_doc/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},{[any()]},[any()],binary() | [{binary(),binary()}]) -> any()
+    couchbeam.erl:742: Invalid type specification for function couchbeam:fetch_attachment/4. The success typing is (#db{server::#server{options::[any()]},name::binary(),options::[any()]},binary() | maybe_improper_list(binary() | maybe_improper_list(any(),binary() | []) | byte(),binary() | []),binary(),[any()]) -> {'error',_} | {'ok',_} | {'ok',integer(),[any()]} | {'ok',integer(),[any()],_}
+    couchbeam.erl:809: Function put_attachment/4 has no local return
+    couchbeam.erl:822: Function put_attachment/5 has no local return
+    couchbeam_changes_stream.erl:283: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    couchbeam_changes_stream.erl:561: Function post_decode/1 will never be called
+    couchbeam_httpc.erl:179: The pattern 'mp_mixed' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:183: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_httpc.erl:222: The pattern 'mp_mixed_eof' can never match the type 'eof' | {'error',_}
+    couchbeam_util.erl:288: The pattern {_, 'false'} can never match since previous clauses completely covered the type {'sha',boolean()}
+    couchbeam_view.erl:68: The pattern {'ok', Ref} can never match the type {'error',_} | {'ok',_,pid()}
+    couchbeam_view.erl:298: The pattern {'ok', Ref} can never match the type {'error',_} | {'ok',_,pid()}
+    couchbeam_view.erl:439: Function fold_view_results/3 will never be called
+    couchbeam_view.erl:458: Function collect_view_results/2 will never be called
+    couchbeam_view_stream.erl:168: The pattern {'ok', _} can never match the type 'ok' | {'error',_}
+    ```
+
+[33mcommit b2b12cb6029a537058027ff39dcac11e5e656376[m
+Author: Valentin Tsatskin <val@valtsatskin.com>
+Date:   Wed Feb 1 15:38:33 2017 -0500
+
+    typo fix
+
+[33mcommit 1e726919a07918e567c104335838d06fdba7584e[m
+Author: Luis Azedo <luis.azedo@factorlusitano.com>
+Date:   Thu Jan 5 12:40:20 2017 +0000
+
+    ensure get body doesn’t crash
+
+[33mcommit 819b5da6768b69f8072c48bf750cb510c017831e[m
+Author: Luis Azedo <luis.azedo@factorlusitano.com>
+Date:   Thu Jan 5 11:32:53 2017 +0000
+
+    add back config api
+    
+    This reverts commit 17f3f74258d5b7c782180e0e836458c96cbbb1f1.
+
+[33mcommit 73c237887045559e9372abaac434cd6fe934a4d7[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Thu Jan 5 10:38:02 2017 +0000
+
+    allow 202 result in put_attachment
+
+[33mcommit e740382618a35622e78579cdc1e0da857dda9df7[m[33m ([m[1;33mtag: [m[1;33m1.4.2[m[33m, [m[1;31morigin/v1.4.x[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 22 21:30:23 2016 +0100
+
+    bump couchbeam version
+
+[33mcommit d7c3f476287467291c065d3ba4c58bdf8d990923[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 22 21:26:48 2016 +0100
+
+    remove mix build
+    
+    I don't use elixir myself and mix is able to build using rebar3
+
+[33mcommit ca5e6eecb427556de3c3674beaa05a715bde48f4[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 22 21:26:12 2016 +0100
+
+    bum to 1.6.4
+
+[33mcommit ba3e27ceb912eda0b780b365830efd0630d28fd9[m
+Author: Sergey Korobkov <skorobkov@dinkor.net>
+Date:   Wed Nov 30 06:02:55 2016 -0500
+
+    Fix start_docid -> startkey_docid & end_docid -> endkey_docid
+
+[33mcommit 552d75260aa1553b523d75617caa8e13e37cab58[m
+Author: karl anderson <karl@2600hz.com>
+Date:   Tue Nov 22 12:04:53 2016 -0800
+
+    added support for _design document _list functions
+
+[33mcommit 6cb925382b10c1dc052cbc833e935dd7017cb784[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 26 09:09:43 2016 +0200
+
+    update news
+
+[33mcommit 69e65fa85cc5db538ec386ff39f2b9ff942adb90[m[33m ([m[1;33mtag: [m[1;33m1.4.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 26 09:07:56 2016 +0200
+
+    regen doc
+
+[33mcommit 57f1021cc9ed9bffd9df3170778fe711e5393c37[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 26 09:04:38 2016 +0200
+
+    bump to 1.4.1
+
+[33mcommit 3c5778ae3b79ec21399801b0f480c7ab18a715be[m
+Merge: 4b898c4 59ba352
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 26 09:06:41 2016 +0200
+
+    Merge pull request #155 from lazedo/patch-3
+    
+    couchbeam_view_stream:do_init_stream
+
+[33mcommit 4b898c4ceee8bdf18fbbf82035e52c98b28987ab[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 26 09:03:17 2016 +0200
+
+    update rebar.lock
+    
+    forgot to sync it last time
+
+[33mcommit 403dd1a0f9d773a45fe626c7d4ecb04e05ac0791[m[33m ([m[1;33mtag: [m[1;33m1.4.0[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 11:20:57 2016 +0200
+
+    set recv timeout to infinity in changes stream
+    
+    based on pr #147 thanks!
+    
+    fix #141
+    fix #147
+
+[33mcommit fc14a1f8bd1eb3bb516d0b3b605e5193ed589eaa[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 11:13:37 2016 +0200
+
+    fix doc & ..
+    
+    fix #136 thanks!
+
+[33mcommit 699fad1f2cca5b05db35596ed24b992cb103864c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 11:05:00 2016 +0200
+
+    use strong_rand_bytes
+    
+    apply PR to latest codebase. Thansk for the patch! fix #154
+
+[33mcommit 68b2dc303d6341157e3487a335017220e25fbce4[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 11:04:03 2016 +0200
+
+    regen doc
+
+[33mcommit 86f09bc92a6f97347fe0ca3d7a43ecf52ebbb141[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 11:02:49 2016 +0200
+
+    bump to 1.4.0
+
+[33mcommit 17f3f74258d5b7c782180e0e836458c96cbbb1f1[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:59:26 2016 +0200
+
+    remove *_config api
+    
+    let's remove that api since ** 2.0 don't support it.
+    
+    fix #152
+
+[33mcommit d40e0c46ff4f63db1d59b8f8541fa28e81a27725[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:55:10 2016 +0200
+
+    bump hackney
+
+[33mcommit b543aed6f59f0a1f2a13cba4bf9184602af6051c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:51:39 2016 +0200
+
+    use rebar in travis
+
+[33mcommit 752bb0e622a8231b80fca40f9ca373afd6c82014[m
+Merge: e739997 42bbf9e
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:46:22 2016 +0200
+
+    Merge pull request #130 from optikfluffel/README
+    
+    Add syntax highlighting and fix stream view results example
+
+[33mcommit e739997ecdf3e1538bc85c935d886e74320e3626[m
+Merge: 7b6f3f8 ccc8035
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:43:46 2016 +0200
+
+    Merge pull request #149 from lazedo/patch-2
+    
+    fix design_info and view_cleanup
+
+[33mcommit 7b6f3f8b773142ac614bec82b764de4893d2a05a[m
+Merge: 4e4563f 05f7d1a
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 22 10:43:11 2016 +0200
+
+    Merge pull request #153 from obi458/master
+    
+    CouchDb 2.0
+
+[33mcommit 42bbf9ea35ed246e5003e0bbcdb6536aa07f1cfb[m
+Author: optikfluffel <optik@fluffel.io>
+Date:   Thu Aug 27 11:03:14 2015 +0200
+
+    use syntax highlighting in examples
+
+[33mcommit 30df959609dc8c3acf14da6a90bae12a8b810a27[m
+Author: optikfluffel <optik@fluffel.io>
+Date:   Thu Aug 27 11:01:56 2015 +0200
+
+    fix stream view results example
+
+[33mcommit 05f7d1a11f6f280c029f9f6d88a5885336b3ce57[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Mon Oct 3 17:58:08 2016 +0200
+
+    idea
+
+[33mcommit 0ab06d175af7812559294c4a88ec381df0fa3eaf[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Mon Oct 3 17:55:22 2016 +0200
+
+    unused server
+
+[33mcommit 8f7ea60d82ed2b07c32171497322d06f5054528e[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Sun Oct 2 08:44:20 2016 +0200
+
+    rebar2 hackney 1.6.1
+
+[33mcommit 94bf7f0a05d24953596ae0b4fa3ff257e2d30300[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Sun Oct 2 08:39:58 2016 +0200
+
+    couchdb2.0 change feed
+
+[33mcommit cd6d8524e52ea52b5931ef5ab78c37cbc05e6825[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Sat Oct 1 03:47:58 2016 +0200
+
+    db.options
+
+[33mcommit cbbed749a4fae315778745e8e8a72c7d750e4826[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Thu Sep 29 18:00:11 2016 +0200
+
+    add proxy_auth
+
+[33mcommit 5dc7a9122fae49a5741b31093e8c0754822a9741[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Thu Sep 29 12:47:10 2016 +0200
+
+    oauth
+
+[33mcommit 5cc18e48db044ab005667606a7a1daf080d802e2[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Wed Sep 28 08:09:56 2016 +0200
+
+    hackney:request -> couchbeam_httpc:request
+
+[33mcommit 96270d061e1ffa23edba08078a0a4373770d02e9[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Wed Sep 28 06:15:06 2016 +0200
+
+    proxy_header1
+
+[33mcommit dbea6df802e530996cdd262a8ae5bfdbb19adca5[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Tue Sep 27 10:30:27 2016 +0200
+
+    proxy_header
+
+[33mcommit d5dd099d809af74e23eb3b744b623fc55f7a089a[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Tue Sep 27 10:09:58 2016 +0200
+
+    secret token
+
+[33mcommit a595c4f52931db93b11381d9c5852d62f4d602b2[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Tue Sep 27 09:15:21 2016 +0200
+
+    gitignore
+
+[33mcommit 417ed32356cff33d331c5ac4f6832e1299e1c954[m
+Author: obi458 <oliver.bollmann@t-online.de>
+Date:   Tue Sep 27 09:13:56 2016 +0200
+
+    proxyauth
+
+[33mcommit 59ba3527edc18073132933b3a93399a5ea7fd7a4[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Fri Sep 23 04:18:52 2016 +0100
+
+    return single error when there are no rows
+
+[33mcommit d444a76582d9b1710a84887d31208689dc38a512[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Fri Sep 23 02:23:13 2016 +0100
+
+    prevent queue backup
+
+[33mcommit bde6256afc1e9048c53db9b5fef4f8b1d83ebc7c[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Wed Sep 7 12:39:27 2016 +0100
+
+    do not exit on do_init_stream
+
+[33mcommit ccc80359707ce386fec6ea9a42803369d33f089a[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Tue Aug 30 14:36:33 2016 +0100
+
+    fix design_info and view_cleanup
+    
+    https://github.com/benoitc/couchbeam/commit/ada39580fae0c99d002bc05a7c818e7bdf6b2ee6
+
+[33mcommit d214c4f264ce9071f12f312d629d208271a0ae94[m
+Author: Tomasz Lichon <t.j.lichon@gmail.com>
+Date:   Fri Aug 26 16:52:16 2016 +0200
+
+    Add 'false' option for stale parameter in view query.
+
+[33mcommit 4e4563fe1ba8d0114bde395ba9f32916c68029d5[m[33m ([m[1;33mtag: [m[1;33m1.3.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jul 1 14:20:31 2016 +0200
+
+    bump to 1.3.1
+
+[33mcommit d9165a4f779c5216d4b2ae000eff98b0b05df285[m
+Merge: 61b6a00 3aa37b7
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jun 28 10:55:12 2016 +0200
+
+    Merge pull request #145 from fenollp/update-spec-syntax
+    
+    update-spec-syntax: in order to compile on 19.0
+
+[33mcommit 61b6a00d84cfb20bd56ed3a680ed7dd2fc422247[m
+Merge: 771f36c 93d51e5
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jun 28 10:55:00 2016 +0200
+
+    Merge pull request #144 from lazedo/patch-1
+    
+    update accepted returned values
+
+[33mcommit 3aa37b7ecca90933b88787c44f9b62069435ef30[m
+Author: Pierre Fenoll <pierrefenoll@gmail.com>
+Date:   Mon Jun 27 16:32:02 2016 +0200
+
+    update-spec-syntax: in order to compile on 19.0
+
+[33mcommit 93d51e55f6630b2c078d7c9d0f1d0b6deacb3555[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Thu May 26 08:29:57 2016 +0100
+
+    update accepted returned values
+    
+    add 202 to accepted list of returned values.
+
+[33mcommit 771f36c3346786ce136a1ed9d1e750df359d6c13[m
+Merge: 8c290be 64485f9
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu May 12 12:06:58 2016 +0200
+
+    Merge pull request #142 from uDude/master
+    
+    NEWS link should point to NEWS.md
+
+[33mcommit 64485f9e1cf53d1a03a8e1d999e02ac539470d24[m
+Author: uDude <mfkyle@gmail.com>
+Date:   Thu May 12 19:33:56 2016 +0930
+
+    NEWS link should point to NEWS.md
+
+[33mcommit 8c290be13fe53984c89c54a17bda232966d4ab34[m[33m ([m[1;33mtag: [m[1;33m1.3.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Mar 22 15:02:04 2016 +0100
+
+    update news
+
+[33mcommit 01d75a74a4d0caab5245a9d01a804fbc281779a8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Mar 22 14:57:15 2016 +0100
+
+    don't leak socket chen running view_cleanup
+
+[33mcommit 5ad628b6f05f5904ccdb5f50b026b87530c68cff[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Mar 22 14:53:34 2016 +0100
+
+    add mix support and bump to 1.3.0
+
+[33mcommit 32e421d52523fee03395b50fd71ffcfd16818b98[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Mar 22 14:25:50 2016 +0100
+
+    handle http errors in view stream.
+    
+    fix #140
+
+[33mcommit 395e23d582e6d0c7c41674e91067777322a27a0b[m
+Merge: fe43cbf ada3958
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Mar 22 13:58:45 2016 +0100
+
+    Merge pull request #138 from lazedo/lazedo-patch-1
+    
+    add all_dbs/2, design_info, view_cleanup
+
+[33mcommit fe43cbf3e8ca3202685e1402b2c28c655cc509e9[m
+Merge: d61c24a b3fa887
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Mar 22 13:57:53 2016 +0100
+
+    Merge pull request #139 from lazedo/view-decode
+    
+    handle decode in view stream
+
+[33mcommit d61c24ab150c26bca6bfcd826891a0727efae1e2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Mar 22 13:52:49 2016 +0100
+
+    update to support latest rebar3
+
+[33mcommit b3fa887f78927b0233f1969e41b752068eff0c3e[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Wed Mar 2 20:44:17 2016 +0000
+
+    Update couchbeam_ejson.erl
+
+[33mcommit 7f08f046b18ecb14fca1d468ac72294e4f4a2e5d[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Tue Mar 1 13:59:10 2016 +0000
+
+    use post_decode in view_stream
+
+[33mcommit 6b5c479d93e78b341dae54a07ee5ae642e5d4118[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Tue Mar 1 13:57:59 2016 +0000
+
+    export post_decode
+    
+    also handles corner cases in post_decode
+
+[33mcommit ada39580fae0c99d002bc05a7c818e7bdf6b2ee6[m
+Author: lazedo <luis.azedo@factorlusitano.com>
+Date:   Thu Feb 25 16:56:58 2016 +0000
+
+    add all_dbs/2, design_info, view_cleanup
+
+[33mcommit 4721b2822a76dcf0d549dfc628e026d5acf7c311[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 17:56:04 2015 +0100
+
+    ci in tavis using rebar3
+
+[33mcommit 294d4eba1a4f90885ebb800f2888be6c60440d83[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 16:32:07 2015 +0100
+
+    make the changelog more explicit
+
+[33mcommit 3c914cb0a944ee1e4cd7a0719b4553802893e85c[m[33m ([m[1;33mtag: [m[1;33m1.2.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 16:28:59 2015 +0100
+
+    update changelog
+
+[33mcommit 308ec57c84d92bd3f36e721ac157ae23b280379d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 16:25:45 2015 +0100
+
+    use latest hackney to make sure we use source packages
+
+[33mcommit 84951b29acae7091e8b85ac0d1e046885dfdc8c0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 16:24:21 2015 +0100
+
+    support latest hackney
+
+[33mcommit d8502a91d553b0e0bef61c31987c1fad46c5957f[m[33m ([m[1;33mtag: [m[1;33m1.2.0[m[33m, [m[1;31morigin/1.2.x[m[33m, [m[1;31m2600hz/1.2.x[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:56:06 2015 +0100
+
+    remove useless section
+
+[33mcommit 04eea5b7c9c507321eefcf588362666191ce1b27[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:47:52 2015 +0100
+
+    fix build with R16
+
+[33mcommit be3b25a04499663c8fe2293651670f50930f65d2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:44:30 2015 +0100
+
+    remove the useless makefile
+
+[33mcommit 632455da846d91e3c8db9477f4b7e1acc493fa59[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:34:05 2015 +0100
+
+    fix tests with rebar2
+
+[33mcommit e4138a8f23e59efd65eb044688f5794592e1c1d9[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:08:56 2015 +0100
+
+    update changelog
+
+[33mcommit 4231cd133d3228ed0389782bf67c2de5ffc1a23e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:06:05 2015 +0100
+
+    regen doc
+
+[33mcommit 00f2141285e800f0755e2668f1de130bdd4618c5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:04:10 2015 +0100
+
+    update travis config
+
+[33mcommit eca7056ede6f343bee9d4556f5207b31c44c2f74[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 15:02:44 2015 +0100
+
+    update the overview
+
+[33mcommit e513198fe510b899ef0511be97c259d967eb02f5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 14:57:56 2015 +0100
+
+    fix rebar2 support
+
+[33mcommit b7b292aea4999b4777bdbdbe2dc3d34356e2e3b4[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 14:56:12 2015 +0100
+
+    bump to 1.2.0
+
+[33mcommit 82948e08a0b1e3b88415ef11551cab965c71e250[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 14:54:09 2015 +0100
+
+    fix obvious errors
+
+[33mcommit 41b3f54e4498e13393f0b600559197add3cbc1c8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 4 14:48:34 2015 +0100
+
+    replace etap tests by eunit + rebar3 support
+
+[33mcommit daa2bdb201d311e00d558cd52876ebc84c517812[m[33m ([m[1;33mtag: [m[1;33m1.1.8[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Aug 27 10:48:37 2015 +0200
+
+    bump to 1.1.8
+
+[33mcommit 32ceac64f6542d02f8e1ea3caef7dc68e12dae4d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Aug 27 10:40:53 2015 +0200
+
+    uses latest stable branch
+
+[33mcommit 6468c86991490266beaedfb21f3a67e5281fa5f3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Jun 25 18:28:59 2015 +0200
+
+    bump hackney to 1.2.0
+
+[33mcommit fe5f05b9e8292a773e3b8be5ae327f2638fee725[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Jun 25 18:26:44 2015 +0200
+
+    bump to 1.2.0
+
+[33mcommit d25722f7c5b7005d5a7d4513a2b17eaf4905297f[m
+Merge: c16d030 0022b48
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri May 8 13:34:34 2015 +0200
+
+    Merge pull request #129 from wactbprot/master
+    
+    changed git to https to allow installation through firewall
+
+[33mcommit 0022b48b818d971f71b07c5b296a2f187ee56722[m
+Author: wactbprot <thsteinbock@web.de>
+Date:   Fri May 8 10:29:23 2015 +0200
+
+    changed git to https to allow installation through firewall
+
+[33mcommit c16d030fed2ecd91f69a95dcdf7fac1c26b82856[m[33m ([m[1;33mtag: [m[1;33m1.1.7[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Mar 11 22:33:00 2015 +0100
+
+    bump to 1.1.7
+
+[33mcommit a4220faf10bc3a1cdcb98be049cd1eede33c3739[m
+Merge: f4fa3bf 31f7b9d
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Mar 11 22:22:11 2015 +0100
+
+    Merge pull request #127 from vivienhaese/master
+    
+    Doc
+
+[33mcommit 31f7b9d4414bbc0f52c0bc48afcb6ab172d53e87[m
+Author: vhaese <vivien.haese@actech-ingenierie.fr>
+Date:   Fri Mar 6 14:29:05 2015 +0100
+
+    Doc
+    
+    Couchbeam allow to receive change from « now »
+
+[33mcommit c35e1c88f42455ca1641d7d357766b509e7491da[m
+Author: vhaese <vivien.haese@actech-ingenierie.fr>
+Date:   Fri Mar 6 10:57:42 2015 +0100
+
+    Doc
+    
+    Couchbeam allow to receive change from « now »
+
+[33mcommit f4fa3bf3537bf17a687e5b359987789e8a8e6d2e[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Mar 5 13:42:52 2015 +0100
+
+    bump hackney to 1.1.0
+
+[33mcommit 632ff8a9d30c9eac23d6958092a061ba98351585[m
+Merge: 21de028 601b46c
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Feb 25 17:08:10 2015 +0100
+
+    Merge pull request #126 from vivienhaese/master
+    
+    Fix Content-Type missing in HTTP Post
+
+[33mcommit 601b46c3ee2f7ffb6ab2fb85ebe7d1ab589f163a[m
+Author: vhaese <vivien.haese@actech-ingenierie.fr>
+Date:   Wed Feb 25 14:18:50 2015 +0100
+
+    Fix Content-Type missing in HTTP Post
+    
+    Add Content-Type header for 3 post requests using JSON as body content.
+
+[33mcommit 21de0281f6c983f6bea39d9b43ff0c12d916c90e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jan 21 14:36:59 2015 +0100
+
+    bump hackney release to 1.0.6
+
+[33mcommit a20517d415486dea4185781483361e0188289d85[m[33m ([m[1;33mtag: [m[1;33m1.1.6[m[33m, [m[1;31morigin/v1.1.x[m[33m, [m[1;31m2600hz/v1.1.x[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 2 11:09:40 2015 +0100
+
+    Update overview.edoc
+
+[33mcommit 72eb5852a8dde629ee7fb61747325f802710b9f9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jan 2 11:08:55 2015 +0100
+
+    Update README.md
+
+[33mcommit e3a94db59276e2ed77aa90d38a8c75fd1e7c61a6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 11:06:57 2015 +0100
+
+    fix readme
+
+[33mcommit 0aeac7213476c29915686b52779d91bf4dd44fff[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 11:05:51 2015 +0100
+
+    fix doc syc
+
+[33mcommit 01bba7715b2cd5c72605f52f0ac7f5de6390739b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 11:00:02 2015 +0100
+
+    sync doc
+
+[33mcommit 601e9ca84f8f949b758d346deb33c4c4945ad5d2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 10:59:44 2015 +0100
+
+    we are in 2015
+
+[33mcommit eefebc06976b546389053fc90e68d533647043f3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 10:58:39 2015 +0100
+
+    bump to 1.1.6
+
+[33mcommit 746f79087bac286429901364813b9920f00df9dc[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 2 10:48:05 2015 +0100
+
+    update readme
+
+[33mcommit 8a2cd315c9cd6693b2e86e27cb1a1ea0a4d34e65[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 17 05:58:29 2014 +0100
+
+    ssl_verify_hostname is already included in hackney
+    
+    fix #122
+
+[33mcommit 3e9ec88c8d0beef8300aee7fa4a9ebef49479aa7[m[33m ([m[1;33mtag: [m[1;33m1.1.5[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 9 13:22:33 2014 +0100
+
+    bump to 1.1.5
+
+[33mcommit 3d17d20d6b6f9209af758f519e68ea4036f63868[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 9 13:11:49 2014 +0100
+
+    retry fecthing UUIDS on error.
+    
+    fix #121
+
+[33mcommit aaae12fd2469450c0c7f6c7b15c86982f4db539f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 9 00:14:36 2014 +0100
+
+    don't forget to update the development config
+
+[33mcommit 8aca60fc8d4cf198a669a7f35f8845ba0aead874[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 9 00:12:53 2014 +0100
+
+    bump hackney to 1.0.4
+    
+    fix #120
+
+[33mcommit 3bdc17be0c19ff6e2c6262dfd0e8a408ed65bc8c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 9 00:12:28 2014 +0100
+
+    don't force connection options
+
+[33mcommit 5436839a064c95778a00db3a8dc566514aa3ebfd[m[33m ([m[1;33mtag: [m[1;33m1.1.4[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 1 18:00:18 2014 +0100
+
+    update NEWS
+
+[33mcommit 2dd34263becf9e4e33806dcacac01c4a039645d8[m
+Merge: 9dc2f22 de20a23
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Dec 1 17:58:54 2014 +0100
+
+    Merge pull request #119 from dyslaw-pesail/master
+    
+    Quick fix of broken function
+
+[33mcommit 9dc2f22ae086641e899bb5d5cee2fbe6f459c038[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 1 17:57:41 2014 +0100
+
+    bump to 1.1.4
+
+[33mcommit 652e254c157a2b3459e1ef97d73e85bfe65a8f50[m[33m ([m[1;33mtag: [m[1;33m1.1.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 1 00:04:33 2014 +0100
+
+    fix version in dev rebar
+
+[33mcommit be60b301ad2980e716156d521d0a0fd63739f1c9[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 1 00:01:27 2014 +0100
+
+    bump to 1.1.3
+
+[33mcommit 3d896e4ae23ba45609d32a460f075328ba11a464[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Nov 30 23:57:43 2014 +0100
+
+    bump to hackney 1.0.0
+
+[33mcommit de20a2333882757d1e3614a32f5a68c9000bb620[m
+Author: Dyslaw Pesail <dyslaw.pesail@hotmail.com>
+Date:   Thu Nov 27 23:24:29 2014 +0000
+
+    Quick fix of broken function
+
+[33mcommit 3c3841bc167d05a85566bf7061a30fc6571833c2[m
+Merge: f2e5b0c 166590e
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Nov 17 15:42:43 2014 +0100
+
+    Merge pull request #118 from h4cc/patch-1
+    
+    Added more recent erlang/otp versions to travis.
+
+[33mcommit 166590e66e8ff2878b5b182920e3ceccc7800b93[m
+Author: Julius Beckmann <github@h4cc.de>
+Date:   Mon Nov 17 11:25:53 2014 +0100
+
+    Removed OTP 17.2 from Travis.
+    
+    Seems to be missing on travis.
+
+[33mcommit 50e8477137aab3c4a8d39b1582701f5912752313[m
+Author: Julius Beckmann <github@h4cc.de>
+Date:   Mon Nov 17 11:14:22 2014 +0100
+
+    Added more recent erlang/otp versions to travis.
+
+[33mcommit f2e5b0c95636d12716e8531a9e10db228a86da3f[m[33m ([m[1;33mtag: [m[1;33m1.1.2[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Nov 15 11:04:58 2014 +0100
+
+    bump to 1.1.2
+
+[33mcommit db4b5a386648760376abd4f0f1e3d823bfd00659[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Nov 15 10:55:41 2014 +0100
+
+    remove spurious prints
+
+[33mcommit 7a1a9f8ed7f8a747e62b48234d227af444281912[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Nov 11 10:34:27 2014 +0100
+
+    don't include the rebar binary, use the one installed.
+
+[33mcommit a7cd2238274c65bffd21de6d7e3ffc89828ab2d8[m[33m ([m[1;33mtag: [m[1;33m1.1.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Nov 11 10:19:45 2014 +0100
+
+    bump to 1.1.1
+
+[33mcommit 9be685d4870100d3ff6fda3c44c84ed62c93dbf8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Nov 11 10:13:03 2014 +0100
+
+    test status new head response signature from hackney
+    
+    Head response from hackney is already handling the body part and now return
+    {ok, Status, Header}. This change wasn't handled when checking the epected
+    status of the response.
+    
+    fix #116
+
+[33mcommit 43fc0b618e4a229d0c0bf351a676cbf468e25ae2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Nov 11 10:05:01 2014 +0100
+
+    bump hackney version to 0.15.0
+    
+    this release give major improvements to couchbeam.
+
+[33mcommit 003eef3bfdb5bcbaa217c0791f1ed85155b5e685[m
+Merge: 80fe8dd bdce4bc
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Nov 11 09:58:26 2014 +0100
+
+    Merge pull request #115 from epappas/master
+    
+    #114 Fix; couchbeam:reply_att/1 handles 200 & 201 as success
+
+[33mcommit bdce4bc4e1b0e1a5cf3b9d03085a9c5fea08d342[m
+Author: Evangelos Pappas <evangelos.pappas@matchesfashion.com>
+Date:   Sat Nov 1 19:55:20 2014 +0000
+
+    #114 Fix; couchbeam:reply_att/1 handles 200 & 201 as success
+
+[33mcommit 0ba84aec53496a8edf7c8256a5574d6cb3933048[m
+Author: Evangelos Pappas <evangelos.pappas@matchesfashion.com>
+Date:   Sat Nov 1 15:14:37 2014 +0000
+
+    #114 Fix; couchbeam:reply_att/1 handles 20x as success
+
+[33mcommit 80fe8dd60b2bc3876739d712ecd50a72af60e6bf[m[33m ([m[1;33mtag: [m[1;33m1.1.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Oct 28 16:35:03 2014 +0100
+
+    bump couchbeam to 1.1.0
+
+[33mcommit 4da9d58ed46052944174bbd2763ee431a5b739dc[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Oct 28 16:19:31 2014 +0100
+
+    bump hackney to latest stable 0.14.3 .
+    
+    - fix memory leaks
+    - fix socket lingering
+
+[33mcommit bb864b6aa000ef0edde16833a5e510ca54be9bdd[m
+Merge: 9a05806 0260160
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 15 09:28:31 2014 +0200
+
+    Merge pull request #110 from talentdeficit/master
+    
+    update jsx to v2.0.4
+
+[33mcommit 02601601155248be4a743ad51bb0af39de98fdc6[m
+Author: alisdair sullivan <alisdairsullivan@yahoo.ca>
+Date:   Thu Jul 10 23:04:30 2014 -0700
+
+    update jsx to v2.0.4
+    
+    upgrade jsx and make adjustments for new api
+
+[33mcommit 9a058060baef43fed52a6fca009322d4d42c9862[m[33m ([m[1;33mtag: [m[1;33m1.0.7[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 8 23:57:28 2014 +0200
+
+    update NEWS
+
+[33mcommit 96fd206486bb1e0172605934fcde38ac6d05c8c4[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 8 23:54:46 2014 +0200
+
+    fix expm metadata
+
+[33mcommit 59aa9947d8666d12b4a7eeab3902094c3d57123e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 8 23:53:11 2014 +0200
+
+    update to latest hackney version
+    
+    with this change we are now supporting erlang 17.
+
+[33mcommit 2afb51c777f2534e460276354d85f697b2798f99[m
+Merge: 4ee1abc c30384a
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Apr 25 16:08:08 2014 +0200
+
+    Merge pull request #107 from dewolfe/master
+    
+    fix error in readme
+
+[33mcommit c30384ac236821fcd5bc457a3ff908e1739a2d99[m
+Author: Dominic DeWolfe <d_dewolfe@yahoo.com>
+Date:   Fri Apr 25 08:23:32 2014 -0400
+
+    fix error in readme
+
+[33mcommit 4ee1abc540394dc2df1c9ec0e3978485317a63b8[m[33m ([m[1;33mtag: [m[1;33m1.0.6[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Apr 18 16:36:15 2014 +0200
+
+    bump to 1.0.6
+
+[33mcommit 9b48b5a409a8607e8acfed607887994b18efb0d0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Apr 18 16:33:58 2014 +0200
+
+    bump hackney requirement
+
+[33mcommit c0053d57e4c4abbc636b2e20a57c4b3594d86667[m[33m ([m[1;33mtag: [m[1;33m1.0.5[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Apr 18 11:34:55 2014 +0200
+
+    bump to 1.0.5
+
+[33mcommit 564fe12d1746ac21dc6f7d3d58539c90127374f0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Apr 18 10:33:42 2014 +0200
+
+    bump hackney version to 0.12.0
+    
+    This changes add the following improvements to couchbeam:
+    
+    - improve connections with HTTP proxies
+    - improve content-types detection of attachments
+    - improve URL encoding normalzation, useful when connecting to an
+      international domain/URI
+    - URL resolving is faster
+
+[33mcommit bc8fcff4e6794fe03350dbcfc01421d48077dd5f[m[33m ([m[1;33mtag: [m[1;33m1.0.4[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 15 09:04:02 2014 +0200
+
+    bump to 1.0.4
+
+[33mcommit 22f7e69acc2c82d0e61a71b6673f04ccb73d73d6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 15 09:01:14 2014 +0200
+
+    remove spurious print
+
+[33mcommit f08f1f8c4f6c51ca2a2e8a3a7da26f6fc8988d82[m[33m ([m[1;33mtag: [m[1;33m1.0.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 15 01:42:56 2014 +0200
+
+    sync doc
+
+[33mcommit edc525b0bc4166b7d8e381d32759ab0f1d3eb8c0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 15 01:32:31 2014 +0200
+
+    bump to 1.0.3
+
+[33mcommit 1dc23e55bafad47f55921ad363701d1133640499[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 15 01:23:22 2014 +0200
+
+    bump hackney requirement to 0.11.2
+
+[33mcommit 0342402920552a8fef5ebc2da715bee7a32438bc[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Apr 14 23:47:22 2014 +0200
+
+    by default set nodelay to true.
+
+[33mcommit d6db7d2042efa02219c87a395ccbb7ce81991536[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Apr 14 20:32:47 2014 +0200
+
+    set #server{} in one place.
+
+[33mcommit 44e951f4b00e4d3f624403c5a58e275d4153d3db[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Apr 14 08:43:57 2014 +0200
+
+    ensure we close the socket when something bad happen
+
+[33mcommit 7b0628afeb2292b2bd3566e02074c5cd4d88cdbd[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 3 11:54:19 2014 +0100
+
+    fix path encoding in couchbeam
+
+[33mcommit c58dbce5f6ef6f3615f81b39e6fb16005c8b6e8e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 3 10:35:21 2014 +0100
+
+    bump the dev as well
+
+[33mcommit eefe5571bb1bbd9c065936bc61589eb83c5e927a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 3 10:32:17 2014 +0100
+
+    bump the hackney version.
+
+[33mcommit a1ab0a9f6431baa1d03725ad9a5d514c70eb28b0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Mar 2 23:46:19 2014 +0100
+
+    fix application
+
+[33mcommit b2253248862347746e1cd7280eff5e0c48be11b8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Mar 2 23:35:04 2014 +0100
+
+    upgrade hackney release
+
+[33mcommit 06cc19fd7af9bb19204d4c8cdf839b8181d62dac[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Feb 22 00:20:28 2014 +0100
+
+    add missing files to gitignore
+
+[33mcommit 26b3f961bf26d8f5a90fc66a8b0e4bed47388218[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Feb 3 11:27:52 2014 +0100
+
+    fix connection scheme
+    
+    When the port is 443 expect https, else check if the option is_ssl is
+    true or not.
+    
+    fix #104
+
+[33mcommit c97c4f9546e6a5144c31aa668ad99e685b04130e[m
+Merge: 0d77c7a 29fc161
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jan 22 08:00:00 2014 -0800
+
+    Merge pull request #103 from KlausTrainer/new_edits
+    
+    Support 'new_edits' bulk docs API option
+
+[33mcommit 0d77c7acbf034ea4b4daf063638e430a922d87df[m
+Merge: b9896cb cd1bb06
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jan 22 07:57:58 2014 -0800
+
+    Merge pull request #101 from wmealing/wmealing-docfix
+    
+    Update README.md
+
+[33mcommit 29fc16121c143a70db4544d64c0c685a338138be[m
+Author: Klaus Trainer <klaus_trainer@posteo.de>
+Date:   Thu Jan 16 19:26:35 2014 +0100
+
+    Support 'new_edits' bulk docs API option
+
+[33mcommit cd1bb063f5885187dd58d646b7a086768fa8a506[m
+Author: Wade Mealing <wmealing@gmail.com>
+Date:   Tue Jan 7 23:26:14 2014 +1000
+
+    Update README.md
+
+[33mcommit b9896cb967534371f50f92c6fa4d9fc2a909910c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 3 11:20:58 2014 +0100
+
+    master is -dev
+
+[33mcommit cfb8946ab2ac7a53ba9ad404e039192ab1b89370[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 3 11:16:46 2014 +0100
+
+    we are in 2014
+
+[33mcommit 13bcefbee0df15be1cec1ebf5ec3b5a22594ca9e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 3 11:14:40 2014 +0100
+
+    bump news to 1.0.2
+
+[33mcommit 9f240ef602a2bb7ebde854fafb0fed5b0094d8a1[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Jan 3 10:21:02 2014 +0100
+
+    send a doc as multipart that already contains attachments
+    
+    This change allows someone to send a doc with new attachments while
+    keeping the old ones.
+
+[33mcommit 0387df98e19c5563c0cac7207659887116e2a258[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 30 16:03:16 2013 +0100
+
+    update news to 1.0.1
+
+[33mcommit d6b440d80d481fcddb4f17f060d13ce681cb5d2c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Dec 30 15:56:50 2013 +0100
+
+    bump to hackney 0.10.1
+
+[33mcommit dd4020a24ad23f381468b834a3a3c0037280ed40[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Dec 29 21:45:30 2013 +0100
+
+    bump to latest hackney.
+    
+    Latest hackney fix connection reusing
+
+[33mcommit 1afb856c764e6ca8b279e3207a528651b4cca532[m[33m ([m[1;33mtag: [m[1;33m1.0.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 19:25:55 2013 +0100
+
+    bump to 1.0.0
+
+[33mcommit 7cf69184e0b3f69cbaa41c202d698736f95ecab5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 19:15:21 2013 +0100
+
+    sync doc
+
+[33mcommit 5d73680d905a23452f49f83c0dc7c4039c7ceca1[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 17:33:45 2013 +0100
+
+    add support of the config API
+    
+    This changes add functions to handle the Apache CouchDB config API.
+
+[33mcommit 92b1f1a200749083c804275cd412d798dc898a0a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 16:16:14 2013 +0100
+
+    use the git scheme
+    
+    hackney and hackney_lib are using this scheme and it's better for some
+    PAAS like heroku. It shouldn't be a problem for most of the firewalls so just use it.
+    
+    initial patch fron @jwilberding
+    
+    fix #93
+
+[33mcommit 9815878155bb2688be0395a584145c6c58982194[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 15:55:57 2013 +0100
+
+    sync the doc
+
+[33mcommit 03ee47a751d2621b3112f84d547180584c42700f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 15:38:30 2013 +0100
+
+    send a doc and its attachments efficiently.
+    
+    This change add the function `couchbeam:save_doc/4`.  If the attachments
+    is not empty, the doc will be sent as multipart and the attachments will
+    be streamed which is a way more efficient than using inline encoding.
+
+[33mcommit ef5244e3124613c019322936882b6c7498498ca0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 10:03:00 2013 +0100
+
+    store options on server_connection/2 when needed.
+
+[33mcommit a6fc0985ee8e84addd2f36427bfeeb35b395bc57[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 09:52:49 2013 +0100
+
+    idon't force the accept header here it may have already been set
+
+[33mcommit 7d7d86b32ba1cb7718c4cce42080329a25e41317[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 09:48:15 2013 +0100
+
+    add forbidden and unauthenticated errors
+
+[33mcommit 780b0f59996175c638a56fc455c1a0e4949e6747[m[33m ([m[1;33mtag: [m[1;33m0.10.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 21 00:18:57 2013 +0100
+
+    bump to 0.10.0
+
+[33mcommit 744ed388f0a97964459641bcb1c906d8e1e248d0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 20:48:10 2013 +0100
+
+    missing spec
+
+[33mcommit 23d57260c634f77e34ceca8fd14d224d552ca398[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 19:38:01 2013 +0100
+
+    bump hackney version in rebar_dev.config as well.
+
+[33mcommit d47c8d63946e47829b56e03ac408f405cb870b0e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 19:31:43 2013 +0100
+
+    bunp hackney requirements.
+    
+    we need the latest verison of hackney fixing multipart support.
+
+[33mcommit 21db27ae489d0822492217cb01a6b05696aadf51[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 19:22:31 2013 +0100
+
+    add support for multipart api when fetching a doc
+    
+    This change return a multipart response `{ok, {multipart, Stream}}` when
+    using the setting `attachments=true` and passing revs as options with
+    th the option {`accept. <<"multipart/mixed">>}" in the function
+    `couchbeam:open_doc/3` . Also this function detect the returned content
+    type by checking the headers.
+    
+    With this change you can now efficiently retrieve a doc with all of its
+    attachments or a doc wit all its revisions.
+
+[33mcommit 276dec856a2321a2b0cc15c04a00a1cfd80e31e5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 09:46:03 2013 +0100
+
+    ensure_full_commit return the instance start time now.
+
+[33mcommit 14f4048d24838d4b4b9e57b75228ffa0aeed95c1[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 09:20:12 2013 +0100
+
+    add get_misisng_revs spec
+
+[33mcommit b67ace58f06634080867c9b3f114f43d8ad66e5d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 09:15:35 2013 +0100
+
+    remove spurious print
+
+[33mcommit 175b5bb498f87135098c4dd53f6cd73caf869aec[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 20 09:14:26 2013 +0100
+
+    add `couchbeam:get_missing_revs/2` functions and tests
+    
+    while I'm here test the replication.
+
+[33mcommit a285866f131e245a9dcac2276f761a318278362c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 19 23:21:55 2013 +0100
+
+    add `couchbeam:doc_copy/{2,3}` function.
+
+[33mcommit d1621e99173950d5620b76b2591142b94c495416[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 19 19:24:50 2013 +0100
+
+    doc lookup_doc_rev
+
+[33mcommit 6345efa8ec9c7aabfebee597b1e5cab0f49dc4a9[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 19 19:24:15 2013 +0100
+
+    bump th ehackney requirements in tests
+
+[33mcommit aee1d9ad14ed45730f44e4d6ad3ac6e7fd0048e9[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 19 16:18:36 2013 +0100
+
+    bumpt the hackney version requirement
+
+[33mcommit 5e813641ca4e9a8fd5e69ac355dcd9a0c9d19e5e[m[33m ([m[1;33mtag: [m[1;33m0.9.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 17:09:30 2013 +0100
+
+    remove spurious print
+
+[33mcommit c5c3a154ca48175f7c0a66f997d1b4a67e8a6846[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 16:46:24 2013 +0100
+
+    sync doc
+
+[33mcommit a305f017b2114200738a08befeddeb7ce0bfa88d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 16:44:19 2013 +0100
+
+    quick fix release. bump to 0.9.3
+    
+    fixing hackney
+
+[33mcommit 5ceec0237ed4a4a41c5713005373a93865ed9065[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 16:38:48 2013 +0100
+
+    fix open_or_create_db
+
+[33mcommit 21a12e6e052117522e91330958401415eb0665d2[m[33m ([m[1;33mtag: [m[1;33m0.9.2[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 15:58:08 2013 +0100
+
+    bump
+
+[33mcommit 794726983664fa2ca2406bb09b835a16848918e2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Dec 7 15:30:50 2013 +0100
+
+    fix path issues
+    
+    This change fix path issues and bump the hackney version that allows the
+    fix.
+
+[33mcommit 5419052d1049a2e6fe1621f1bfb87d9ffc4bf436[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 6 01:31:21 2013 +0100
+
+    fix the right file.
+    
+    only the overview should be blessed. the README is generated.
+
+[33mcommit e20748f02c47883b08bb34951626e62a41740732[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 6 01:30:10 2013 +0100
+
+    sync doc
+
+[33mcommit ec01adbce9edb536b477eda37cf81806ffe134a8[m[33m ([m[1;33mtag: [m[1;33m0.9.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 6 00:50:22 2013 +0100
+
+    bump to 0.9.1
+
+[33mcommit 168b6a2f3b10138cb0222c5aeef304e2c38e2324[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Dec 6 00:19:17 2013 +0100
+
+    fix badarg issue while encoding the doc id
+
+[33mcommit 1ad093335cc2d975ecdae1c175384aa493520b28[m
+Merge: a1703b7 cdd84c8
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Dec 5 15:17:53 2013 -0800
+
+    Merge pull request #96 from s1n4/master
+    
+    Fix erl_opts in README
+
+[33mcommit cdd84c866e8c95453a87a82d9d6d511459edbc3f[m
+Author: Sina Samavati <sina.samv@gmail.com>
+Date:   Fri Dec 6 02:46:26 2013 +0330
+
+    Fix erl_opts in README
+
+[33mcommit a1703b74382a008acb82da2da53b049c59b84fcf[m[33m ([m[1;33mtag: [m[1;33m0.9.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 22:08:14 2013 +0100
+
+    update changelog
+
+[33mcommit d6ad3f94f754acea99a8280d20b393af451f3a24[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:55:29 2013 +0100
+
+    add a note about gen_changes
+
+[33mcommit abef6aa023c036ceb5b3679745a7695ab2b6565d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:52:12 2013 +0100
+
+    fix syntax in the overview
+
+[33mcommit 539f5426174ebbe5d54789183e8098fc0d2992ee[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:50:34 2013 +0100
+
+    add a note about jiffy in the README
+
+[33mcommit 9245d30a82a89d462d3e06df408edd51e5d3406c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:38:54 2013 +0100
+
+    add elixir package metadata
+
+[33mcommit 66de0d6052603e33e3ef0bd07cdd8f7b8c4f6eeb[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:28:18 2013 +0100
+
+    monitor the process receiving messages while streaming to it.
+    
+    When the process receiving the message we should make sure to close the
+    stream so we don't leak any memory or fds.
+
+[33mcommit daf4bdcd5d6b441e7f5b5c292eaa984b2935e08e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 21:02:58 2013 +0100
+
+    fix typo
+
+[33mcommit 607eba81747b79f41c1662c2cba4d3a5603e5275[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 20:55:47 2013 +0100
+
+    only test for R15B03 and sup.
+
+[33mcommit 48d09281f2baa8a9e4dcd9adca68af16a95a9943[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 20:48:08 2013 +0100
+
+    use JSX as default encoder/decoder
+    
+    This commit makes the following changes:
+    
+    - JSX is now the default encoder
+    - remove mochiweb and JIFFY from the dependencies
+    - JIFFY can be used as the default encoder by defining `WITH_JIFFY`
+      during the compilation.
+    
+    fix #95
+
+[33mcommit 39786b5a92766b24ec2de17b3f3b4f5a5c268d0a[m
+Merge: d5f06aa 392d52c
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Dec 5 08:52:46 2013 -0800
+
+    Merge pull request #94 from benoitc/hackney
+    
+    replace ibrowse / hackney
+
+[33mcommit 392d52c38d8ae446db2cb1dd2bf188b578d7f64f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 17:51:45 2013 +0100
+
+    improve the doc
+
+[33mcommit 19c81a594001adc355125b8eb6fc29c23baac657[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 17:46:35 2013 +0100
+
+    typo
+
+[33mcommit eecd5ec597eb515ee3dce02a750e372f40cf0bce[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 17:45:21 2013 +0100
+
+    sync doc
+
+[33mcommit 00da389fbfe702b9cd08542382a874144b6ee989[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 16:13:57 2013 +0100
+
+    simplify the API.
+    
+    Most of the time messages are expected to be received on the same
+    process. this change make it the default. now to stream to another pid
+    the option `{stream_to, Pid}` should be used.
+
+[33mcommit 69cc3ec2079b635a9d4ff99584f0c33be205806f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 15:46:48 2013 +0100
+
+    couchbeam_changes is now based on hackney
+    
+    - stream and fetch functions has been removed and replaced by follow and
+      follow_once.
+    - New events are {Ref, {change, Change}}, {Ref, {done, LastSeq}}
+
+[33mcommit 05ac984307569490850eaf2dd24dc23e0789f9f6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 10:10:35 2013 +0100
+
+    fix view folding
+
+[33mcommit b1eaa20cae64a5bc84f11fd1f20736a46b87f601[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 00:53:09 2013 +0100
+
+    test for R15 and R16
+
+[33mcommit 3d4d176de4199dc1185c6691860e4f5144082aab[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 00:49:00 2013 +0100
+
+    remove spurious prints
+
+[33mcommit 1a972ed19439525d24029c285c1633bb78a5a40a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 00:44:49 2013 +0100
+
+    row is already an object
+
+[33mcommit 9d1cb83c2cf7d80a56913b3b3509397586651538[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 5 00:39:00 2013 +0100
+
+    port views to hackney
+    
+    all tests pass now
+    
+    t/001-load.t ........ ok
+    t/002-server.t ...... ok
+    t/003-database.t .... ok
+    t/004-document.t .... ok
+    t/005-view.t ........ ok
+    t/006-attachment.t .. ok
+    All tests successful.
+    Files=6, Tests=61,  3 wallclock secs ( 0.08 usr  0.02 sys +  2.35 cusr
+    1.10 csys =  3.55 CPU)
+    Result: PASS
+
+[33mcommit 71bea607788b99d7531ae53392507dbe341f2bab[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 4 16:57:02 2013 +0100
+
+    add the couch view stream
+
+[33mcommit 8b16f8cc7f1b5f3df255b79d18a79433fa0317e5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 4 15:28:17 2013 +0100
+
+    miscellaneous fixes.
+    
+    only view tests don't pass for now.
+    
+    t/001-load.t ........ ok
+    t/002-server.t ...... ok
+    t/003-database.t .... ok
+    t/004-document.t .... ok
+    t/005-view.t ........
+    t/005-view.t ........ Failed 5/5 subtests
+    t/006-attachment.t .. ok
+
+[33mcommit ff548cb9171f5bafcbb6bf05f7819240930b860e[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Dec 3 11:59:59 2013 +0100
+
+    initial work to replace ibrowse by hackney in couchbeam
+
+[33mcommit d5f06aab7703ca265053a377e5c798a23779d7ea[m
+Merge: d747df2 bc424e4
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Nov 20 12:47:38 2013 -0800
+
+    Merge pull request #91 from KlausTrainer/use-git-tags
+    
+    Use tagged versions of dependencies
+
+[33mcommit bc424e4b77e45ec50659acebe83f1fa5fc228e48[m
+Author: Klaus Trainer <klaus_trainer@posteo.de>
+Date:   Wed Nov 20 21:12:29 2013 +0100
+
+    Use tagged versions of dependencies
+
+[33mcommit d747df22de4528c0e357abd68aaa6b4a66c99d95[m
+Merge: 896b292 6bd6b6e
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Nov 20 07:09:05 2013 -0800
+
+    Merge pull request #90 from KlausTrainer/fix-function-calls
+    
+    Fix calls to nonexistent functions
+
+[33mcommit 6bd6b6e99bebdf9e5010256cfe7d370098776e11[m
+Author: Klaus Trainer <klaus_trainer@posteo.de>
+Date:   Wed Nov 20 12:43:11 2013 +0100
+
+    Fix calls to nonexistent functions
+    
+    Refactorings in the erlang-oauth dependency broke
+    `couchbeam_util:oauth_header/3`, as the called functions aren't
+    available anymore.
+    
+    For reference, here the "breaking change" in erlang-oauth:
+    
+    https://github.com/tim/erlang-oauth/commit/fc5f528cea05b6b0b5e3ace0300268a330b01ac6
+
+[33mcommit 896b292e838899083299487205348649e7c0dda7[m
+Merge: 1056d2c 04db66c
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Nov 11 02:22:12 2013 -0800
+
+    Merge pull request #87 from ivlis/fix-new-jiffy-version
+    
+    Jiffy updated to more supported version
+
+[33mcommit 1056d2c42e51ddbeab39a883b948540407689491[m
+Merge: 4eb4f71 59c8cac
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 9 05:52:17 2013 -0700
+
+    Merge pull request #89 from mqsoh/master
+    
+    Point to mochiweb master instead of HEAD.
+
+[33mcommit 59c8cace1dc996aef4f86ee59717de0ca4835236[m
+Author: Mason Staugler <mason@staugler.net>
+Date:   Wed Oct 9 05:00:32 2013 -0400
+
+    Point to mochiweb master instead of HEAD.
+
+[33mcommit 04db66cefbbb9549843a0d80ceb9561f1e58c0f2[m
+Author: Ivan Lisenkov <ivan@ivlis.com>
+Date:   Sat Aug 17 20:05:33 2013 +0400
+
+    Jiffy updated to more supported version
+
+[33mcommit 4eb4f71e7b8d0f68d213d8da5c359e0f65ab1154[m
+Merge: 21c44d5 fc6fdc9
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jun 27 12:55:15 2013 -0700
+
+    Merge pull request #83 from ivlis/feature-keytake
+    
+    Add take_value/2,3 to couchbeam_doc module
+
+[33mcommit 21c44d50f893f4e18f1a33bc89c260e40c4ff85f[m
+Merge: d667066 c9caaff
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jun 27 12:51:32 2013 -0700
+
+    Merge pull request #81 from Ubiquiti-TeleFi/dialyzer
+    
+    Some more dialyzer things
+
+[33mcommit d66706641a36b68507e38c844e1714f8d96d4e2a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Jun 23 17:00:34 2013 +0200
+
+    add asn1 to the list of applications
+
+[33mcommit 2d10be7bd6149f0724bd2736f23189442bb81075[m
+Merge: fa6e10b 1f8dc19
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed May 29 10:07:49 2013 -0700
+
+    Merge pull request #85 from jimt/patch-1
+    
+    fix documentation typos
+
+[33mcommit 1f8dc19c22e360509138bbe42efcc1d2f031551b[m
+Author: Jim Tittsler <jwt@onjapan.net>
+Date:   Sun May 26 14:30:28 2013 +1200
+
+    fix documentation typos
+
+[33mcommit fc6fdc90c1c3ba613260f32fded0fd51e21a9119[m
+Author: Ivan Lisenkov <ivan@ivlis.com>
+Date:   Sun Jan 27 14:54:11 2013 +0400
+
+    Add take_value/2,3 to couchbeam_doc module
+    
+    Function returns the value of a simple key/value property in json object and
+    deletes it from json object.
+
+[33mcommit fa6e10b02db5bc4509f3fe8ffbc6cfcc9711fc06[m
+Merge: a9aeafc b45b3c9
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Feb 28 06:38:32 2013 -0800
+
+    Merge pull request #84 from JonGretar/patch-1
+    
+    Allow couchbeam_doc:extend/2 to merge 2 documents.
+
+[33mcommit b45b3c9da986f1964431f2ac11321cc6ed53428f[m
+Author: Jon Gretar Borgthorsson <jon.borgthorsson@gmail.com>
+Date:   Tue Jan 29 09:20:22 2013 +0000
+
+    Allow couchbeam_doc:extend/2 to merge 2 documents.
+
+[33mcommit a9aeafc7bdc9de5a05b05d92eced9fbe7fe263b3[m
+Merge: a7ea218 36486a4
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Jan 20 08:54:24 2013 -0800
+
+    Merge pull request #82 from KlausTrainer/master
+    
+    Add `{view, string()}` changes feed option
+
+[33mcommit 36486a47477b51cbfdc7a8f590571271b4f7b0eb[m
+Author: Klaus Trainer <klaus_trainer@posteo.de>
+Date:   Fri Jan 4 10:25:16 2013 +0100
+
+    Add `{view, string()}` changes feed option
+    
+    This makes it possible to specify a view to be used as filter for the
+    changes feed when using `couchbeam_changes:fetch/2` or
+    `couchbeam_changes:stream/3`. Note that CouchDB ignores that filter
+    parameter as long as the value for the `filter` parameter is not set to
+    `"_view"`.
+
+[33mcommit c9caaffe1fcdf1841ea665534d2f697afb4a9b36[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 21 23:29:09 2012 +0100
+
+    fix replicate functiofix replicate functionn. close #80
+
+[33mcommit a7ea218ef147af804f935e38c73f903c93e5a7c1[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Nov 21 23:29:09 2012 +0100
+
+    fix replicate functiofix replicate functionn. close #80
+
+[33mcommit 9e76cb82f1980b3825cf0d0853ae75e1ba310e75[m
+Author: Paul Oliver <puzza007@gmail.com>
+Date:   Mon Nov 19 14:19:01 2012 -0500
+
+    fold is used with Acc = ok as well, so generalise the typespec
+
+[33mcommit 6631fc6ca5b0f2003caeb9fa4c25016acce496a9[m
+Author: Paul Oliver <puzza007@gmail.com>
+Date:   Mon Nov 19 14:17:44 2012 -0500
+
+    parse_view_options doesn't return {error, _}
+
+[33mcommit ba93f0269792b1aac3a30ecdbe81f467ce7ab411[m
+Author: Paul Oliver <puzza007@gmail.com>
+Date:   Mon Nov 19 14:17:11 2012 -0500
+
+    Obey the view_option() type
+
+[33mcommit 197448b28996860c60413bda3c890e2f8dfb2c04[m
+Author: Paul Oliver <puzza007@gmail.com>
+Date:   Mon Nov 19 14:12:07 2012 -0500
+
+    Hack to allow compile-time config and keep dialyzer happy
+
+[33mcommit 92ae0cea7010c1a46eda11c8cb4c1090af16a473[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Oct 30 22:50:34 2012 +0100
+
+    define the JSON encoder at compile time.
+    
+    following the suggestion of @davisp, the JSON encoder is now choosed at
+    compile time. To use the mochijson encoder add
+    
+        {erl_opts, [{d, 'WITH_MOCHIJSON'}]}.
+    
+    to your rebar.config
+
+[33mcommit 0e287d84c88180dd27a755eca3351f6a293e9b0b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Sep 25 21:56:21 2012 +0200
+
+    handle load_failed error
+
+[33mcommit 498f1f2ed7ee268cc5cffa6407449338c1dbf24b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Sep 16 00:50:31 2012 +0900
+
+    travis api changed
+
+[33mcommit 2b656e5b0a207695b8322eeaa0438b901974e0c4[m
+Merge: 76bf8c6 f7eac37
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Sep 15 08:47:31 2012 -0700
+
+    Merge pull request #74 from signaturelabs/master
+    
+    Fix typo in docs (commit f7eac37)
+
+[33mcommit f7eac37cf3f4f24abbac016ea98f63e2ffdad58e[m
+Author: Traun Leyden <tleyden@branchcut.com>
+Date:   Tue Sep 4 15:02:07 2012 -0700
+
+    Fix typo in docs
+
+[33mcommit 76bf8c670b48d64079c21411459505e688165fac[m[33m ([m[1;33mtag: [m[1;33m0.8.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Aug 31 10:02:21 2012 +0200
+
+    fix makefile
+
+[33mcommit d6c80f26250100324b2cb5f94fc9538b6385d82f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Aug 31 10:01:39 2012 +0200
+
+    bump to 0.8.1
+
+[33mcommit d4574e4a7927090e8fb391c688dc201932eba1de[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Fri Aug 31 10:00:27 2012 +0200
+
+    s/ejson/jiffy
+    
+    Replace the use of the ejson module by jiffy and fallback to mochijson2
+    if the module can't be loaded.
+
+[33mcommit 06d945167b04dbf8c970bb974b92dadf59e3fd35[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Apr 20 17:04:23 2012 +0200
+
+    update rebar
+
+[33mcommit 0ea91739d00d6d1f94c01cc38c5cc35500cfc889[m
+Merge: 0ebf593 f387118
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Mar 26 10:36:44 2012 -0700
+
+    Merge pull request #72 from elitak/ibrowse_path
+    
+    header path update for ibrowse
+
+[33mcommit f387118d71df4508796e37071f7e0730a6ee19d0[m
+Author: Eric Litak <elitak@gmail.com>
+Date:   Mon Mar 26 09:55:56 2012 -0700
+
+    header path update for ibrowse
+
+[33mcommit 0ebf593926e5988de8cdcb11dbe337b4ca63f21d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Mar 21 19:16:44 2012 +0100
+
+    close #70.
+    
+    make sure we get neww uuids if thenumber asked is superior to the number
+    of uuids already stored.
+
+[33mcommit 4240d5b37d589fec06a96fdda2663e1c98f636c6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:34:43 2012 +0100
+
+    support couchdb 1.0.1
+
+[33mcommit 411cdd5d52107c81b73e08ca0d09d2b4a2c0e367[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:31:44 2012 +0100
+
+    fix typo.
+
+[33mcommit 3ce093f4ddceb2d486680653fd79fbd61775b223[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:29:55 2012 +0100
+
+    support old api in tests for travis.
+
+[33mcommit bace63292be6a05fa24f2348020ce65c6884c9c8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:22:31 2012 +0100
+
+    use verbose tests
+
+[33mcommit e0c605a343bc5247c0897fdcd5858be8f4372ee2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:19:58 2012 +0100
+
+    update travis
+
+[33mcommit 487aecdf3cacc3bb6838df6dab87c633625cc3a0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Mar 19 07:02:33 2012 +0100
+
+    add travis support
+
+[33mcommit 5ddc391954b9e08343d89c1215dc62ebe4431a0b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Feb 23 08:56:20 2012 +0100
+
+    remove unexistents exports. close #69 .
+    
+    Forgot to remove them when these deprecated functions have been removed.
+    Thanks @kofron for the patch. This version completly remove them instead
+    commenting them. Also while I'm here remove this useless record.
+
+[33mcommit c6b1df605a818bbc551b52f0986fcb9f66472b4f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Feb 18 09:29:26 2012 +0100
+
+    remove deprecated functions
+
+[33mcommit 7148bbdb19aca91b7b74e5392a23c94d33ca4e27[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Feb 12 06:25:08 2012 +0100
+
+    close #66 .
+    
+    make sure that last_seq is always defined. Thanks for the report.
+
+[33mcommit 051dff8dc6ad5e11c55d80e5016310db247ec2f0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Feb 12 05:47:38 2012 +0100
+
+    fix type
+
+[33mcommit a4dd36eee8ba77bd5647b972bd07c23ea078a02f[m
+Merge: 5134259 f5ea445
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Feb 11 20:28:09 2012 -0800
+
+    Merge pull request #58 from anha0825/any_arg_changes
+    
+    Any tuple of strings can be used as an argument when querying for changes
+
+[33mcommit 513425994e0f55c244fcad0c793ff17839bcec8d[m
+Author: Eric Litak <elitak@gmail.com>
+Date:   Thu Jan 19 02:23:54 2012 +0000
+
+    fix for mismatching spec and group_level option
+
+[33mcommit 8e394f5337730fcf768da981456bc9993e0bd01d[m
+Author: Dmitry Russ <dr@travelping.com>
+Date:   Sat Jan 14 18:07:15 2012 +0100
+
+    fix double json encoding of view params: key, startkey, endkey
+
+[33mcommit 3b97dbc0c10f677886f9ae9f1adc4a4ed0c7ea6c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Jan 21 12:54:13 2012 -0800
+
+    fix rebar bin
+
+[33mcommit 281db64fa638e34f6354f31cef87fd27b751dabd[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Jan 8 19:55:08 2012 +0100
+
+    bump to 0.8
+
+[33mcommit b5a9c6b2e3faddf172163aec68ef0a08772fea4d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Jan 8 19:48:20 2012 +0100
+
+    remove deprecated functions.
+
+[33mcommit 383181359fcd01df895738e4c0026eb8047147e5[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Jan 8 19:35:30 2012 +0100
+
+    refactor uuids and change a little the way we start couchbeam.
+    
+    - create couchbeam_uuids module
+    - register couchbeam_sup module
+    - now app are started from the list given in applications key .
+
+[33mcommit 7b647da7736cb988be27d4a3ff0d14244542fc5b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:42:44 2012 +0100
+
+    fix whitespaces
+
+[33mcommit e26319c23a646b28378d2553318f23ee2238648f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:41:23 2012 +0100
+
+    remove warnings & whitespaces
+
+[33mcommit bc811f4f59df779a83851e04d8638e376c669c25[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:39:53 2012 +0100
+
+    doc fixes
+
+[33mcommit 88260e7389ecc38f5af4f873ecff8a81e1eacec6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:37:42 2012 +0100
+
+    whitespaces & typo changes
+
+[33mcommit 8456caa8ae5a63f4c9cc3c05538010a55c2a35d2[m[33m ([m[1;33mtag: [m[1;33m0.7.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:16:03 2012 +0100
+
+    bump license headers
+
+[33mcommit be8dfeba015a5100877ced891b8533c4d86c131c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:10:02 2012 +0100
+
+    bump to 0.7.3
+
+[33mcommit 2b14070a7ac4c259c22d9e43c339a959b6aed05d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 15:09:20 2012 +0100
+
+    make the doc a little more readable
+
+[33mcommit a335f2039660f7d0138e7219fe873772a758cc4c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jan 3 12:12:44 2012 +0100
+
+    close #64 .
+    
+    make sure we encode start_key & end_key. Add a test for that.
+
+[33mcommit 0fc2cac64ba0c0cd8b4c8baba80d1eaf843b3c51[m
+Author: p2k <patrick.p2k.schneider@gmail.com>
+Date:   Mon Jan 2 16:23:13 2012 +0100
+
+    Bugfix for view fetching
+    
+    Connections were left open on view fetching; ibrowse:stream_close/1 is now called correctly in all cases.
+
+[33mcommit 64216bfdfcc5bce6c12b6e22b337daa428f1ae7f[m[33m ([m[1;33mtag: [m[1;33m0.7.2[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 21 14:04:05 2011 +0100
+
+    update rebar version
+
+[33mcommit 7ad1ecfef9a7c96fd35ab73a98154f1113cca10f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 21 14:01:58 2011 +0100
+
+    bump release number.
+
+[33mcommit 3c89d9ab9e09fa2eddb5c78566fee291ddcb9eab[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Dec 21 13:59:51 2011 +0100
+
+    use http instead of git url
+
+[33mcommit 06b001c345f4c015bcd0c897207832afa1e3a19b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Dec 8 09:27:17 2011 +0100
+
+    add the possibility to pass a callback instead of a pid to couch_changes:stream
+
+[33mcommit 9e5f3eb337ff3ce36efc87f964ed7ae489565a13[m
+Author: Ignas Vyšniauskas <ignas@numeris.lt>
+Date:   Thu Nov 10 13:22:51 2011 +0000
+
+    Fix inclusive_end behaviour, add support for options. close #62 .
+
+[33mcommit 72f745a652d17fab9f4e0e44a1ce6c2f4105b04f[m[33m ([m[1;33mtag: [m[1;33m0.7.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Oct 30 08:25:10 2011 +0100
+
+    erlang-oauth is now maintained in refuge project. close #61
+    
+    Thanks!
+
+[33mcommit 112f5955710fb242f1ea99625513b01d9d62290c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 15 10:52:22 2011 +0200
+
+    bump version in readme
+
+[33mcommit b0af48c571b173d085751b5999d72264d4e5f11d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 15 10:44:34 2011 +0200
+
+    bump to 0.7.1
+
+[33mcommit ac46f4294e4dd8b6e97b2e981f026148c017ac88[m
+Author: Felix Lange <fjl@twurst.com>
+Date:   Thu Oct 6 00:10:50 2011 +0200
+
+    add new view parameter: {reduce, boolean()} (fixes #59)
+    
+    the old atom 'reduce' was useless, as the reduce function always
+    runs by default. there was no way to turn it off completely.
+
+[33mcommit 29f98998c326c2cf43ad21a05cbaf7bddf82d6eb[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Oct 15 10:35:32 2011 +0200
+
+    Fix database creation with credentials.
+
+[33mcommit 754578ae710a31b7d3807c2315d7eff28e14e2a3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 12 18:40:25 2011 +0200
+
+    Make sure ssl_options is set. Temporary fixing waiting
+    https://github.com/cmullaparthi/ibrowse/pull/57/files .
+
+[33mcommit fe8edb6dd31f53f05f2aa80bf60dd753a3033d7a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Oct 9 00:32:08 2011 +0200
+
+    Revert "simplify the code"
+    
+    This reverts commit 2ea76771e4f83bdb10225eba46608fb7039bce92.
+
+[33mcommit 2ea76771e4f83bdb10225eba46608fb7039bce92[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Oct 9 00:29:15 2011 +0200
+
+    simplify the code
+
+[33mcommit f5ea44590f961153c7868025b1082bf81c597d72[m
+Author: Andreas Hasselberg <andreas.hasselberg@gmail.com>
+Date:   Thu Sep 15 18:43:30 2011 +0200
+
+    any tuple of strings can be used as an argument when querying for changes
+
+[33mcommit bbdc3d6665188e60b16a9e63e70e000158616da6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Sep 13 20:25:06 2011 +0200
+
+    s/http/git
+
+[33mcommit b1432ee9dc4ff21adbabb756dbc209d94777fec7[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Sep 13 19:58:44 2011 +0200
+
+    we so litlle bits of mochiweb that we don't really need to install a
+    specific version. just use the last one.
+    
+    all tests pass. fix issues #57 & #56.
+
+[33mcommit ca006d135a43b1257902032fcd3a8d4aef85143b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Sep 13 19:54:26 2011 +0200
+
+    fix indent
+
+[33mcommit eb94897da589b458001534095c8834db1e5702af[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Sep 13 19:50:37 2011 +0200
+
+    couchdb 1.2.x is now using the canonical name of the etag "ETag".
+    
+    Do a case insensitive search of the etag header instead of rely on the
+    case. So we are compatible with all couchdb versions.
+
+[33mcommit d299bc9a879d4ac57443bf850883415aedb167b6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 18:33:06 2011 +0200
+
+    forgot to update readme
+
+[33mcommit 31759f664650f46eb50546d5f668031e3428e829[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 18:29:03 2011 +0200
+
+    instead of integrating some code from mochiweb just use it as a
+    dependance.
+
+[33mcommit 3a60c87a076d867f6a5d50d05af88a4893fadffe[m[33m ([m[1;33mtag: [m[1;33m0.7.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 17:24:24 2011 +0200
+
+    bump version
+
+[33mcommit 87f3dad7ccb5a870eb4997c630107ac19b2ba993[m[33m ([m[1;33mtag: [m[1;33m0.7[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 17:11:14 2011 +0200
+
+    typo
+
+[33mcommit 4293b60328a68622cbe527aaf486731451acfba0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 17:10:30 2011 +0200
+
+    add link to NEWS in overview.
+
+[33mcommit 00ec66d9e764b2b31d22070dc9cb33239e79e363[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 17:08:59 2011 +0200
+
+    typo
+
+[33mcommit 0e2fc4e3e36d91692df5e6a97b79ee8aa108a14d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 17:04:48 2011 +0200
+
+    add NEWS
+
+[33mcommit 5398d2429e34e8935b390dd3e552d9c56b106201[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 16:45:32 2011 +0200
+
+    just return
+
+[33mcommit 8a93b98374f05ccc6243c6cde96b13c0a6634113[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 16:37:43 2011 +0200
+
+    add couchbeam_view:fetch/3 & couchbeam_view:fetch/4 functions.
+
+[33mcommit 7f546ad4437a00097dc418d7b3de0e0acd673caa[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 16:09:27 2011 +0200
+
+    add couchbeam_view:fold/4 and couchbeam_view:fold/5 method
+    
+    1> couchbeam:start(),
+    1> S = couchbeam:server_connection(),
+    1> {ok, Db} = couchbeam:open_db(S, "testdb"),
+    1>
+    1> couchbeam_view:fold(fun(Row, Acc) -> [Row|Acc] end, [], Db,
+    'all_docs').
+    [{[{<<"id">>,<<"29dcfaf8df8a321f18378254b5bb9138">>},
+           {<<"key">>,<<"29dcfaf8df8a321f18378254b5bb9138">>},
+           {<<"value">>,
+            {[{<<"rev">>,<<"1-967a00dff5e02add41819138abb3284d">>}]}}]},
+         {[{<<"id">>,<<"236ecb86e51d7b9697403d75c0000d80">>},
+           {<<"key">>,<<"236ecb86e51d7b9697403d75c0000d80">>},
+           {<<"value">>,
+            {[{<<"rev">>,
+               <<"1-967a00dff5e02add41819138abb3284d">>}]}}]}]
+
+[33mcommit 73d13ccc1b069abb8c4ad917b76a41514aabeefa[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 14:38:32 2011 +0200
+
+    export parse_view_options/1 and document it.
+
+[33mcommit c98dd969fa6aab5a112d5ad660bc35190f6f34e0[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 14:35:17 2011 +0200
+
+    add shorcut functions to get all docs.
+
+[33mcommit b102a11d5ae3ad877b9cd964bb56044384d4fb27[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 14:29:17 2011 +0200
+
+    move old view api to couchbeam_oldview module (easier to port old code
+    doing like this rather than using renamed functions).
+    
+    Mark couchbeam:all_docs and couchbeam:view functions deprecated.
+
+[33mcommit 86132aae2220e32c12b4c3fa791d9fe36179ef9f[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 00:57:19 2011 +0200
+
+    fix issue #50. Thanks
+
+[33mcommit e05897d64b5c1c62bdbe75ba23f786e251bedc07[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jul 5 00:42:35 2011 +0200
+
+    new view api. It now support view results streaming (more efficient for
+    big views).
+    
+    Added:
+    
+    - couchbeam_view:fetch/1, couchbeam_view:fetch/2, couchbeam_view:fetch/3
+    - couchbeam_view:stream/2, couchbeam_view:stream/3,
+      couchbeam_view:stream/4
+    - couchbeam_count/1, couchbeam_count/2, couchbeam_count/3
+    - couchbeam_first/1, couchbeam_first/2, couchbeam_first/3
+    
+    Functions are now more "erlangish" and options have been changes to
+    view_options():
+    
+    -type view_option() :: {key, binary()} | {start_docid, binary()}
+        | {end_docid, binary()} | {start_key, binary()}
+        | {end_key, binary()} | {limit, integer()}
+        | {stale, stale()}
+        | descending
+        | {skip, integer()}
+        | group | {group_level, exact | integer()}
+        | inclusive_end | reduce | include_docs | conflicts
+        | {list, binary()}
+        | {keys, list(binary())}.
+    
+    -type view_options() :: list(view_option()).
+    
+    old versions functions of couchbeam_view have been renamed and marked deprecated:
+    
+    fetch->fetch1, fold -> fold1, count -> count1, first -> first1,
+    foreach->foreach1
+    
+    ALso couchbeam:view is now depreacted and renamed to couchbeam:view1
+    (the same for couchbeam:all_docs that have been renamed
+    couchbeam:all_docs/1).
+
+[33mcommit 8c2359cedf4bee45a8a7a63081191120cedf6da2[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Jul 4 20:03:29 2011 +0200
+
+    use 0.7 version in user agent.
+
+[33mcommit 5eecf57cec6be2e293b864a38b20b283262514c3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Jul 4 11:28:29 2011 +0200
+
+    We now parse the json by chunks instead of using our try catch over ejson:decode_json . More efficient. While I'm here add support for changes loop monitoring in gen_changes and restart connection if it's stopped.
+    
+    New api is now in couchbeam_changes module:
+    
+    - fetch/1, fetch/2
+    - stream/2, stream/3
+    
+    Old functions in couchbeam module has been deprecated (changes, changes_wait, changes_wait_once).
+
+[33mcommit b73646b2f7ef0c6baf1e77742ab491c017ab38d7[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Jul 2 11:54:14 2011 +0200
+
+    put http request functions in their own module.
+
+[33mcommit cafa27622c0252c297e3a5d4e3fe633e0d827525[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Jun 7 09:47:42 2011 +0200
+
+    handle case where aname and content type are already binary.
+
+[33mcommit 8d13b7447c8b3d6aa71d3b5cb0bb2c51378b2326[m[33m ([m[1;33mtag: [m[1;33m0.6.0[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 10:28:47 2011 +0200
+
+    forgot the minor version number *sigh*
+
+[33mcommit 4cbb377d20e639b92d3cbb6685784f1b04abb88c[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 10:23:23 2011 +0200
+
+    couchbeam 0.6
+
+[33mcommit bee8109daf1af4e9d456b34fce815298431f4140[m
+Author: benoitc <benoitc@gmail.com>
+Date:   Fri Apr 8 00:53:49 2011 +0200
+
+    use ejson NIF module to speed encoding/decoding json and remove mochiweb
+    dependency, it was mostly used for json. We still borrow some function
+    from mochiweb but theyare now in couchbeam_util.
+    
+    reapply ejson patch now that compatibility with RB013 is fixed upstream.
+    Update rebar to use these changes.
+
+[33mcommit f30eb5decdd4025182202bc8856517f9168e9342[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 09:12:37 2011 +0200
+
+    fix distclean target.
+
+[33mcommit 12e287fab12be29a2a4b6b5c0d36a72fa1510fbb[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 09:11:08 2011 +0200
+
+    update rebar bin
+
+[33mcommit 0c2db7c7826a375aec4518c1260478dd93c2ccf3[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 09:09:41 2011 +0200
+
+    use stable mochiweb
+
+[33mcommit c3e08db6c5abc021481cfff1365dbde283de5b1b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed May 4 08:56:44 2011 +0200
+
+    Revert "use ejson NIF module to speed encoding/decoding json and remove mochiweb"
+    
+    This reverts commit 42b5e59c6799120bc33abdd2799838a990cb50f8.
+    
+    Needed to keep RB013 support. This patch will be reintroduced in next
+    release after freezing current version. Next version of couchbeam will
+    only be compatible with erlang R13B04.
+
+[33mcommit 9803d344ba29160f19353ac8bbd09aa58cab48a8[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Apr 27 16:43:15 2011 +0200
+
+    add empty_on_delete option to delete_doc and delete_docs functions , if you want to make sure docs are emptied
+    on delete,  use the option empty_on_delete,  true} or pass a doc with just _id and _rev members
+
+[33mcommit 8d547f1c5d96d5c34b995d69e1fdcde843078100[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Apr 27 10:01:57 2011 +0200
+
+    remove useless log info.
+
+[33mcommit b4d5f9c9b1b9d981fcfc3e04f238bd25f4ecbf86[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Apr 27 10:01:06 2011 +0200
+
+    make sure we use db options before passing the request.
+
+[33mcommit 53f6d3dcd1ae33c9051cf97aaabd57df89ca9c7e[m
+Author: benoitc <benoitc@gmail.com>
+Date:   Sat Apr 9 22:34:51 2011 +0200
+
+    bump.
+
+[33mcommit 38a14835216a4fa5504cba416f17950a41ebc2db[m
+Author: James Aimonetti <james@sfvoip.com>
+Date:   Tue Mar 8 14:28:12 2011 -0800
+
+    add lookup_doc_rev/2,3 for fast fetching of a document's current revision
+
+[33mcommit 2f072227a0d953df6232c5b758d56834a3bd6529[m
+Author: James Aimonetti <james@sfvoip.com>
+Date:   Tue Mar 8 14:27:24 2011 -0800
+
+    use lists:keyfind and emulate proplists:get_value quirks
+
+[33mcommit 42b5e59c6799120bc33abdd2799838a990cb50f8[m
+Author: benoitc <benoitc@gmail.com>
+Date:   Fri Apr 8 00:53:49 2011 +0200
+
+    use ejson NIF module to speed encoding/decoding json and remove mochiweb
+    dependency, it was mostly used for json. We still borrow some function
+    from mochiweb but theyare now in couchbeam_util.
+
+[33mcommit e299394d4f22d6450aba22ac977049b1b06fd2f5[m
+Author: benoitc <benoitc@gmail.com>
+Date:   Mon Mar 28 09:38:56 2011 +0200
+
+    attachment name should be utf8 encoded.
+
+[33mcommit 83337a181e058383feafbb7326f2e610440f1a37[m
+Author: benoitc <benoitc@gmail.com>
+Date:   Sun Mar 27 17:39:34 2011 +0200
+
+    build the project when we test.
+
+[33mcommit 3cfaa69b7bfde20fe82ba3cab66ac74402a760d5[m
+Author: Dominique Boucher <schemeway@gmail.com>
+Date:   Fri Mar 25 12:22:35 2011 -0400
+
+    Fixed a bug with heartbeat.
+    
+    When a newline is read from the changes stream, the last change was sent
+    to the handle_change callback. Now it is properly ignored.
+
+[33mcommit 3f8e6e415dcf948dd7dc7d643983b08f6124482f[m
+Author: Andrew Tunnell-Jones <andrew@tj.id.au>
+Date:   Mon Feb 28 06:28:39 2011 +0000
+
+    Fix typo
+
+[33mcommit f74cc21125cebe0b1032f0c677f9b69949b9dc33[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Feb 15 13:59:32 2011 +0100
+
+    fix license year.
+
+[33mcommit 10332b461c1527ada8b2f1f159b90e09bf2c5f26[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Feb 15 13:29:55 2011 +0100
+
+    typo
+
+[33mcommit 9af96698f8f15550cc113c31c21ff626962f890e[m[33m ([m[1;33mtag: [m[1;33m0.5.4[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Feb 11 12:06:15 2011 +0100
+
+    bump
+
+[33mcommit cbbb5f2bdecf4db391f971c60b0b557e6688ae03[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Feb 11 11:57:55 2011 +0100
+
+    dbname is sometimes a binary.
+
+[33mcommit b44a315d0156cd4dbe0cb620fd3b9b26fa55c19b[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Feb 11 11:44:22 2011 +0100
+
+    fix lastseq parsing. spotted by loxs on irc
+
+[33mcommit 7eb239e7accca21583eeef0c800ac6f143980086[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Jan 17 19:28:14 2011 +0100
+
+    fix test waiting some changes in ibrowse
+
+[33mcommit c949a3ed79094869287dbb9f0dac7f18dd5f0d8c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Jan 17 19:14:28 2011 +0100
+
+    load ibrowse as application
+
+[33mcommit 2b0cbf4d6c656d90cf1b2b5be68d7b20f43a19d6[m
+Author: Metin Akat <akat.metin@gmail.com>
+Date:   Mon Jan 10 03:35:22 2011 +0800
+
+    doc_exists/2
+
+[33mcommit eeb4a9cf7bcf3297aae1a29efe28a9681ceef0df[m[33m ([m[1;33mtag: [m[1;33m0.5.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sun Jan 2 18:02:05 2011 +0100
+
+    0.5.3
+
+[33mcommit ad71152dd82cc208de7141569504162aa58ab10a[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Wed Dec 8 16:44:43 2010 +0100
+
+    fix timeout
+
+[33mcommit d58e77c8a7f4274127891cb82269f5fbf4feb758[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Sat Nov 27 23:17:58 2010 +0100
+
+    code:clash is annoying when you load couchbeam in a script. There is
+    surely another way to load modules properly.
+
+[33mcommit 1908a6aec5919232c8fbb2333e61f5d0ee56e428[m[33m ([m[1;33mtag: [m[1;33m0.5.2[m[33m)[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Fri Nov 26 19:08:23 2010 +0100
+
+    bump
+
+[33mcommit cd6a51ceccdc682f5050887a1de3f77948a866af[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Fri Nov 26 17:09:48 2010 +0100
+
+    fix issue #41. Thanks for the patch.
+
+[33mcommit d49f28cee23ac8321da5c50afa545694c2a31ff9[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Sun Nov 14 15:45:15 2010 +0100
+
+    update doc
+
+[33mcommit 13a14dd304aa879928042357534459ab1cc3cdb4[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Sun Nov 14 15:41:01 2010 +0100
+
+    return {ok, {[{<<"id">>, DocId}, {<<"rev">>, Rev}]}} on
+    delete_atatchment function so it aallows to get the last doc revision.
+    spotted by davidoccam on irc.
+
+[33mcommit 3df0a0dac83c2fe8414b791a15ea7a173087d79a[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Sat Nov 13 23:02:06 2010 +0100
+
+    should fix content length isssue in put_attachment.
+
+[33mcommit 850cc0340fca7e3f456641b9889dcf23e3476ddb[m
+Author: benoitc <bchesneau@gmail.comwq>
+Date:   Sat Nov 13 14:19:21 2010 +0100
+
+    test with clength
+
+[33mcommit b93ca6ce64bb4cc26571ca1b3dea9f388a0ff41a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Sat Nov 13 12:02:35 2010 +0100
+
+    fix issue #40. thanks!
+
+[33mcommit 0805a658c5cc1d4a714c9998258012e9989a701a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Oct 21 20:49:17 2010 +0200
+
+    I missed the Options parameters in view request. spotted by mc_ on irc.
+    Thanks!
+
+[33mcommit 00c23358a8c2d7fe598ae41f8da2e51e4c1ff9cf[m[33m ([m[1;33mtag: [m[1;33m0.5.1[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Oct 14 15:18:23 2010 +0200
+
+    bump
+
+[33mcommit 0aab38acd0e567a869240f83d54a6e3d436e559b[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Oct 14 15:12:39 2010 +0200
+
+    couchbeam wasn't registered.
+
+[33mcommit 65756d2c7df31c945ae989506f07b7abd6ee5627[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Oct 14 14:53:45 2010 +0200
+
+    use ?MODULE
+
+[33mcommit e0175933ea04811a1d5485ed1c96c74381d8bcde[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Thu Oct 14 13:09:34 2010 +0200
+
+    make a not about db options. Spotted by damjan on irc. thanks!
+
+[33mcommit 04f866b56baa4a8627231dbd5ec0ae76f3c0d811[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 13 15:21:06 2010 +0200
+
+    typo spotted by damjan on irc. thanks!
+
+[33mcommit 8c39dac0015c31d7f8b01b0fd43684b2ab23d763[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Oct 13 13:38:07 2010 +0200
+
+    fix encoding value. Missed this changes from old couchbeam version.
+    spotted by loxs on irc. thnks!
+
+[33mcommit 92b2fcbafe162ceb93048de9a0477f1f6e5004ea[m
+Author: benoitc <benoitc@pollen.my.domain>
+Date:   Wed Oct 13 12:04:09 2010 +0200
+
+    typo
+
+[33mcommit 90380c8ddee8a61b0e1ec4e5145636f1c194cef7[m
+Author: benoitc <benoitc@pollen.my.domain>
+Date:   Wed Oct 13 12:02:52 2010 +0200
+
+    add a not about starting ibrowse and other needed applications. spotted
+    by loxs on irc. thanks!
+
+[33mcommit a6515f508dffb89eb2735b4a12998799aba1c0c9[m[33m ([m[1;33mtag: [m[1;33m0.5[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 22:30:11 2010 +0200
+
+    useless print
+
+[33mcommit 82cc836ce0cb3421de0ef59554bbfeb3adaa56cc[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 22:28:43 2010 +0200
+
+    add replicate function
+
+[33mcommit e1fd34199338c0f54722762ec3b1a7a99658d673[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 21:30:19 2010 +0200
+
+    make changes_wait_once really acting as longpoll connection.
+
+[33mcommit 340f95203b8e7b433d260a533764766b0626f0f5[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 20:54:16 2010 +0200
+
+    add some doc
+
+[33mcommit 00aa44d161a225f477fc664233daf9f66076ca79[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 20:12:33 2010 +0200
+
+    gen_changes behaviour.
+
+[33mcommit dfb39a08efedfaf5001b18cd527f5e754761145d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 00:20:12 2010 +0200
+
+    typo
+
+[33mcommit 0b75c9b1d8bb315d946d2b6d91a62aa077561c8b[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 00:18:55 2010 +0200
+
+    add authentication information in doc
+
+[33mcommit 8dc1cd8b0f120238155cab4e07c00e42bf848b20[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Oct 10 00:04:47 2010 +0200
+
+    typo
+
+[33mcommit 1e205c191e7c9846e55cc829b5d92eaeba69a40c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 23:58:20 2010 +0200
+
+    add oauth support to couchbeam.
+
+[33mcommit c0191fe029a421ae99d6d70af67b3cb97299fa6d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 20:09:58 2010 +0200
+
+    fix doc
+
+[33mcommit 06d3e348be3bc1c78cdc924d32563132b54f9cba[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 20:07:56 2010 +0200
+
+    no need to use a specific ssl option, instead use is_ssl of in
+    ibrowse options.
+
+[33mcommit 431667213a919e66662984b37626abac97c524b0[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 19:55:05 2010 +0200
+
+    typo. @
+
+[33mcommit f51734da26762ad38097310cbc6d4d1cc6323f22[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 19:53:03 2010 +0200
+
+    fix issue #38. Thanks for the feedback
+
+[33mcommit e77019995c27e8c9f5b7983a1325fa9f9e00d781[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 12:13:53 2010 +0200
+
+    complete doc.
+
+[33mcommit fb4b205b7a1879c5c81682f2d146002a8e30333f[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 12:04:57 2010 +0200
+
+    clean documentation.
+
+[33mcommit fb55a1b670532c51406ddc4a4886d6369d4ee238[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 09:28:53 2010 +0200
+
+    typo
+
+[33mcommit 19cd96c505c1ce5f34868c9a7554bbd9c3a1f4ed[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 09:26:45 2010 +0200
+
+    move encode_query to couchbeam_util
+
+[33mcommit 2cf4c96bfad2419081f37ca6fdcf8e1ff5fdca56[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 02:06:49 2010 +0200
+
+    fix doc
+
+[33mcommit 81413225fb8bafc703f9d02734ad6939ade12103[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 02:02:50 2010 +0200
+
+    more doc & fix issue #37 thansk!
+
+[33mcommit 534a2eb92801f6258a8837ba9367f4a1ae7faf07[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 01:36:09 2010 +0200
+
+    add oauth dep to Makefile. prepare oauth support
+
+[33mcommit bc200e3cf6f0969e497101534b081ab6bf41c370[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 9 00:29:31 2010 +0200
+
+    add basic authentification and proxy support :
+    1> couchbeam:start().
+    2> Server = couchbeam:server_connection("localhost", 5984, "",
+    [{basic_auth, {"guest", "test"}}]).
+    {server,"localhost",5984,false,[],
+            [{basic_auth,{"guest","test"}}]}
+    3> {ok, Db} = couchbeam:create_db(Server, "mydb").
+
+[33mcommit 953dfccc03996faedea85db387706ce36a3becab[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:52:49 2010 +0200
+
+    bye hg
+
+[33mcommit 65972ef9e0794060930fdd4f2d78ae2f17c65f0e[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:51:51 2010 +0200
+
+    update requirements
+
+[33mcommit 42c53ad1874ffc5010e9d1ef0491e7864cf6d0c1[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:50:35 2010 +0200
+
+    update README
+
+[33mcommit 5c3524a4b42d08d5830fc6f73be89dc88bf3c910[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:44:37 2010 +0200
+
+    fix make test
+
+[33mcommit 8ac8dcb53be7578881928db57f06ed76c5943254[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:43:42 2010 +0200
+
+    Apache2 -> MIT license.
+
+[33mcommit edc3542a3832121befa07789aaccf1f3d4d583df[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 23:01:43 2010 +0200
+
+    clean Makefile
+
+[33mcommit 0b18a57e63abafeaef80fef2ca9c42595d19e314[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 22:44:05 2010 +0200
+
+    clean couchbeam.htl & couchbeam_doc
+
+[33mcommit a34bf755cdea60e594c8e31a9dd7498aa12d95f1[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 22:38:24 2010 +0200
+
+    bye lhttpc, I still love you, don't hate me.
+
+[33mcommit d06c32fd84a0241d8a7a12d1114eec2f6828892f[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 22:27:56 2010 +0200
+
+    fix path
+
+[33mcommit 1db83ff478a76ae5d3b07575af705794e7dedaf5[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 22:25:36 2010 +0200
+
+    add changes support. delete old code.
+
+[33mcommit 906c32ff990d983f41e2740215796243df2a98b8[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 18:23:53 2010 +0200
+
+    add support for attachments
+
+[33mcommit 5fa98cb05eaf72704055e32f701a8710b16d9e64[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 10:26:46 2010 +0200
+
+    add compact function
+
+[33mcommit ff912ef5da73ed948be2c75bcb430d983af07550[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 10:16:36 2010 +0200
+
+    refactor views & add tests.
+
+[33mcommit 1bdea78ffce479f33992c77c538ce7387f3ad07f[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 01:36:39 2010 +0200
+
+    useless files
+
+[33mcommit 85317b75ea226de882bbcbb15d8e6dffd7e3253b[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 01:18:50 2010 +0200
+
+    fix couchbeam:start(), and  add document tests
+
+[33mcommit 4f80a663219093fa06e5f33df567bf5865a31c94[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 8 00:30:48 2010 +0200
+
+    commit temprary work for backup.
+
+[33mcommit 1b62d7a2f6ae8ee10a5b886c09788fd1260f82db[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 15:11:25 2010 +0200
+
+    add server & dbs tests
+
+[33mcommit b9d49357b6c915f33e94020ec872aa59a37361cb[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 02:29:30 2010 +0200
+
+    remove this ets
+
+[33mcommit abd60fb6ff7c695d5ebf717fbae15c8fe17242b9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 02:25:52 2010 +0200
+
+    add all_dbs function
+
+[33mcommit 51172034ec3eba8824a067ebeb307944deca9213[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 02:19:09 2010 +0200
+
+    add delete_db function & fix create_db
+
+[33mcommit ca8291f06aa9d9ab34e081798abea44c6083793b[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 01:59:08 2010 +0200
+
+    add documentation and allows params to Database so we can set q in
+    bigcouch.
+
+[33mcommit efd86f7764cb5215ba3790c6f1ee870cabbc06e3[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 01:26:02 2010 +0200
+
+    we don't need to manage an id here. People can just add this Server to
+    their state.
+
+[33mcommit ab55da27fef09ed335b94827a61250f6c4fce0a7[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 01:17:31 2010 +0200
+
+    add couchbeam:open_db, couchbeam:create_db, couchbeam:open_or_create_db
+    & couchbeam:db_infos functions
+
+[33mcommit 04897c9e413eb5a5770f539ff9850f46072ac95c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 00:43:32 2010 +0200
+
+    add couchbeam:get_uuid and couchbeam:get_uuids
+    
+    1> ibrowse:start(),
+    1> couchbeam:start().
+    {ok,<0.35.0>}
+    2> Server = couchbeam:server_connection().
+    {server,"127.0.0.1",5984,false,[],[],"default"}
+    3> couchbeam:get_uuid(Server).
+    [<<"ae3cf11e794519ba4c8ace62c7000360">>]
+    4> couchbeam:get_uuids(Server, 2).
+    [<<"ae3cf11e794519ba4c8ace62c7001b66">>,
+     <<"ae3cf11e794519ba4c8ace62c7001079">>]
+    5>
+    
+    uuids are cached.
+
+[33mcommit f3bf4aebce4d4bad98d80ec7bf4a08af29b117e8[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 00:09:36 2010 +0200
+
+    edit couchbeam.app
+
+[33mcommit 1c2735dcce88d0aab76a20477f0b8b7d3f96344a[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 7 00:06:54 2010 +0200
+
+    First step for refctoring. New request method using ibrowse, gen_server
+    to manage uuids.
+
+[33mcommit 51d1ca9aa456756ea881175940264e7910025d8f[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 6 20:42:39 2010 +0200
+
+    fix makefile
+
+[33mcommit dbce73c28055e518cc64cb66b6be5c919c7a5d4c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 6 20:29:54 2010 +0200
+
+    use mochiweb instead of having our own import.
+
+[33mcommit ae2b1c1c8985864809e3d70a6c61aa59eb60ff9a[m[33m ([m[1;33mtag: [m[1;33m0.4.4[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 6 10:35:08 2010 +0200
+
+    fix issue #36 . thanks!
+
+[33mcommit d272b24ac93b16f36d5470eb1c542555a8f83344[m
+Author: Fernando Benavides <fernando@inakanetworks.com>
+Date:   Wed Sep 29 11:45:10 2010 -0300
+
+    bugfix detected by dialyzer
+
+[33mcommit 0eb65ddca352f1590ce3cc70ba2c3b00d7a9413e[m
+Author: Fernando Benavides <fernando@inakanetworks.com>
+Date:   Wed Sep 29 13:00:35 2010 -0300
+
+    * get_lru wasn't returning ever
+    * couch_db -> couchbeam_db
+
+[33mcommit d3dee6083b17b80654f86f0de0c3e90f6c294cb0[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Thu Sep 2 18:29:36 2010 +0200
+
+    add couchbeam:transact . New way to connect to a server and db and make
+    sure we are supervised.
+
+[33mcommit 9e6978aa841842b676e3a15af38fd19632944122[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Wed Aug 25 20:19:19 2010 +0200
+
+    fix issue #34, patch from Samuel Rivas. Thanks!
+
+[33mcommit a3ddc144b639e3b3b1684b7e026bc168d19e23af[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 14:05:37 2010 +0200
+
+    reall fix it..
+
+[33mcommit 34a183d51df5c12197b147766c603929e33bf0ec[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 14:02:44 2010 +0200
+
+    ifix couchbeam_view:close
+
+[33mcommit 46bececdcde4ad86dcac1cc827ec5aacdd37e064[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 12:53:12 2010 +0200
+
+    add couchbeam_view:close/1 method
+
+[33mcommit 96ead115a45cd1ece2086c2560e2378690e014be[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 12:39:50 2010 +0200
+
+    add test for new couchbeam_view api.
+
+[33mcommit 2b17bd7228fef26dd185db6453f8de27b54cf418[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 11:19:16 2010 +0200
+
+    fix tests
+
+[33mcommit 143f77bc6eb554954ae0cc7f0b6b93eba83d3db0[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 11:03:26 2010 +0200
+
+    new view api. http://www.friendpaste.com/1x99FilTTq2v8Pz1NAmVuw
+    Introduce, fold, foreach function for a better browsing in the view.
+
+[33mcommit 120c592c3ed995f9b9f96e4fb33420770c015552[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 01:03:18 2010 +0200
+
+    oups. don't be verbose in tests
+
+[33mcommit 6241d85da18eb4837d3bbae458c85390d1c50871[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 00:53:06 2010 +0200
+
+    usless comment.
+
+[33mcommit 336679afc746c7487a022356ab687238782b0f22[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Tue Aug 24 00:41:02 2010 +0200
+
+    refactored couchbeam_server and remove couchbeam_manager. Now
+    each Server is supervised, and all dbs are monitored by their server.
+    We keep the advantages of couchbeam_manager but we just use the
+    supervision and monitoring to achieve it.
+    
+    All db are in maintained in an lru cache. So we don't recreate a pid if
+    it isn't needed. Also we don't close it if the pid is managed.
+    
+    Breaking change:
+     -  couchbeam_manager has been removed, now the only way to open a db is
+    Db = couchbeam_db:open(ConnectionPid, <<"dbname">>).
+     - close db doesn't require any more the ConnectionPid :
+       couchbeam_db:close(Db)
+     - Opening a connection already managed under the name passed in
+       #couchdb_params{} reopen it.
+
+[33mcommit 5d102dc6fd53ffb12080340b0b19c985125edfa7[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Sun Aug 15 11:39:21 2010 +0200
+
+    update rebar version and fix dependancy against lhttpc rebared
+
+[33mcommit 8990f1017820cce91ad8cf311fe1a693b63e316a[m
+Author: benoitc <benoitc@e-engura.org>
+Date:   Thu Aug 5 18:09:34 2010 +0200
+
+    bump release number
+
+[33mcommit f999a0061aad98ae79422c4df07520acf9acbcde[m
+Author: Jason Smith <jhs@couch.io>
+Date:   Thu Aug 5 23:38:41 2010 +0800
+
+    Support authenticated change subscription
+
+[33mcommit ec8b939df26084fe3f17f45d222fec08a8640387[m[33m ([m[1;33mtag: [m[1;33m0.4.3[m[33m)[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 13:31:19 2010 +0200
+
+    fix path
+
+[33mcommit 18bcd75c599244c8b15e3af30027e3d438d356db[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 13:30:33 2010 +0200
+
+    again
+
+[33mcommit bdae8f766e2e4bfe19321395dee8083565b54195[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 13:30:05 2010 +0200
+
+    s/doc/docs
+
+[33mcommit aa97346ca1eb8cbc5397d5adba348fa5218f5b04[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 13:28:06 2010 +0200
+
+    update readme
+
+[33mcommit b3a1014b7797af4cbab59f317b26e49277a94d3d[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 13:27:16 2010 +0200
+
+    Update doc
+
+[33mcommit 7fa4afec08b01b2019cf37913aac5269388b0bfe[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 12:18:18 2010 +0200
+
+    update readme.
+
+[33mcommit 0cabd895ca19066932a520ad47200716834ae920[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 12:14:32 2010 +0200
+
+    fix issue #28. patch from argv. thanks!
+
+[33mcommit aacf2e9cf2e07508d4947ace1b12553051a5f291[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 12:03:01 2010 +0200
+
+    typo. fix issue #30. Thanks
+
+[33mcommit 1541c10a5d64dcc0700f58bd624e175459fd89ab[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 11:58:07 2010 +0200
+
+    fix issue #29. patch from @jhs. thanks!
+
+[33mcommit 013aa4044892f22e04e7fd15878e55af69d98ccf[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 11:43:46 2010 +0200
+
+    fix tests and integrate etap
+
+[33mcommit 0b4ca2361a89656425df181203478fb341f22d0a[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Wed Jul 14 11:26:09 2010 +0200
+
+    r14a support
+
+[33mcommit 530db62c2f6f3bafba00bbac79703a5542ac65a6[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Tue Apr 6 01:05:04 2010 +0200
+
+    up lhttpc and fix makefile
+
+[33mcommit df55e50503b2c3df53cf730664f149f8a13e0d7d[m
+Author: Martin Scholl <ms@blaise.gi.net>
+Date:   Tue Mar 23 09:28:54 2010 +0100
+
+    finally, fix Makefile
+
+[33mcommit d8b6c36b5d6a55c7a55a5efcb0f4bf4ef4dae226[m
+Author: Martin Scholl <ms@blaise.gi.net>
+Date:   Tue Mar 23 09:08:00 2010 +0100
+
+    in Makefile use rebar
+
+[33mcommit 1837bf45c2c5d7481617d775227976561652805e[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 20:16:40 2010 -0800
+
+    fixed a minor mistake
+
+[33mcommit 9207f157179ad22df2b401a9828fe74085397b3a[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 20:14:41 2010 -0800
+
+    made lhttpc a separate git repo
+
+[33mcommit f3c1faa25ec86e73ddc0907eb6a3c4f43129dbb0[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 19:58:12 2010 -0800
+
+    Added rebar
+
+[33mcommit 2a224f8edadbdebb2ae27c11e1e943a4a318bf1b[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 18:24:59 2010 -0800
+
+    changed .hrl file so it doesn't throw warnings about deprecated bools
+
+[33mcommit a4315ff2baccff8927c864e60535b11960ba170c[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 18:20:54 2010 -0800
+
+    fixed the location of the .app file
+
+[33mcommit 50d949b9981fa9c454e5d6cfaf8e35168a4dcd04[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 18:10:44 2010 -0800
+
+    fixed couchbeam.app to add couchbeam_deps
+
+[33mcommit cd722c92ba0a78562a2690e7fb3854ecd302757e[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 18:09:59 2010 -0800
+
+    fixed couchbeam.app version number
+
+[33mcommit 230546b86b6e85bcb1b93138541a5bd2e46f5d07[m
+Author: Alexander Kern <capnkernul@kernul.com>
+Date:   Sat Mar 13 17:58:04 2010 -0800
+
+    fixed .gitignore for rebar
+
+[33mcommit 1b3b6cba6511b754dc0ec394aa4c7f5816e57bfc[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jan 28 00:37:13 2010 +0100
+
+    in R13B bool() is now called boolean(). instead breaking build just warn
+
+[33mcommit 95aed9bf2af6a91616f93844df2ed80b0e4e3663[m
+Author: Benoit Chesneau <benoitc@enlil.local>
+Date:   Fri Dec 18 17:13:43 2009 +0100
+
+    oups. bad branch commit
+    Revert "add ibrowse submodule"
+    
+    This reverts commit 559da12dbeb3dcf678ab5dd0949ed3c2605cd5fa.
+
+[33mcommit 559da12dbeb3dcf678ab5dd0949ed3c2605cd5fa[m
+Author: Benoit Chesneau <benoitc@enlil.local>
+Date:   Fri Dec 18 16:32:48 2009 +0100
+
+    add ibrowse submodule
+
+[33mcommit e1e2dfbe40fd08cc2c68bb9a26490def0bc39964[m
+Author: Benoit Chesneau <benoitc@enlil.local>
+Date:   Fri Dec 18 16:21:25 2009 +0100
+
+    merge with lhttpc from @TamasNagy that fix upstream the bug
+
+[33mcommit c3f4a12b3481d455a01049f28d949c17f2d868de[m[33m ([m[1;33mtag: [m[1;33m0.4.2[m[33m)[m
+Author: Benoit Chesneau <benoitc@enlil.local>
+Date:   Fri Dec 18 11:18:10 2009 +0100
+
+    Fix Host header. It fixes the issue with cloudant connection.
+
+[33mcommit 23c8cc7236d9ac57078de2e6f8b6d43c7a1d270c[m
+Author: Benoit Chesneau <benoitc@enlil.local>
+Date:   Fri Dec 18 08:56:45 2009 +0100
+
+    update lhttpc version. Still a bug with cloudant :
+    http://bitbucket.org/etc/lhttpc/issue/9/problem-connection-to-cloudant-server
+
+[33mcommit 9511c6afc13fc78b559ee27e4d1520f91a6fafc9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Nov 23 23:44:03 2009 +0100
+
+    module name
+
+[33mcommit 8f426f76165a04d96ed5ddba59644d7d6b544bf2[m[33m ([m[1;33mtag: [m[1;33m0.4.1[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 22 22:58:49 2009 +0100
+
+    bump version number
+
+[33mcommit b8c5f7692d2997f6af2d5af95b0ce1f2233ff5e0[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 22 22:55:50 2009 +0100
+
+    allow people to disable docid encoding.
+
+[33mcommit 6d3b816e90b4007dbeea2daee94096dfd002d8e7[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 22 11:59:31 2009 +0100
+
+    fix issue #16. extend doc by a property or a list of propery and update
+    existing.
+
+[33mcommit 945344314502965c12bbbdb0543a876160236d2e[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 22 11:39:30 2009 +0100
+
+    fix issue #19.
+
+[33mcommit 343b4e1f27b93fa76a28549f0e82386aa3d16877[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 22 11:06:09 2009 +0100
+
+    include_docs is now possible, fix issue #20. now fetch_view return
+    
+    [id] if value not given
+    {Id, Key, Value] -> if value only
+    {Id, key, Value, Doc} if doc is included.
+
+[33mcommit fd404894bff919c8cf0aa4cb7cadf2e655d178a7[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Nov 13 09:49:39 2009 +0100
+
+    add a test for buldk delete doc.
+
+[33mcommit 21c4baab24d21041167674e5ee7806f1cf81a459[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Nov 10 21:01:00 2009 +0100
+
+    support for couchdb-lucene and other external indexer. Thanks to
+    @mdaguete for the patch. Fix issue #15.
+    for the patch
+
+[33mcommit 79fa393e75b3083a8b12eb5ab62ce455ab1d41c8[m
+Author: lordmetroid <lordmetroid@yahoo.com>
+Date:   Wed Nov 11 03:01:54 2009 +0800
+
+    Updated user agent version number
+
+[33mcommit 8e5b74d513e0952f29ba3601999a6a5a93ad48d9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Nov 5 19:32:59 2009 +0100
+
+    s/boolean/bool
+
+[33mcommit 9867d61198a4133f875f9ee462bba2cb14ee2efb[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Nov 3 23:32:48 2009 +0100
+
+    add couchbeam_view:first/1 and couchbeam_view:first/2
+
+[33mcommit b81cb3ecee4768539049945178fe5e2b8c13de53[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Nov 3 22:49:26 2009 +0100
+
+    be homogene. spooted by @benc on irc. thanks
+
+[33mcommit e2b125d012b48eebc7318757804f670fc42aafc3[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Nov 3 15:29:06 2009 +0100
+
+    encode dbname. spotted by LordMetroid on irc.
+
+[33mcommit 2ae1f42536934f8908753f98be5c25597a578977[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sun Nov 1 21:36:27 2009 +0100
+
+    key in params could be atom, binary or list
+
+[33mcommit 016185a5967b4d846ecebc5c5e56e29ce9e6bebf[m[33m ([m[1;33mtag: [m[1;33m0.4[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 21:04:45 2009 +0200
+
+    bump version number.
+
+[33mcommit 0c0323e587b01d65419c5cdc0dcdc4894a909fe4[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 21:02:45 2009 +0200
+
+    fix doc
+
+[33mcommit 7bee85d9ef21ee1a877bb75d2c50043975922449[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 19:55:58 2009 +0200
+
+    fix attachment streaming and add tests.
+
+[33mcommit f011365b2c6d2de377445ccb554f1f6e58637bf9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 12:25:12 2009 +0200
+
+    use url_encode/1 function from ibrowse project rather than
+    erldoc:escape_uri. less dependancies is better. spotted by @karabe on
+    twitter.
+
+[33mcommit e7cecdc63f20de81c1e49f83ee9e8c104d182b34[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 12:15:52 2009 +0200
+
+    add readme.
+
+[33mcommit 46e8de833ca1d5c2089795a0d4aafa69b9d3bf9d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 12:00:31 2009 +0200
+
+    add some shottcuts & tests
+
+[33mcommit 6e2fdd5d4ab84ce4f59b2aebdd177c54c7399dfe[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 11:45:14 2009 +0200
+
+    fix issue #4. thanks to @karalabe for pointing to edoc:escape_uri
+    function.
+
+[33mcommit 9190883330b451b489e9adfb1a8e1d8aae778bf6[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 10:51:02 2009 +0200
+
+    fix get_value add add tests for set_value,get_value,delete_value,extend
+    functions.
+
+[33mcommit cc527367d96646d7a50affba2f16ca718071b474[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 10:14:05 2009 +0200
+
+    add `couchbeam_doc:delete_value/2` .
+
+[33mcommit fceafb52053f3be8270e0ac2b5263baaa9f9745d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Oct 24 09:56:41 2009 +0200
+
+    fix doc about attachments and make sure we use a string in open_doc.
+
+[33mcommit b0555d5ed45701e293978bb1ed259d21ceacd8b2[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 14:53:01 2009 +0200
+
+    fix doc... docid not doc.
+
+[33mcommit 54a07861559fa578d95484f6821ea685ea536574[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 11:13:58 2009 +0200
+
+    fix doc
+
+[33mcommit 2cfa8083cf88540541cde85f6c6c32384a436de5[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 11:06:17 2009 +0200
+
+    add streaming support to couchbeam.
+
+[33mcommit 349bce59002985c4a4b9f477924c9715daf652c9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 08:09:23 2009 +0200
+
+    little change.
+
+[33mcommit c9b75f48eeb769768e8248e255490036881229da[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 08:03:04 2009 +0200
+
+    removve some macros and clean request function to prepare streaming
+    feature.
+
+[33mcommit 282e73a7812aea17369c8a902e1044d731196401[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 07:14:49 2009 +0200
+
+    use lhttpc:request.
+
+[33mcommit 12121846eac389617849e14b226afc3896f181cf[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 07:04:13 2009 +0200
+
+    define subcomponent
+
+[33mcommit 8befe6aca6a5d1eba7064b619f11d7d0328d6f4d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Oct 20 06:59:54 2009 +0200
+
+    add license.
+
+[33mcommit cb3817684d76637a6be2d76532eea7fbe36f3be4[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Oct 19 23:52:56 2009 +0200
+
+    we don't handle streaming yet.
+
+[33mcommit 73f8934d8ff6240d60612edc7148c84d308fd553[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Oct 19 23:40:31 2009 +0200
+
+    dot.
+
+[33mcommit a6d52183b00cc431d330d8e0a01fd5cccb2b9d2d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Oct 19 23:24:54 2009 +0200
+
+    fix typoe
+
+[33mcommit c5f45e9bd6c7a9820bb6bf100efd31ec7ae8e958[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Oct 19 23:22:39 2009 +0200
+
+    markdown.
+
+[33mcommit 321c1cf3d1c735f43296f4f2d83ba67f31e3b60e[m
+Merge: a79fe9f a8ca0ea
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Mon Oct 19 21:25:09 2009 +0200
+
+    merge default
+    
+    --HG--
+    branch : streaming
+
+[33mcommit a8ca0ea64b00bea5ba36e563777aa013de533eda[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 23:10:34 2009 +0200
+
+    up
+
+[33mcommit a431647efbe761cdd3ba81a8068aa2f2cfa00ed6[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 22:26:24 2009 +0200
+
+    Added tag 0.3 for changeset 80924d02e301
+
+[33mcommit c2d05f04610a9dd9286d08fa74ae10e1c90372ef[m[33m ([m[1;33mtag: [m[1;33m0.3[m[33m)[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 22:15:08 2009 +0200
+
+    0.3 release.
+
+[33mcommit a35582b6703b381191112b63615b4b0e72d8faac[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 22:06:02 2009 +0200
+
+    old exit was causing issue by raising exit issue and restart server.
+    this change fix it.
+
+[33mcommit 4735f1f99690799ab84ed778cc8ae9c852047f10[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 20:37:58 2009 +0200
+
+    useless.
+
+[33mcommit a93371b6d74a7071aba3cc86bef417d976aee6da[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 20:07:36 2009 +0200
+
+    sometimes db is undefined. So reopen it and monitor.
+
+[33mcommit b3af47dd9c33e8bc3a1d995067ad21fb52201be4[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 17:31:23 2009 +0200
+
+    fix
+
+[33mcommit 56527b7518f2d1e5274d6b26a3c530ad3477cde8[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 15:31:25 2009 +0200
+
+    now couchbeam recover server connections & dbs from scratch. In the same
+    time use dict rather than ets in manager, more efficient and make the
+    code easier to read.
+
+[33mcommit 347fc5baa98a9fe5f4283dd72b946dab048a4ccc[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 12:53:40 2009 +0200
+
+    remove ref when we unregister.
+
+[33mcommit 82625b1b9779cc0f90ba196e78b51832f45f5f8f[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 12:49:04 2009 +0200
+
+    recover server connection in case something bad happend.
+
+[33mcommit 6c8d5c6099a48984f819076727ecc5129dfbf375[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 11:47:48 2009 +0200
+
+    better handling of couchbeam server termination
+
+[33mcommit d1de1f6f90599ebd5b239d4d651c3ff182f33974[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 11:02:38 2009 +0200
+
+    no more couchbeam_db:register_db . Instead use
+    couchbeam_db:open_db(Connection, {Alias, DbName}), or just
+    couchbeam_db:open_db(Connection, DbName), then alias of db is
+    {ConnectionName, DbName}.
+
+[33mcommit 3c326bf41d7dd227286629ae69a7f1c1206c9ef1[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Fri Oct 16 07:51:45 2009 +0200
+
+    be more consistent.
+
+[33mcommit e563ccc5a742974724edf9cc4795766f9ff7ff2a[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 15 19:07:04 2009 +0200
+
+    useles debug messages now
+
+[33mcommit 2af50c1285b44249ce556975a11eb8590e271060[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 15 18:57:18 2009 +0200
+
+    add possibility to set filters & style in db suscribe handler.
+
+[33mcommit 25893986802ff861b3007d8490a8a86bdaf83daf[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 15 18:00:44 2009 +0200
+
+    add db changes notifications.
+
+[33mcommit 97bad19263a05e0d3a59c2e00f7211b1e9c42664[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Thu Oct 15 14:17:44 2009 +0200
+
+    update makefile & lhttpc to manage streaming & co
+
+[33mcommit b9ac2c5381525b43770d53f26e4b665322760075[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 7 22:35:07 2009 +0200
+
+    add doc
+
+[33mcommit efeff346f6960d56a4dc537fb6c76785c984d68a[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 7 22:32:05 2009 +0200
+
+    use name here too
+
+[33mcommit 8d2cc6b5469cda367d2b62bd98d770f4d12f426d[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 7 21:29:20 2009 +0200
+
+    bool is deprecated, use boolean
+
+[33mcommit cd0049051c511a0cc78dc9a0b81972eb7f4df48f[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 7 21:09:57 2009 +0200
+
+    allow possibility to register a db pid by name :
+    
+    Db3 = couchbeam_server:create_db(default, "couchbeam_testdb2"),
+    couchbeam_db:register_db(testdb2, {default, "couchbeam_testdb2"}),
+    
+    then use name instead of pid :
+    Doc3 = couchbeam_db:save_doc(testdb2, {[{<<"test">>, <<"blah">>}]}),
+    
+    it allow you to set a db once in your app and reuse it without having to
+    open it each time.
+
+[33mcommit 2dfaf678c56485590ee69fcbde147ea9e110b2c2[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Oct 7 19:11:22 2009 +0200
+
+    just return pid if it exists. It save one http call
+
+[33mcommit a79fe9fc3d97b7d015f2904f45db5cfe17fd72ae[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 20:19:24 2009 +0200
+
+    add doc for streaming
+    
+    --HG--
+    branch : streaming
+
+[33mcommit f7467cd4e1bf91c34f5ba174eaf11645b5f6e242[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 20:05:13 2009 +0200
+
+    add support for streaming to couchbeam_resource. should be enough
+    
+    --HG--
+    branch : streaming
+
+[33mcommit 83faf4477165a91a2067d52fc78eb9c72b263de4[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 19:41:51 2009 +0200
+
+    merge changes from http://bitbucket.org/tamasnagy/lhttpc to add
+    streaming in lhttpc
+    
+    --HG--
+    branch : streaming
+
+[33mcommit b70e6999c32dca5b9f1db5fb82eba9970b9cbd29[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 18:47:59 2009 +0200
+
+    Added tag 0.2 for changeset 3ad4305a868a
+
+[33mcommit 3f481440acf79ccb3ae0a4ee62ae1c96e776fe1a[m[33m ([m[1;33mtag: [m[1;33m0.2[m[33m)[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 18:46:23 2009 +0200
+
+    typo
+
+[33mcommit a53731b91e487bc5ce7bd6de98c37a22c6ed7aaa[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 17:32:11 2009 +0200
+
+    improve the way we load the application by making sure we load
+    dependancies.
+
+[33mcommit 0d67e6b943a9f8c6d19dbab87d9e9a77959de5ef[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Wed Sep 30 10:07:09 2009 +0200
+
+    make sure ebin is always here beter for make
+
+[33mcommit 0a9872202e574e86f423bf5140e5aac3177d1ea9[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 22:33:04 2009 +0200
+
+    fix view closing.
+
+[33mcommit a2a88eb82177bfc105c65d4b2031df80c4bff44a[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 20:33:28 2009 +0200
+
+    Added tag 0.2a for changeset f4e08f35541f
+
+[33mcommit 418f251ce77d13a9bc10be298c7db9196ce51a17[m[33m ([m[1;33mtag: [m[1;33m0.2a[m[33m)[m
+Merge: 3de595a b1377bf
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 20:31:29 2009 +0200
+
+    merge refactor branch
+
+[33mcommit b1377bf5310552c26368264c12f5ac1edb7633dc[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 20:29:45 2009 +0200
+
+    common functions
+    
+    --HG--
+    branch : refactor
+
+[33mcommit d270added115e9d96efc93bc8a9d86bdf3b6aa38[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 19:06:26 2009 +0200
+
+    type of #couchdb_params
+    
+    --HG--
+    branch : refactor
+
+[33mcommit e340121e4ec8f14635d670f061dfa69286df789f[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 18:52:02 2009 +0200
+
+    clean
+    
+    --HG--
+    branch : refactor
+
+[33mcommit 2fe7807357bb5d57ba9e6132d3dce71f58773e46[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 18:51:19 2009 +0200
+
+    clean tree.
+    
+    --HG--
+    branch : refactor
+
+[33mcommit c401dba7c3a5be58351ac3206cc306d03e838f6e[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 18:50:03 2009 +0200
+
+    garbage.
+    
+    --HG--
+    branch : refactor
+
+[33mcommit c2048a7228d3a59cc3a19e66eb67fbd17a90c3cf[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 18:48:44 2009 +0200
+
+    new readme.
+    
+    --HG--
+    branch : refactor
+    rename : README.md => README
+
+[33mcommit c61490be225731d9d3c3e282a7a151b67f5f3b96[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 18:26:14 2009 +0200
+
+    journal was borked. commit changes now.
+    
+    --HG--
+    branch : refactor
+
+[33mcommit 9e47f9397cc2cb562f0ceef9a71e8522663c5d26[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 13:26:40 2009 +0200
+
+    fix delete_db & more.
+    
+    --HG--
+    branch : refactor
+    rename : t/007-attachment.t => t/006-attachment.t
+
+[33mcommit f494c37971b52a68970e497276e1d4d0e7a6a21d[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 12:09:11 2009 +0200
+
+    fix couchbeam_manager, so we use ets. fix db tests
+    
+    --HG--
+    branch : refactor
+
+[33mcommit c3bb475399c931aae26829b9e0e76e6989e9b99d[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 09:07:46 2009 +0200
+
+    modify Makefiles
+    
+    --HG--
+    branch : refactor
+
+[33mcommit 27964d46be1f542d7d66ce08272c5eda48cac20c[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 08:55:16 2009 +0200
+
+    Fix global registration of  connection so you can do this :
+    
+    1> couchbeam:start().
+    2> Connection = couchbeam_server:start_connection_link().
+    3> Db = couchbeam_server:open_db(default, "testdb").
+    4> couchbeam_db:db_info(Db).
+    [{<<"db_name">>,<<"testdb">>},
+     {<<"doc_count">>,4},
+     {<<"doc_del_count">>,0},
+     {<<"update_seq">>,7},
+     {<<"purge_seq">>,0},
+     {<<"compact_running">>,false},
+     {<<"disk_size">>,28761},
+     {<<"instance_start_time">>,<<"1254082676994803">>},
+     {<<"disk_format_version">>,4}]
+    
+    --HG--
+    branch : refactor
+
+[33mcommit b132435f4dd45bd9fa072d0ef1d8ce8853394552[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Tue Sep 29 00:32:52 2009 +0200
+
+    some fixes + include lhttpc code since we will add our own modification
+    for streaming.
+    
+    --HG--
+    branch : refactor
+
+[33mcommit 53d9c04db5fc0a8712d933ab7f6dc33226f55b9c[m
+Author: BenoÃ®t Chesneau <bchesneau@gmail.com>
+Date:   Mon Sep 28 23:18:01 2009 +0200
+
+    first commit. compile, but not tested and unittests haven't been updated
+    fr the new api. (so basically it do nothing).
+    
+    --HG--
+    branch : refactor
+
+[33mcommit 3de595a04f1c7cda3b380739b751597dad99d00e[m
+Author: Benoit Chesneau <benoitc@enlil-2.local>
+Date:   Sun Sep 27 09:17:24 2009 +0200
+
+    put application in its own module.
+
+[33mcommit bf0b2ef621985406c29aa35d5caaf1df56ef10a5[m
+Author: Benoit Chesneau <benoitc@enlil-2.local>
+Date:   Sun Sep 27 08:52:12 2009 +0200
+
+    fix invalid utf8. backport change from couchdb.
+
+[33mcommit a804bf1c9e58b991723611e751f3c951b5fa8a49[m[33m ([m[1;33mtag: [m[1;33m0.1.2[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Aug 27 13:46:12 2009 +0200
+
+    one last test
+
+[33mcommit 4687ecd4cd62e580150787fc939e56a26a0f1c83[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Aug 27 13:44:00 2009 +0200
+
+    add functions to manage inline attachments :
+    
+    - add_attachment add an attachment to doc object and encode contect.
+    Eventually content_type is detected.
+    
+    - delete_iniline_attachment : delete an inline attachment from the doc
+
+[33mcommit 8bf8bc0cc820b38d2018100b06cb54b1c144afa6[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Aug 15 11:11:11 2009 +0200
+
+    be consistent. spotted by @benc on irc
+
+[33mcommit 9a09544a87f27a14641ae10c01873017f5adc2fd[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Aug 10 23:49:17 2009 +0200
+
+    add set_value function
+
+[33mcommit 1948dd4ec9f3458a1a1faa6bd9cce2f85db3e431[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Aug 5 19:57:25 2009 +0200
+
+    right name
+
+[33mcommit 746ac2869824602ebe7d83415f27bdb0b902f613[m[33m ([m[1;33mtag: [m[1;33m0.1.1[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Aug 3 06:00:49 2009 +0200
+
+    use atom here rather than string (string is still possible though).
+
+[33mcommit c9c9a9964938daff197142514303ced5a7c33cb9[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Sat Aug 1 11:23:18 2009 +0200
+
+    close the socket
+
+[33mcommit 5fb6cb9d5b67d4773dd02087a718ffc973d6715b[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Fri Jul 31 15:31:59 2009 +0200
+
+    improve parse_view cases
+
+[33mcommit 618da399b9cbe6661ae36ec4cbf0b0eb7c31e179[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 16:07:31 2009 +0200
+
+    improve readme
+
+[33mcommit 31edf647770dd84e07f314b3f5fbc6655de958b7[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 15:49:48 2009 +0200
+
+    all binary for docid. maybe I should extend this to DbName too ?
+
+[33mcommit a97ad73975e2ae620d575e5a923ab2ba02c22626[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 15:45:11 2009 +0200
+
+    remove .DS_Store, feedback from @binary42
+
+[33mcommit fe6853948df44845d9a136fc560c321b45fae789[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 15:26:02 2009 +0200
+
+    edit doc
+
+[33mcommit f1c720119a2d466a481f848b59a5d517394eb8a4[m[33m ([m[1;33mtag: [m[1;33m0.1[m[33m)[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 15:21:59 2009 +0200
+
+    add authentification support.
+
+[33mcommit a1329d028359088d5037f53f63ed9fda4f1d4399[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 14:37:45 2009 +0200
+
+    update doc.
+
+[33mcommit 6db686f13553a48f2001a72a88258c0b00ec4b84[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 14:17:31 2009 +0200
+
+    rename ecouchdbkit to couchbeam.
+
+[33mcommit 25a71286c119bfed815130068681dcf2da51f24c[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 09:31:35 2009 +0200
+
+    test views
+
+[33mcommit 9d597551e36cc64c81387ac09a66edd75a3fe983[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Thu Jul 30 08:20:19 2009 +0200
+
+    first bits of documentation
+
+[33mcommit 5d7860fdba87f3751d25e9d25006b2911e195782[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 19:48:56 2009 +0200
+
+    fix
+
+[33mcommit e74770dfdf4a3f28d8884dd4d150c0b47ebb4511[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 19:09:07 2009 +0200
+
+    add split utility, improve streaming function.
+
+[33mcommit 6a6166d517907a4f39c9bade6102d3e5abeabaa3[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 17:17:04 2009 +0200
+
+    replace url_encode from yaws by quote_plus of mochiweb. fix json encoding of params.
+
+[33mcommit 7239934605f2693efcf088ce1e7273acae3aa634[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 14:58:35 2009 +0200
+
+    allow us to set initial state.
+
+[33mcommit d616ae51b8004a02e76862edda18ca02f00f563f[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 14:49:58 2009 +0200
+
+    add body function. Allow us to parse data while fetching body. Will be usefull for views & attachements.
+
+[33mcommit 2003d13bbdb343ee3a7d5ed413e5e82effee1f98[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 11:14:15 2009 +0200
+
+    it's now possible to use ecouchdbkit without requiring launch of application or use of genserv. simple is better.
+
+[33mcommit f6c35c4c7772664536d1c5e881cbb0ff1c5b8d75[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 09:54:58 2009 +0200
+
+    little change in api. Get erlang object {} when needed instead removing it. So we can reuse object later.
+
+[33mcommit 9787f8e1f8325054d58fea32375aefaf62d12bcb[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 09:07:02 2009 +0200
+
+    no need to split
+
+[33mcommit f326423f3f3c03efcc3733aa0dc41e8d5f3b5476[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Wed Jul 29 09:02:18 2009 +0200
+
+    encode parameters to json when needed. Also more fixes/tests.
+
+[33mcommit 562cbc6111cd849e3d89325fdb48a9cfac9897a1[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 23:32:17 2009 +0200
+
+    recreate node server when it completly disappear.
+
+[33mcommit d85b1e7b4d6e62a3ca1eef538dc77062ae7a1360[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 19:39:39 2009 +0200
+
+    %% in case node server is down, we try to recreate it from state. No need anymore to use ets for that.
+
+[33mcommit a14d6940edea8c145f4a3d4ca8ed58084e0c4197[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 18:48:38 2009 +0200
+
+    You can now override node settings and create a new connection handler.
+
+[33mcommit e46598ceb375b52c9912308871b1bd7763b4c53d[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 18:07:10 2009 +0200
+
+    get pid from child nodes.
+
+[33mcommit 6d9fd2f4bbbd0e1dbc2d04b292fa1d6b459cfb82[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 17:32:19 2009 +0200
+
+    now supervise nodes. More tests and add some functions.
+
+[33mcommit aa3878c2ea768404363f60607e095006467df010[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 15:36:40 2009 +0200
+
+    typo
+
+[33mcommit 5829701c777f6842a12d2a97d4af7815c887f439[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 15:29:25 2009 +0200
+
+    better namespaces.
+
+[33mcommit ab7e300e4ef52351939a0e8dfcb7274276d2ba99[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 15:24:59 2009 +0200
+
+    some fixes. Prepare future when we would like each nodes monitored. Add tests for db.
+
+[33mcommit f17bd0a7c239b81c679b7dd234f2589822e6ed25[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Tue Jul 28 12:54:18 2009 +0200
+
+    first unittests and some fixes.
+
+[33mcommit d00fe1a042d309d5b31c1c9d8b99c4819922d96e[m
+Author: Benoit Chesneau <bchesneau@gmail.com>
+Date:   Mon Jul 27 09:28:57 2009 +0200
+
+    add doc
+
+[33mcommit 4c7270d202bf71529eee6243f1d5614c8b6cd308[m
+Author: benoitc <bchesneau@gmail.com>
+Date:   Mon Jul 27 08:39:27 2009 +0200
+
+    First release

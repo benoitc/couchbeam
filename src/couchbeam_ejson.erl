@@ -14,7 +14,7 @@
 
 -ifndef('WITH_JIFFY').
 -define(JSON_ENCODE(D), jsx:encode(pre_encode(D))).
--define(JSON_DECODE(D), post_decode(jsx:decode(D))).
+-define(JSON_DECODE(D), post_decode(jsx:decode(D, [{return_maps, false}]))).
 
 -else.
 -define(JSON_ENCODE(D), jiffy:encode(D, [uescape])).

@@ -88,7 +88,7 @@ follow(Db, Options) ->
                                                         Options1]) of
         {ok, _Pid} ->
             {ok, Ref};
-        Error ->
+        {error, _} = Error ->
             Error
     end.
 
@@ -146,7 +146,7 @@ follow_once(Db, Options) ->
                     case follow(Db, FinalOptions) of
                         {ok, Ref} ->
                             collect_changes(Ref);
-                        Error ->
+                        {error, _} = Error ->
                             Error
                     end;
                 _ ->

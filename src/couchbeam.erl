@@ -9,6 +9,7 @@
 -include("couchbeam.hrl").
 
 -include_lib("hackney/include/hackney.hrl").
+-include_lib("hackney/include/hackney_lib.hrl").
 
 -define(TIMEOUT, infinity).
 
@@ -80,8 +81,12 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection(Host, Port, "", [])
 
-server_connection(URL, Options) when is_list(Options) ->
-    #server{url=hackney_url:fix_path(URL), options=Options};
+server_connection(URL, Options0) when is_list(Options0) ->
+  Options = case hackney_url:property(scheme, hackney_url:parse_url(URL)) of
+              http -> [{insecure_basic_auth, true} | Options0];
+              _ -> Options0
+            end,
+  #server{url=hackney_url:fix_path(URL), options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, <<>>, []).
 
@@ -185,21 +190,17 @@ get_uuids(Server, Count) ->
 %%
 %% @spec replicate(Server::server(), RepObj::{list()})
 %%          -> {ok, Result}|{error, Error}
-replicate(#server{url=ServerUrl, options=Opts}, RepObj) ->
-    Url = hackney_url:make_url(ServerUrl, [<<"_replicate">>], []),
-    Headers = [{<<"Content-Type">>, <<"application/json">>}],
-    JsonObj = couchbeam_ejson:encode(RepObj),
+replicate(#server{}=Server, RepObj) ->
+  case open_db(Server, <<"_replicator">>) of
+    {ok, ReplicatorDb} ->
+      case save_doc(ReplicatorDb, RepObj) of
+        {ok, Doc} ->
 
-    case couchbeam_httpc:request(post, Url, Headers, JsonObj, Opts) of
-        {ok, Status, _, Ref} when Status =:= 200 orelse Status =:= 201 ->
-            Res = couchbeam_httpc:json_body(Ref),
-            {ok, Res};
-        {ok, Status, Headers, Ref} ->
-            {ok, Body} = hackney:body(Ref),
-            {error, {bad_response, {Status, Headers, Body}}};
+          {ok, Doc};
         Error ->
-            Error
-    end.
+          Error
+      end
+  end.
 
 %% @doc Handle replication.
 %% @spec replicate(Server::server(), Source::string(), Target::target())
@@ -208,26 +209,31 @@ replicate(Server, Source, Target) ->
     replicate(Server, Source, Target, []).
 
 %% @doc handle Replication. Allows to pass options with source and
-%% target.  Options is a Json object.
+%% target. Source and target can be either simple URI strings or 
+%% complex document structures with authentication. Options is a Json object.
 %% ex:
 %% ```
-%% Options = [{<<"create_target">>, true}]}
+%% %% Simple URI replication
+%% Options = [{<<"create_target">>, true}]},
 %% couchbeam:replicate(S, "testdb", "testdb2", Options).
+%%
+%% %% Complex replication with authentication
+%% Source = "http://user:pass@remote.com:5984/db",
+%% Target = {[{<<"url">>, <<"http://localhost:5984/target_db">>},
+%%            {<<"auth">>, {[{<<"basic">>, {[{<<"username">>, <<"user">>},
+%%                                           {<<"password">>, <<"pass">>}]}}]}}]},
+%% couchbeam:replicate(S, Source, Target, [{<<"continuous">>, true}]).
 %% '''
 replicate(Server, Source, Target, {Props}) ->
-    replicate(Server, Source, Target, Props);
-replicate(Server, #db{name=Source}, Target, Options) ->
-    replicate(Server, Source, Target, Options);
-replicate(Server, Source, #db{name=Target}, Options) ->
-    replicate(Server, Source, Target, Options);
-replicate(Server, #db{name=Source}, #db{name=Target}, Options) ->
-    replicate(Server, Source, Target, Options);
+  replicate(Server, Source, Target, Props);
 replicate(Server, Source, Target, Options) ->
-    RepProp = [
-               {<<"source">>, couchbeam_util:to_binary(Source)},
-               {<<"target">>, couchbeam_util:to_binary(Target)} | Options
-              ],
-    replicate(Server, {RepProp}).
+  SourceProp = format_replication_endpoint(Source),
+  TargetProp = format_replication_endpoint(Target),
+  RepProp = [
+             {<<"source">>, SourceProp},
+             {<<"target">>, TargetProp} | Options
+            ],
+  replicate(Server, {RepProp}).
 
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
@@ -282,6 +288,7 @@ db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
         {ok, 200, _}->
             true;
         _Error ->
+            io:format("db exists error ~p", [_Error]),
             false
     end.
 
@@ -422,7 +429,7 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
 
     %% is there any accepted content-type passed to the params?
     {Accept, Params1} = case proplists:get_value(accept, Params) of
-                            unefined -> {any, Params};
+                            undefined -> {any, Params};
                             A -> {A, proplists:delete(accept, Params)}
                         end,
     %% set the headers with the accepted content-type if needed
@@ -1042,6 +1049,24 @@ maybe_docid(Server, {DocProps}) ->
             {DocProps}
     end.
 
+%% format replication endpoint for source or target
+%% supports Db record, simple URI strings and complex document structures
+format_replication_endpoint({Props}) when is_list(Props) ->
+    {Props};
+format_replication_endpoint(<<"http://", _/binary>> = Endpoint)->
+    couchbeam_util:to_binary(Endpoint);
+format_replication_endpoint(<<"https://", _/binary>> = Endpoint)->
+    couchbeam_util:to_binary(Endpoint);
+format_replication_endpoint(#db{server=#server{url=BaseUrl, options=Options}, name=DbName}) ->
+    case proplists:get_value(basic_auth, Options) of
+        {User, Password} ->
+            ServerBaseUrl = hackney_url:parse_url(BaseUrl),
+            ServerUrl = hackney_url:unparse_url(ServerBaseUrl#hackney_url{user=User, password=Password}),
+            hackney_url:make_url(ServerUrl, [DbName], []);
+        _ ->
+            hackney_url:make_url(BaseUrl, [DbName], [])
+    end.
+
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -1059,6 +1084,20 @@ clean_dbs() ->
 start_couchbeam_tests() ->
     {ok, _} = application:ensure_all_started(couchbeam),
     clean_dbs().
+
+wait_for_replication(_Db, DocId, 0) ->
+    io:format("Timeout waiting for document ~p to replicate~n", [DocId]),
+    throw({timeout, waiting_for_replication});
+wait_for_replication(Db, DocId, Retries) ->
+    case couchbeam:open_doc(Db, DocId) of
+        {ok, _} -> 
+            io:format("Document ~p found in target db~n", [DocId]),
+            ok;
+        {error, not_found} ->
+            io:format("Document ~p not found, retries left: ~p~n", [DocId, Retries-1]),
+            timer:sleep(200),
+            wait_for_replication(Db, DocId, Retries - 1)
+    end.
 
 basic_test() ->
     start_couchbeam_tests(),
@@ -1290,13 +1329,33 @@ replicate_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    {ok, Db2} = couchbeam:create_db(Server, "couchbeam_testdb2"),
+    %% Ensure _replicator database exists
+    true = couchbeam:db_exists(Server, <<"_replicator">>),
 
-    {ok, Doc11} = couchbeam:save_doc(Db, {[]}),
-    DocId11 = couchbeam_doc:get_id(Doc11),
+    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
+    {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
+
+    DocId11 = <<"test">>,
+    {ok, Doc11} = couchbeam:save_doc(Db, {[{<<"_id">>, DocId11}]}),
     DocRev11 = couchbeam_doc:get_rev(Doc11),
-    ?assertMatch({ok, _}, couchbeam:replicate(Server, Db, Db2)),
+    io:format("Created document with ID: ~p, Rev: ~p~n", [DocId11, DocRev11]),
+    
+    Result = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
+    ?assertMatch({ok, _}, Result),
+    
+    {ok, RepDoc} = Result,
+    RepDocId = couchbeam_doc:get_id(RepDoc),
+    io:format("Replication document created with ID: ~p~n", [RepDocId]),
+    
+    %% Check the replication document in _replicator db
+    {ok, ReplicatorDb} = couchbeam:open_db(Server, <<"_replicator">>),
+    timer:sleep(100), % Give time for replication doc to be written
+    {ok, RepDocFromDb} = couchbeam:open_doc(ReplicatorDb, RepDocId),
+    io:format("Replication document: ~p~n", [RepDocFromDb]),
+
+    %% Wait for replication to complete by polling for the document
+    io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
+    wait_for_replication(Db2, DocId11, 20),
 
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
