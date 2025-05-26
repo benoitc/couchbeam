@@ -180,7 +180,9 @@ decode_data(Data, #state{owner=Owner,
         catch error:badarg ->
             maybe_continue(State#state{decoder=DecodeFun2})
         end
-    catch error:badarg -> exit(badarg)
+    catch error:badarg -> 
+        maybe_close(State),
+        exit(badarg)
     end.
 
 maybe_continue(#state{parent=Parent, owner=Owner, ref=Ref, mref=MRef,

@@ -131,13 +131,20 @@ handle_info({Ref, Msg},
             State#gen_changes_state{last_seq=Seq}
     end,
 
-    case catch Module:handle_change(Msg, ModState) of
+    try Module:handle_change(Msg, ModState) of
         {noreply, NewModState} ->
             {noreply, State2#gen_changes_state{modstate=NewModState}};
         {noreply, NewModState, A} when A =:= hibernate orelse is_number(A) ->
             {noreply, State2#gen_changes_state{modstate=NewModState}, A};
         {stop, Reason, NewModState} ->
-            {stop, Reason, State2#gen_changes_state{modstate=NewModState}}
+            {stop, Reason, State2#gen_changes_state{modstate=NewModState}};
+        Other ->
+            error_logger:error_msg("~p:handle_change/2 returned unexpected value: ~p~n", [Module, Other]),
+            {stop, {bad_return_value, Other}, State2}
+    catch
+        Class:Reason:Stacktrace ->
+            error_logger:error_msg("~p:handle_change/2 crashed: ~p:~p~n~p~n", [Module, Class, Reason, Stacktrace]),
+            {stop, {handle_change_crashed, {Class, Reason}}, State2}
     end;
 
 

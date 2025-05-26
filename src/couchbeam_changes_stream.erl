@@ -272,7 +272,9 @@ decode_data(Data, #state{feed_type=continuous,
   {incomplete, DecodeFun2} =
     try
       decode_with_tail(Data,DecodeFun,State)
-    catch error:badarg -> exit(badarg)
+    catch error:badarg -> 
+        maybe_close(State),
+        exit(badarg)
     end,
 
   try DecodeFun2(end_stream) of
@@ -296,7 +298,9 @@ decode_data(Data, #state{client_ref=ClientRef,
         catch error:badarg ->
             maybe_continue(State#state{decoder=DecodeFun2})
         end
-    catch error:badarg -> exit(badarg)
+    catch error:badarg -> 
+        maybe_close(State),
+        exit(badarg)
     end.
 
 maybe_continue(#state{parent=Parent,
