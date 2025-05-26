@@ -9,6 +9,7 @@
 -include("couchbeam.hrl").
 
 -include_lib("hackney/include/hackney.hrl").
+-include_lib("hackney/include/hackney_lib.hrl").
 
 -define(TIMEOUT, infinity).
 
@@ -1052,8 +1053,15 @@ format_replication_endpoint(<<"http://", _/binary>> = Endpoint)->
     couchbeam_util:to_binary(Endpoint);
 format_replication_endpoint(<<"https://", _/binary>> = Endpoint)->
     couchbeam_util:to_binary(Endpoint);
-format_replication_endpoint(#db{server=Server, name=DbName}) ->
-    hackney_url:make_url(couchbeam_httpc:server_url(Server) ,[DbName], []).
+format_replication_endpoint(#db{server=#server{url=BaseUrl, options=Options}, name=DbName}) ->
+    case proplists:get_value(basic_auth, Options) of
+        {User, Password} ->
+            ServerBaseUrl = hackney_url:parse_url(BaseUrl),
+            ServerUrl = hackney_url:unparse_url(ServerBaseUrl#hackney_url{user=User, password=Password}),
+            hackney_url:make_url(ServerUrl, [DbName], []);
+        _ ->
+            hackney_url:make_url(BaseUrl, [DbName], [])
+    end.
 
 -ifdef(TEST).
 
@@ -1072,6 +1080,20 @@ clean_dbs() ->
 start_couchbeam_tests() ->
     {ok, _} = application:ensure_all_started(couchbeam),
     clean_dbs().
+
+wait_for_replication(_Db, DocId, 0) ->
+    io:format("Timeout waiting for document ~p to replicate~n", [DocId]),
+    throw({timeout, waiting_for_replication});
+wait_for_replication(Db, DocId, Retries) ->
+    case couchbeam:open_doc(Db, DocId) of
+        {ok, _} -> 
+            io:format("Document ~p found in target db~n", [DocId]),
+            ok;
+        {error, not_found} ->
+            io:format("Document ~p not found, retries left: ~p~n", [DocId, Retries-1]),
+            timer:sleep(200),
+            wait_for_replication(Db, DocId, Retries - 1)
+    end.
 
 basic_test() ->
     start_couchbeam_tests(),
@@ -1309,14 +1331,27 @@ replicate_test() ->
     {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
     {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
 
-    {ok, Doc11} = couchbeam:save_doc(Db, {[]}),
-    DocId11 = couchbeam_doc:get_id(Doc11),
+    DocId11 = <<"test">>,
+    {ok, Doc11} = couchbeam:save_doc(Db, {[{<<"_id">>, DocId11}]}),
     DocRev11 = couchbeam_doc:get_rev(Doc11),
+    io:format("Created document with ID: ~p, Rev: ~p~n", [DocId11, DocRev11]),
     
-    Result = couchbeam:replicate(Server, Db, Db2),
+    Result = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
     ?assertMatch({ok, _}, Result),
+    
+    {ok, RepDoc} = Result,
+    RepDocId = couchbeam_doc:get_id(RepDoc),
+    io:format("Replication document created with ID: ~p~n", [RepDocId]),
+    
+    %% Check the replication document in _replicator db
+    {ok, ReplicatorDb} = couchbeam:open_db(Server, <<"_replicator">>),
+    timer:sleep(100), % Give time for replication doc to be written
+    {ok, RepDocFromDb} = couchbeam:open_doc(ReplicatorDb, RepDocId),
+    io:format("Replication document: ~p~n", [RepDocFromDb]),
 
-    timer:sleep(100),
+    %% Wait for replication to complete by polling for the document
+    io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
+    wait_for_replication(Db2, DocId11, 5),
 
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
