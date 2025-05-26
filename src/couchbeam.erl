@@ -81,8 +81,12 @@ server_connection(URL) when is_list(URL) orelse is_binary(URL) ->
 %% @doc Create a server for connectiong to a CouchDB node
 %% @equiv server_connection(Host, Port, "", [])
 
-server_connection(URL, Options) when is_list(Options) ->
-    #server{url=hackney_url:fix_path(URL), options=Options};
+server_connection(URL, Options0) when is_list(Options0) ->
+  Options = case hackney_url:property(scheme, hackney_url:parse_url(URL)) of
+              http -> [{insecure_basic_auth, true} | Options0];
+              _ -> Options0
+            end,
+  #server{url=hackney_url:fix_path(URL), options=Options};
 server_connection(Host, Port) when is_integer(Port) ->
     server_connection(Host, Port, <<>>, []).
 
