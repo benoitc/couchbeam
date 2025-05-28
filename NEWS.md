@@ -1,6 +1,17 @@
 couchbeam NEWS
 --------------
 
+version 1.7.0 / 2025-05-28
+--------------------------
+
+- fix resource leaks and race conditions in stream modules
+- fix unclosed hackney connections on error paths
+- add proper cleanup for monitor references using try-finally
+- fix ETS table race conditions by checking process liveness
+- improve stream initialization order to prevent races
+- add error handling for hackney operations to prevent leaks
+- fix changes stream registration race condition by registering before parent notification
+
 version 1.6.0 / 2025-01-26
 --------------------------
 
