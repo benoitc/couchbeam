@@ -198,7 +198,15 @@ with_changes_stream(Ref, Fun) ->
         [] ->
             {error, stream_undefined};
         [{Ref, Pid}] ->
-            Fun(Pid)
+            %% Check if the process is still alive to avoid race conditions
+            case is_process_alive(Pid) of
+                true ->
+                    Fun(Pid);
+                false ->
+                    %% Clean up the stale entry
+                    ets:delete(couchbeam_changes_streams, Ref),
+                    {error, stream_undefined}
+            end
     end.
 
 

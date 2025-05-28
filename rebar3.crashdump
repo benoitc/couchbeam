@@ -1,6 +1,6 @@
 Error: badarg
 [{erlang,'++',
-         [{error,{rebar_prv_eunit,{test,"basic_test"}}},[]],
+         [{error,{rebar_prv_eunit,{test,"replicate_test"}}},[]],
          [{error_info,#{module => erl_erts_errors}}]},
  {lists,flatmap_1,2,[{file,"lists.erl"},{line,2116}]},
  {rebar_prv_eunit,resolve_tests,1,
@@ -15,10 +15,10 @@ Error: badarg
  {rebar_core,do,2,
              [{file,"/home/runner/work/rebar3/rebar3/apps/rebar/src/rebar_core.erl"},
               {line,155}]},
- {rebar_prv_do,do_task,5,
-               [{file,"/home/runner/work/rebar3/rebar3/apps/rebar/src/rebar_prv_do.erl"},
-                {line,75}]},
- {rebar_core,do,2,
-             [{file,"/home/runner/work/rebar3/rebar3/apps/rebar/src/rebar_core.erl"},
-              {line,155}]}]
+ {rebar3,run_aux,2,
+         [{file,"/home/runner/work/rebar3/rebar3/apps/rebar/src/rebar3.erl"},
+          {line,205}]},
+ {rebar3,main,1,
+         [{file,"/home/runner/work/rebar3/rebar3/apps/rebar/src/rebar3.erl"},
+          {line,66}]}]
 

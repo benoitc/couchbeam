@@ -84,19 +84,22 @@ init_stream(Parent, Owner, StreamRef, Db, Options) ->
     %% connect to the changes
     {ok, State} = do_init_stream(InitState),
 
-    %% register the stream
-    ets:insert(couchbeam_changes_streams, [{StreamRef, self()}]),
-
     %% initialise the last sequece
     put(last_seq, Since),
+
+    %% register the stream before notifying parent to avoid race condition
+    ets:insert(couchbeam_changes_streams, [{StreamRef, self()}]),
 
     %% tell to the parent that we are ok
     proc_lib:init_ack(Parent, {ok, self()}),
 
     %% start the loop
-    loop(State),
-    %% stop to monitor the parent
-    erlang:demonitor(MRef),
+    try
+        loop(State)
+    after
+        %% Always clean up the monitor reference
+        erlang:demonitor(MRef, [flush])
+    end,
     ok.
 
 do_init_stream(#state{mref=MRef,
@@ -289,10 +292,10 @@ decode_data(Data, #state{client_ref=ClientRef,
         {incomplete, DecodeFun2} = DecodeFun(Data),
         try DecodeFun2(end_stream) of done ->
             %% stop the request
-            {ok, _} = hackney:stop_async(ClientRef),
+            catch hackney:stop_async(ClientRef),
             %% skip the rest of the body so the socket is
             %% replaced in the pool
-            hackney:skip_body(ClientRef),
+            catch hackney:skip_body(ClientRef),
             %% maybe reconnect
             maybe_reconnect(State)
         catch error:badarg ->

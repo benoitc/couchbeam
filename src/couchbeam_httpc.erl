@@ -32,8 +32,12 @@ db_request(Method, Url, Headers, Body, Options, Expect) ->
     db_resp(Resp, Expect).
 
 json_body(Ref) ->
-    {ok, Body} = hackney:body(Ref),
-    couchbeam_ejson:decode(Body).
+    case hackney:body(Ref) of
+        {ok, Body} ->
+            couchbeam_ejson:decode(Body);
+        {error, _} = Error ->
+            Error
+    end.
 
 make_headers(Method, Url, Headers, Options) ->
     Headers1 = case couchbeam_util:get_value(<<"Accept">>, Headers) of
@@ -111,7 +115,10 @@ db_resp(Error, _Expect) ->
 db_resp_body(Ref) ->
     case hackney:body(Ref) of
         {ok, Body} -> Body;
-        _ -> <<>>
+        {error, _} -> 
+            %% Try to close the connection to prevent leaks
+            catch hackney:close(Ref),
+            <<>>
     end.
 
 %% @doc Asemble the server URL for the given client
@@ -140,8 +147,12 @@ reply_att({ok, 409, _, Ref}) ->
     hackney:skip_body(Ref),
     {error, conflict};
 reply_att({ok, Status, _, Ref}) when Status =:= 200 orelse Status =:= 201 ->
-  {[{<<"ok">>, true}|R]} = couchbeam_httpc:json_body(Ref),
-  {ok, {R}};
+  case couchbeam_httpc:json_body(Ref) of
+      {[{<<"ok">>, true}|R]} ->
+          {ok, {R}};
+      {error, _} = Error ->
+          Error
+  end;
 reply_att({ok, Status, Headers, Ref}) ->
     {ok, Body} = hackney:body(Ref),
     {error, {bad_response, {Status, Headers, Body}}};

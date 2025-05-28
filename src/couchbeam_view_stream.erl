@@ -72,17 +72,20 @@ init_stream(Parent, Owner, StreamRef, {_Db, _Url, _Args}=Req,
                        async=Async},
 
     %% connect to the view
-    case do_init_stream(Req, InitState) of
-        {ok, State} ->
-            %% register the stream
-            ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
-            %% start the loop
-            loop(State);
-        Error ->
-            report_error(Error, StreamRef, Owner)
+    try
+        case do_init_stream(Req, InitState) of
+            {ok, State} ->
+                %% register the stream
+                ets:insert(couchbeam_view_streams, [{StreamRef, self()}]),
+                %% start the loop
+                loop(State);
+            Error ->
+                report_error(Error, StreamRef, Owner)
+        end
+    after
+        %% Always clean up the monitor reference
+        erlang:demonitor(MRef, [flush])
     end,
-    %% stop to monitor the parent
-    erlang:demonitor(MRef),
     ok.
 
 do_init_stream({#db{options=Opts}, Url, Args}, #state{mref=MRef}=State) ->
