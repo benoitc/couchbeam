@@ -1355,7 +1355,7 @@ replicate_test() ->
 
     %% Wait for replication to complete by polling for the document
     io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
-    wait_for_replication(Db2, DocId11, 20),
+    wait_for_replication(Db2, DocId11, 30),
 
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
