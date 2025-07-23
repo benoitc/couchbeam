@@ -90,6 +90,8 @@
     | {start_key, binary()} | {end_key, binary()}
     | {limit, integer()}
     | {stale, stale()}
+    | {stable, boolean()}
+    | {update, boolean()}
     | descending
     | {skip, integer()}
     | group | {group_level, exact | integer()}

@@ -462,6 +462,18 @@ parse_view_options([{stale, false}|Rest], #view_query_args{options=Opts}=Args) -
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([{stale, _}|_Rest], _Args) ->
     {error, "invalid stale value"};
+parse_view_options([{stable, true}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{stable, "true"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{stable, false}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{stable, "false"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{update, true}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{update, "true"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
+parse_view_options([{update, false}|Rest], #view_query_args{options=Opts}=Args) ->
+    Opts1 = [{update, "false"}|Opts],
+    parse_view_options(Rest, Args#view_query_args{options=Opts1});
 parse_view_options([descending|Rest], #view_query_args{options=Opts}=Args) ->
     Opts1 = [{descending, "true"}|Opts],
     parse_view_options(Rest, Args#view_query_args{options=Opts1});
