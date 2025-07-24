@@ -288,7 +288,6 @@ db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
         {ok, 200, _}->
             true;
         _Error ->
-            io:format("db exists error ~p", [_Error]),
             false
     end.
 
