@@ -1,0 +1,57 @@
+services:
+  couchdb:
+    image: couchdb:latest
+    container_name: couchbeam-couchdb
+    ports:
+      - "5984:5984"
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=admin
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+      - ./couchdb-single-node.ini:/opt/couchdb/etc/local.d/single-node.ini
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5984/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  couchdb-setup:
+    image: curlimages/curl:latest
+    depends_on:
+      couchdb:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Setting up CouchDB in single-node mode...';
+        curl -X PUT http://admin:admin@couchdb:5984/_users;
+        curl -X PUT http://admin:admin@couchdb:5984/_replicator;
+        curl -X PUT http://admin:admin@couchdb:5984/_global_changes;
+        curl -X PUT http://admin:admin@couchdb:5984/couchbeam_testdb;
+        curl -X PUT http://admin:admin@couchdb:5984/couchbeam_testdb2;
+        curl -X PUT http://admin:admin@couchdb:5984/couchbeam_testdb3;
+        echo 'CouchDB setup complete!';
+      "
+
+  erlang-dev:
+    image: erlang:27-alpine
+    container_name: couchbeam-erlang
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    depends_on:
+      couchdb-setup:
+        condition: service_completed_successfully
+    environment:
+      - COUCHDB_URL=http://admin:admin@couchdb:5984
+    command: tail -f /dev/null
+    networks:
+      - default
+
+volumes:
+  couchdb_data:
+
+networks:
+  default:
+    driver: bridge

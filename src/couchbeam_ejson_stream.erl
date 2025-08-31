@@ -140,7 +140,7 @@ decode_object(Data, #decoder{current = Current} = Decoder) ->
                 {error, _} = Error ->
                     Error
             end;
-        <<>>, _ ->
+        <<>> ->
             {partial, Decoder};
         _ ->
             {error, invalid_object}

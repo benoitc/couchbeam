@@ -1,6 +1,6 @@
 {
   "name": "Couchbeam Development",
-  "dockerComposeFile": "../docker-compose.yml",
+  "dockerComposeFile": "../support/docker-compose.yml",
   "service": "erlang-dev",
   "workspaceFolder": "/workspace",
   

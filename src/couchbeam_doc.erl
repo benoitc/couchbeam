@@ -15,7 +15,6 @@
 -export([get_id/1, get_rev/1, get_idrev/1, is_saved/1]).
 
 -type key_val() :: binary().
--type doc() :: map().
 
 %% @doc Create a new empty document
 -spec new() -> doc().

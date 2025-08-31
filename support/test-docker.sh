@@ -6,7 +6,8 @@ echo "Starting the CouchDB and the test environment..."
 docker-compose up -d
 
 echo "Waiting for the CouchDB to be ready..."
-until curl -s http://admin:admin@localhost:5984/ > /dev/null; do
+sleep 5  # Give time for the container to start
+until curl -s http://localhost:5984/ > /dev/null 2>&1; do
     echo "CouchDB is not ready yet, waiting..."
     sleep 2
 done

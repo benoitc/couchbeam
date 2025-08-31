@@ -1102,8 +1102,8 @@ wait_for_replication(Db, DocId, Retries) ->
 basic_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
-    {ok, {Data}} = couchbeam:server_info(Server),
-    ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
+    {ok, Data} = couchbeam:server_info(Server),
+    ?assertEqual(<<"Welcome">>, maps:get(<<"couchdb">>, Data)),
     ok.
 
 db_test() ->
@@ -1136,20 +1136,20 @@ basic_doc_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
-    ?assertMatch({_}, Doc),
-    {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
-    ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
+    {ok, Doc} = couchbeam:save_doc(Db, #{<<"test">> => <<"blah">>}),
+    ?assertMatch(#{}, Doc),
+    {ok, Props} = couchbeam:save_doc(Db, #{<<"_id">> => <<"test">>, <<"test">> => <<"blah">>}),
+    ?assertEqual(<<"test">>, maps:get(<<"_id">>, Props)),
+    ?assertEqual({error, conflict}, couchbeam:save_doc(Db, #{<<"_id">> => <<"test">>, <<"test">> => <<"blah">>})),
 
     Rev = couchbeam:lookup_doc_rev(Db, "test"),
-    {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
-    ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
-    ?assertEqual(<<"blah">>, proplists:get_value(<<"test">>, Doc1)),
+    {ok, Doc1} = couchbeam:open_doc(Db, <<"test">>),
+    ?assertEqual(Rev, maps:get(<<"_rev">>, Doc1)),
+    ?assertEqual(<<"blah">>, maps:get(<<"test">>, Doc1)),
 
-    _ = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
+    _ = couchbeam:save_doc(Db, #{<<"_id">> => <<"test2">>, <<"test">> => <<"blah">>}),
     {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
-    ?assertMatch({_}, Doc2),
+    ?assertMatch(#{}, Doc2),
     ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
     ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
     ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),

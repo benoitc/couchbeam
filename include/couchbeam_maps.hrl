@@ -10,19 +10,12 @@
 
 %% View row using maps
 -type view_row_map() :: #{
-    <<"id">> => binary(),
-    <<"key">> => json_term(),
-    <<"value">> => json_term(),
-    <<"doc">> => doc_map()
+    binary() => json_term()
 }.
 
 %% Changes row using maps
 -type change_row_map() :: #{
-    <<"seq">> => integer() | binary(),
-    <<"id">> => binary(),
-    <<"changes">> => [#{<<"rev">> => binary()}],
-    <<"deleted">> => boolean(),
-    <<"doc">> => doc_map()
+    binary() => json_term()
 }.
 
 %% Streaming result wrapper

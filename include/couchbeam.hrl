@@ -34,7 +34,7 @@
 -type ejson() :: ejson_object() | ejson_array().
 
 -type ejson_array() :: [ejson_term()].
--type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
+-type ejson_object() :: map().
 
 -type ejson_key() :: binary() | atom().
 
@@ -48,7 +48,7 @@
 
 -type ejson_number() :: float() | integer().
 
--type doc() :: ejson_object().
+-type doc() :: map().
 
 -type changes_option() :: continuous | longpoll | normal
     | include_docs | {since, integer()}
