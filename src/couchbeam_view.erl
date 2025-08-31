@@ -627,27 +627,27 @@ basic_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    Db = case couchbeam:create_db(Server, "couchbeam_testdb") of
+        {ok, Db0} -> Db0;
+        {error, db_exists} -> 
+            {ok, Db0} = couchbeam:open_db(Server, "couchbeam_testdb"),
+            Db0
+    end,
 
-    DesignDoc = {[
-                  {<<"_id">>, <<"_design/couchbeam">>},
-                  {<<"language">>,<<"javascript">>},
-                  {<<"views">>,
-                   {[{<<"test">>,
-                      {[{<<"map">>,
-                         <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
-                        }]}
-                     },{<<"test2">>,
-                        {[{<<"map">>,
-                           <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
-                          }]}
-                       }]}
-                  }
-                 ]},
+    DesignDoc = #{
+        <<"_id">> => <<"_design/couchbeam">>,
+        <<"language">> => <<"javascript">>,
+        <<"views">> => #{
+            <<"test">> => #{
+                <<"map">> => <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
+            },
+            <<"test2">> => #{
+                <<"map">> => <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
+            }
+        }
+    },
 
-    Doc = {[
-            {<<"type">>, <<"test">>}
-           ]},
+    Doc = #{<<"type">> => <<"test">>},
 
     couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
     couchbeam:ensure_full_commit(Db),
@@ -661,16 +661,16 @@ basic_test() ->
     Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
     ?assertEqual(2, Count),
 
-    {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
-    {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
+    {ok, FirstRow} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
+    Doc1 = maps:get(<<"doc">>, FirstRow),
+    ?assertEqual(<<"test">>, maps:get(<<"type">>, Doc1)),
 
     Docs = [
-            {[{<<"_id">>, <<"test1">>}, {<<"type">>, <<"test">>}, {<<"value">>, 1}]},
-            {[{<<"_id">>, <<"test2">>}, {<<"type">>, <<"test">>}, {<<"value">>, 2}]},
-            {[{<<"_id">>, <<"test3">>}, {<<"type">>, <<"test">>}, {<<"value">>, 3}]},
-            {[{<<"_id">>, <<"test4">>}, {<<"type">>, <<"test">>}, {<<"value">>, 4}]}
-           ],
+        #{<<"_id">> => <<"test1">>, <<"type">> => <<"test">>, <<"value">> => 1},
+        #{<<"_id">> => <<"test2">>, <<"type">> => <<"test">>, <<"value">> => 2},
+        #{<<"_id">> => <<"test3">>, <<"type">> => <<"test">>, <<"value">> => 3},
+        #{<<"_id">> => <<"test4">>, <<"type">> => <<"test">>, <<"value">> => 4}
+    ],
 
     couchbeam:save_docs(Db, Docs),
     couchbeam:ensure_full_commit(Db),
@@ -689,9 +689,14 @@ view_notfound_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    Db = case couchbeam:create_db(Server, "couchbeam_testdb") of
+        {ok, Db0} -> Db0;
+        {error, db_exists} -> 
+            {ok, Db0} = couchbeam:open_db(Server, "couchbeam_testdb"),
+            Db0
+    end,
 
-    {error, not_found} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, []),
+    {error, not_found} = couchbeam_view:fetch(Db, {"couchbeam", "test_notfound"}, []),
     ok.
 
 

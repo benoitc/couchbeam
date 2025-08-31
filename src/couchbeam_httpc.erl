@@ -173,18 +173,18 @@ wait_mp_doc(Ref, Buffer) ->
             wait_mp_doc(Ref, Buffer);
         end_of_part ->
             %% decode the doc
-            {Props} = Doc = couchbeam_ejson:decode(Buffer),
-            case couchbeam_util:get_value(<<"_attachments">>, Props, {[]}) of
-                {[]} ->
-                    %% not attachments wait for the eof or the next doc
+            Doc = couchbeam_ejson:decode(Buffer),
+            case maps:get(<<"_attachments">>, Doc, #{}) of
+                Atts when map_size(Atts) =:= 0 ->
+                    %% no attachments wait for the eof or the next doc
                     NState = {Ref, fun() -> wait_mp_doc(Ref, <<>>) end},
                     {doc, Doc, NState};
-                {Atts} ->
+                Atts when is_map(Atts) ->
                     %% start to receive the attachments
                     %% we get the list of attnames for the versions of
                     %% couchdb that don't provide the att name in the
                     %% header.
-                    AttNames = [AttName || {AttName, _} <- Atts],
+                    AttNames = maps:keys(Atts),
                     NState = {Ref, fun() ->
                                     wait_mp_att(Ref, {nil, AttNames})
                             end},
@@ -254,7 +254,7 @@ content_disposition(Data) ->
         end).
 
 %% @hidden
-len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
+len_doc_to_mp_stream(Atts, Boundary, Doc) when is_map(Doc) ->
     {AttsSize, Stubs} = lists:foldl(fun(Att, {AccSize, AccAtts}) ->
                     {AttLen, Name, Type, Encoding, _Msg} = att_info(Att),
                     AccSize1 = AccSize +
@@ -275,33 +275,28 @@ len_doc_to_mp_stream(Atts, Boundary, {Props}) ->
                                        byte_size(Encoding) +
                                        byte_size(<<"\r\nContent-Encoding: ">>)
                                end,
-                    AccAtts1 = [{Name, {[{<<"content_type">>, Type},
-                                         {<<"length">>, AttLen},
-                                         {<<"follows">>, true},
-                                         {<<"encoding">>, Encoding}]}}
+                    AccAtts1 = [{Name, #{<<"content_type">> => Type,
+                                         <<"length">> => AttLen,
+                                         <<"follows">> => true,
+                                         <<"encoding">> => Encoding}}
                                 | AccAtts],
                     {AccSize1, AccAtts1}
             end, {0, []}, Atts),
 
-    Doc1 = case couchbeam_util:get_value(<<"_attachments">>, Props) of
+    StubsMap = maps:from_list(Stubs),
+    Doc1 = case maps:get(<<"_attachments">>, Doc, undefined) of
         undefined ->
-            {Props ++ [{<<"_attachments">>, {Stubs}}]};
-        {OldAtts} ->
+            Doc#{<<"_attachments">> => StubsMap};
+        OldAtts when is_map(OldAtts) ->
             %% remove updated attachments from the old list of
-            %% attachments
-            OldAtts1 = lists:foldl(fun({Name, AttProps}, Acc) ->
-                            case couchbeam_util:get_value(Name, Stubs) of
-                                undefined ->
-                                    [{Name, AttProps} | Acc];
-                                _ ->
-                                    Acc
-                            end
-                    end, [], OldAtts),
-            %% update the list of the attachnebts with the attachments
+            %% attachments and merge with new stubs
+            OldAtts1 = maps:filter(fun(Name, _AttProps) ->
+                            not maps:is_key(Name, StubsMap)
+                    end, OldAtts),
+            %% update the list of the attachments with the attachments
             %% that will be sent in the multipart
-            FinalAtts = lists:reverse(OldAtts1) ++ Stubs,
-            {lists:keyreplace(<<"_attachments">>, 1, Props,
-                             {<<"_attachments">>, {FinalAtts}})}
+            FinalAtts = maps:merge(OldAtts1, StubsMap),
+            Doc#{<<"_attachments">> => FinalAtts}
     end,
 
     %% eencode the doc
@@ -382,9 +377,9 @@ mp_doc_reply(Ref, Doc) ->
     Resp = hackney:start_response(Ref),
     case couchbeam_httpc:db_resp(Resp, [200, 201]) of
         {ok, _, _, Ref} ->
-            {JsonProp} = couchbeam_httpc:json_body(Ref),
-            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+            JsonProp = couchbeam_httpc:json_body(Ref),
+            NewRev = maps:get(<<"rev">>, JsonProp),
+            NewDocId = maps:get(<<"id">>, JsonProp),
             %% set the new doc ID
             Doc1 = couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc),
             %% set the new rev

@@ -188,9 +188,9 @@ get_uuids(Server, Count) ->
 %% replicate(Server, RepObj).
 %% '''
 %%
-%% @spec replicate(Server::server(), RepObj::{list()})
+%% @spec replicate(Server::server(), RepObj::map())
 %%          -> {ok, Result}|{error, Error}
-replicate(#server{}=Server, RepObj) ->
+replicate(#server{}=Server, RepObj) when is_map(RepObj) ->
   case open_db(Server, <<"_replicator">>) of
     {ok, ReplicatorDb} ->
       case save_doc(ReplicatorDb, RepObj) of
@@ -224,16 +224,14 @@ replicate(Server, Source, Target) ->
 %%                                           {<<"password">>, <<"pass">>}]}}]}}]},
 %% couchbeam:replicate(S, Source, Target, [{<<"continuous">>, true}]).
 %% '''
-replicate(Server, Source, Target, {Props}) ->
-  replicate(Server, Source, Target, Props);
-replicate(Server, Source, Target, Options) ->
+replicate(Server, Source, Target, Props) when is_list(Props) ->
+  replicate(Server, Source, Target, maps:from_list(Props));
+replicate(Server, Source, Target, Options) when is_map(Options) ->
   SourceProp = format_replication_endpoint(Source),
   TargetProp = format_replication_endpoint(Target),
-  RepProp = [
-             {<<"source">>, SourceProp},
-             {<<"target">>, TargetProp} | Options
-            ],
-  replicate(Server, {RepProp}).
+  RepObj = Options#{<<"source">> => SourceProp,
+                   <<"target">> => TargetProp},
+  replicate(Server, RepObj).
 
 %% @doc get list of databases on a CouchDB node
 %% @spec all_dbs(server()) -> {ok, iolist()}
@@ -539,8 +537,8 @@ save_doc(Db, Doc, Options) ->
 %% gzipped.
 -spec save_doc(Db::db(), doc(), mp_attachments(), Options :: [{binary(), binary() | true}] | binary()) ->
           {ok, doc()} | {error, term()}.
-save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
-    DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
+save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) when is_map(Doc) ->
+    DocId = case maps:get(<<"_id">>, Doc, undefined) of
                 undefined ->
                     [Id] = get_uuid(Server),
                     Id;
@@ -556,9 +554,9 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
             case couchbeam_httpc:db_request(put, Url, Headers, JsonDoc, Opts,
                                             [200, 201, 202]) of
                 {ok, _, _, Ref} ->
-                    {JsonProp} = couchbeam_httpc:json_body(Ref),
-                    NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-                    NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+                    JsonProp = couchbeam_httpc:json_body(Ref),
+                    NewRev = maps:get(<<"rev">>, JsonProp),
+                    NewDocId = maps:get(<<"id">>, JsonProp),
                     Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
                                                    couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
                     {ok, Doc1};
@@ -617,14 +615,14 @@ delete_docs(Db, Docs, Options) ->
     {FinalDocs, FinalOptions} = case Empty of
                                     true ->
                                         Docs1 = lists:map(fun(Doc)->
-                                                                  {[{<<"_id">>, couchbeam_doc:get_id(Doc)},
-                                                                    {<<"_rev">>, couchbeam_doc:get_rev(Doc)},
-                                                                    {<<"_deleted">>, true}]}
+                                                                  #{<<"_id">> => couchbeam_doc:get_id(Doc),
+                                                                    <<"_rev">> => couchbeam_doc:get_rev(Doc),
+                                                                    <<"_deleted">> => true}
                                                           end, Docs),
                                         {Docs1, proplists:delete("all_or_nothing", Options)};
                                     _ ->
-                                        Docs1 = lists:map(fun({DocProps})->
-                                                                  {[{<<"_deleted">>, true}|DocProps]}
+                                        Docs1 = lists:map(fun(Doc)->
+                                                                  Doc#{<<"_deleted">> => true}
                                                           end, Docs),
                                         {Docs1, Options}
                                 end,
@@ -640,15 +638,15 @@ save_docs(Db, Docs) ->
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
-    DocOptions = [
+    DocOptions = maps:from_list([
                   {list_to_binary(K), V} || {K, V} <- Options1,
                                             (K =:= "all_or_nothing" orelse K =:= "new_edits") andalso is_boolean(V)
-                 ],
+                 ]),
     Options2 = [
                 {K, V} || {K, V} <- Options1,
                           K =/= "all_or_nothing" andalso K =/= "new_edits"
                ],
-    Body = couchbeam_ejson:encode({[{<<"docs">>, Docs1}|DocOptions]}),
+    Body = couchbeam_ejson:encode(DocOptions#{<<"docs">> => Docs1}),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                [couchbeam_httpc:db_url(Db), <<"_bulk_docs">>],
                                Options2),
@@ -677,17 +675,17 @@ copy_doc(Db, Doc, Dest) when is_binary(Dest) ->
                           {Dest, <<>>}
                   end,
     do_copy(Db, Doc, Destination);
-copy_doc(Db, Doc, {Props}) ->
-    DocId = proplists:get_value(<<"_id">>, Props),
-    Rev = proplists:get_value(<<"_rev">>, Props, <<>>),
+copy_doc(Db, Doc, DestDoc) when is_map(DestDoc) ->
+    DocId = maps:get(<<"_id">>, DestDoc),
+    Rev = maps:get(<<"_rev">>, DestDoc, <<>>),
     do_copy(Db, Doc, {DocId, Rev}).
 
-do_copy(Db, {Props}, Destination) ->
-    case proplists:get_value(<<"_id">>, Props) of
+do_copy(Db, Doc, Destination) when is_map(Doc) ->
+    case maps:get(<<"_id">>, Doc, undefined) of
         undefined ->
             {error, invalid_source};
         DocId ->
-            DocRev = proplists:get_value(<<"_rev">>, Props, nil),
+            DocRev = maps:get(<<"_rev">>, Doc, nil),
             do_copy(Db, {DocId, DocRev}, Destination)
     end;
 do_copy(Db, DocId, Destination) when is_binary(DocId) ->
@@ -715,9 +713,9 @@ do_copy(#db{server=Server, options=Opts}=Db, {DocId, DocRev},
     case couchbeam_httpc:db_request(copy, Url, Headers1, <<>>,
                                     Opts, [201]) of
         {ok, _, _, Ref} ->
-            {JsonProp} = couchbeam_httpc:json_body(Ref),
-            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+            JsonProp = couchbeam_httpc:json_body(Ref),
+            NewRev = maps:get(<<"rev">>, JsonProp),
+            NewDocId = maps:get(<<"id">>, JsonProp),
             {ok, NewDocId, NewRev};
         Error ->
             Error
@@ -865,8 +863,8 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                                     [201, 202]) of
         {ok, _, _, Ref} ->
             JsonBody = couchbeam_httpc:json_body(Ref),
-            {[{<<"ok">>, true}|R]} = JsonBody,
-            {ok, {R}};
+            #{<<"ok">> := true} = JsonBody,
+            {ok, JsonBody};
         {ok, Ref} ->
             {ok, Ref};
         Error ->
@@ -899,9 +897,9 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                   Options) ->
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
-                       {Props} ->
-                           Rev1 = couchbeam_util:get_value(<<"_rev">>, Props),
-                           DocId1 = couchbeam_util:get_value(<<"_id">>, Props),
+                       Doc when is_map(Doc) ->
+                           Rev1 = maps:get(<<"_rev">>, Doc, undefined),
+                           DocId1 = maps:get(<<"_id">>, Doc, undefined),
                            {Rev1, DocId1};
                        DocId1 ->
                            Rev1 = couchbeam_util:get_value("rev", Options1),
@@ -925,8 +923,8 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
             case couchbeam_httpc:db_request(delete, Url, [], <<>>, Opts,
                                             [200]) of
                 {ok, _, _, Ref} ->
-                    {[{<<"ok">>,true}|R]} = couchbeam_httpc:json_body(Ref),
-                    {ok, {R}};
+                    R = couchbeam_httpc:json_body(Ref),
+                    {ok, R};
                 Error ->
                     Error
             end
@@ -948,8 +946,8 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [201]) of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            {ok, proplists:get_value(<<"instance_start_time">>, Props)};
+            Props = couchbeam_httpc:json_body(Ref),
+            {ok, maps:get(<<"instance_start_time">>, Props)};
         Error ->
             Error
     end.
@@ -994,7 +992,7 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
                                                                PossibleAncestor :: binary()]}]}
               | {error, term()}.
 get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
-    Json = couchbeam_ejson:encode({IdRevs}),
+    Json = couchbeam_ejson:encode(maps:from_list(IdRevs)),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_revs_diff">>],
                                []),
@@ -1003,16 +1001,12 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
     case couchbeam_httpc:db_request(post, Url, Headers, Json, Opts,
                                     [200]) of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            Res = lists:map(fun({Id, {Result}}) ->
-                                    MissingRevs = proplists:get_value(
-                                                    <<"missing">>, Result
-                                                   ),
-                                    PossibleAncestors = proplists:get_value(
-                                                          <<"possible_ancestors">>, Result, []
-                                                         ),
+            Props = couchbeam_httpc:json_body(Ref),
+            Res = lists:map(fun({Id, Result}) ->
+                                    MissingRevs = maps:get(<<"missing">>, Result, []),
+                                    PossibleAncestors = maps:get(<<"possible_ancestors">>, Result, []),
                                     {Id, MissingRevs, PossibleAncestors}
-                            end, Props),
+                            end, maps:to_list(Props)),
             {ok, Res};
         Error ->
             Error
@@ -1040,25 +1034,27 @@ find(#db{server=Server, options=Opts}=Db, Selector, Params) ->
 %% --------------------------------------------------------------------
 
 %% add missing docid to a list of documents if needed
-maybe_docid(Server, {DocProps}) ->
-    case couchbeam_util:get_value(<<"_id">>, DocProps) of
+maybe_docid(Server, Doc) when is_map(Doc) ->
+    case maps:get(<<"_id">>, Doc, undefined) of
         undefined ->
             [DocId] = get_uuid(Server),
-            {[{<<"_id">>, DocId}|DocProps]};
+            Doc#{<<"_id">> => DocId};
         _DocId ->
-            {DocProps}
+            Doc
     end.
 
 %% format replication endpoint for source or target
 %% supports Db record, simple URI strings and complex document structures
+format_replication_endpoint(Props) when is_map(Props) ->
+    Props;
 format_replication_endpoint({Props}) when is_list(Props) ->
-    {Props};
+    maps:from_list(Props);
 format_replication_endpoint(<<"http://", _/binary>> = Endpoint)->
     couchbeam_util:to_binary(Endpoint);
 format_replication_endpoint(<<"https://", _/binary>> = Endpoint)->
     couchbeam_util:to_binary(Endpoint);
 format_replication_endpoint(#db{server=#server{url=BaseUrl, options=Options}, name=DbName}) ->
-    case proplists:get_value(basic_auth, Options) of
+    case couchbeam_util:get_value(basic_auth, Options) of
         {User, Password} ->
             ServerBaseUrl = hackney_url:parse_url(BaseUrl),
             ServerUrl = hackney_url:unparse_url(ServerBaseUrl#hackney_url{user=User, password=Password}),
@@ -1157,7 +1153,7 @@ basic_doc_test() ->
     ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
     ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
 
-    Doc3 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
+    Doc3 = #{<<"_id">> => <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>},
     {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
     {ok, Doc5} = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
     ?assertEqual( <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, couchbeam_doc:get_id(Doc5)),
@@ -1168,11 +1164,11 @@ bulk_doc_test() ->
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
-    Doc1 = {[{<<"_id">>, <<"a">>}]},
-    Doc2 = {[{<<"_id">>, <<"b">>}]},
-    {ok, [{Props1}, {Props2}]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
-    ?assertEqual(<<"a">>, proplists:get_value(<<"id">>, Props1)),
-    ?assertEqual(<<"b">>, proplists:get_value(<<"id">>, Props2)),
+    Doc1 = #{<<"_id">> => <<"a">>},
+    Doc2 = #{<<"_id">> => <<"b">>},
+    {ok, [Props1, Props2]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
+    ?assertEqual(<<"a">>, maps:get(<<"id">>, Props1)),
+    ?assertEqual(<<"b">>, maps:get(<<"id">>, Props2)),
     ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
     ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
 
@@ -1188,12 +1184,12 @@ copy_doc_test() ->
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, 1}]}),
+    {ok, Doc} = couchbeam:save_doc(Db, #{<<"test">> => 1}),
     {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, Doc),
     {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
     ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
 
-    {ok, _Doc3} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test_copy">>}]}),
+    {ok, _Doc3} = couchbeam:save_doc(Db, #{<<"_id">> => <<"test_copy">>}),
     {ok, CopyId1, _} = couchbeam:copy_doc(Db, Doc, <<"test_copy">>),
     ?assertEqual(<<"test_copy">>, CopyId1),
     {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
@@ -1205,17 +1201,17 @@ attachments_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    Doc = {[{<<"_id">>, <<"test">>}]},
+    Doc = #{<<"_id">> => <<"test">>},
     {ok, Doc1} = couchbeam:save_doc(Db, Doc),
     RevDoc1 = couchbeam_doc:get_rev(Doc1),
-    {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test", [{rev, RevDoc1}]),
-    RevDoc11 = proplists:get_value(<<"rev">>, Res),
+    {ok, Res} = couchbeam:put_attachment(Db,"test", "test", "test", [{rev, RevDoc1}]),
+    RevDoc11 = maps:get(<<"rev">>, Res),
     ?assertNot(RevDoc1 =:= RevDoc11),
     {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test"),
     ?assertEqual( <<"test">>, Attachment),
     {ok, Doc2} = couchbeam:open_doc(Db, "test"),
-    ?assertMatch({ok, {_}}, couchbeam:delete_attachment(Db, Doc2, "test")),
-    Doc3 = {[{<<"_id">>, <<"test2">>}]},
+    ?assertMatch({ok, _Doc}, couchbeam:delete_attachment(Db, Doc2, "test")),
+    Doc3 = #{<<"_id">> => <<"test2">>},
     Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
     Doc5 = couchbeam_attachments:add_inline(Doc4, "test2", "test2.txt"),
     {ok, _} = couchbeam:save_doc(Db, Doc5),
@@ -1229,7 +1225,7 @@ attachments_test() ->
     ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test2", "test2.txt")),
     {ok, Attachment4} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
     ?assertEqual( <<"test">>, Attachment4),
-    {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
+    {ok, Doc8} = couchbeam:save_doc(Db, #{}),
 
     TestFileName = data_path("1M"),
     {ok, FileInfo} = file:read_file_info(TestFileName),
@@ -1268,7 +1264,7 @@ multipart_test() ->
 
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
-    {ok, _Res4}= couchbeam:put_attachment(Db, "test", "test", "test"),
+    {ok, _Res4} = couchbeam:put_attachment(Db, "test", "test", "test"),
     Resp = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
     ?assertMatch( {ok, {multipart, _}}, Resp),
 
@@ -1289,7 +1285,7 @@ multipart_test() ->
     MpDocId1 = couchbeam_doc:get_id(MpDoc1),
     ?assertEqual(<<"test">>, MpDocId1),
     ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected1)),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test2">>}]},
+    {ok, Doc} = couchbeam:save_doc(Db, #{<<"_id">> => <<"test2">>},
                                    [{<<"test.txt">>, <<"test">>}], []),
     ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc)),
     {ok, MpAttachment1} = couchbeam:fetch_attachment(Db, <<"test2">>, <<"test.txt">>),
@@ -1299,7 +1295,7 @@ multipart_test() ->
     {ok, FileInfo} = file:read_file_info(TestFileName),
     FileSize = FileInfo#file_info.size,
 
-    {ok, Doc1} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test5">>}]},
+    {ok, Doc1} = couchbeam:save_doc(Db, #{<<"_id">> => <<"test5">>},
                                     [{<<"1M">>, {file, TestFileName}}], []),
 
     ?assert(couchbeam_doc:is_saved(Doc1)),
@@ -1336,11 +1332,11 @@ replicate_test() ->
     {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
 
     DocId11 = <<"test">>,
-    {ok, Doc11} = couchbeam:save_doc(Db, {[{<<"_id">>, DocId11}]}),
+    {ok, Doc11} = couchbeam:save_doc(Db, #{<<"_id">> => DocId11}),
     DocRev11 = couchbeam_doc:get_rev(Doc11),
     io:format("Created document with ID: ~p, Rev: ~p~n", [DocId11, DocRev11]),
     
-    Result = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
+    Result = couchbeam:replicate(Server, Db, Db2, []),
     ?assertMatch({ok, _}, Result),
     
     {ok, RepDoc} = Result,
@@ -1355,7 +1351,7 @@ replicate_test() ->
 
     %% Wait for replication to complete by polling for the document
     io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
-    wait_for_replication(Db2, DocId11, 30),
+    wait_for_replication(Db2, DocId11, 10),
 
     {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
     DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
