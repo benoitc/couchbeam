@@ -50,13 +50,7 @@ cast(Dest, Request) ->
 
 %% @doc create a gen_changes process as part of a supervision tree.
 %% The function should be called, directly or indirectly, by the supervisor.
-%% @spec start_link(Module, Db::db(), Options::changesoptions(),
-%%                  InitArgs::list()) -> term()
-%%       changesoptions() = [changeoption()]
-%%       changeoption() = {include_docs, string()} |
-%%                  {filter, string()} |
-%%                  {since, integer()|string()} |
-%%                  {heartbeat, string()|boolean()}
+-spec start_link(Module::module(), Db::db(), Options::changes_options(), InitArgs::list()) -> term().
 start_link(Module, Db, Options, InitArgs) ->
     gen_server:start_link(?MODULE, [Module, Db, Options, InitArgs], []).
 

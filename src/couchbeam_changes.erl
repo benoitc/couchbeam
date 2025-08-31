@@ -242,9 +242,9 @@ changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
 
     case Resp of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            LastSeq = couchbeam_util:get_value(<<"last_seq">>, Props),
-            Changes = couchbeam_util:get_value(<<"results">>, Props),
+            Result = couchbeam_httpc:json_body(Ref),
+            LastSeq = maps:get(<<"last_seq">>, Result),
+            Changes = maps:get(<<"results">>, Result, []),
             {ok, LastSeq, Changes};
         Error ->
             Error

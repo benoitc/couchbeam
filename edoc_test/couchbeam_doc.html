@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module couchbeam_doc</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module couchbeam_doc</h1>
+<ul class="index"><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-key_val">key_val()</a></h3>
+<p><code>key_val() = <a href="#type-lis" docgen-rel="seetype" docgen-href="#lis/0">lis()</a> | binary()</code></p>
+
+
+<h3 class="typedecl"><a name="type-property">property()</a></h3>
+<p><code>property() = <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a> | tuple()</code></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#delete_value-2">delete_value/2</a></td><td>Deletes all entries associated with Key in json object.</td></tr>
+<tr><td valign="top"><a href="#extend-2">extend/2</a></td><td>extend a jsonobject by a property, list of property or another jsonobject.</td></tr>
+<tr><td valign="top"><a href="#extend-3">extend/3</a></td><td>extend a jsonobject by key, value.</td></tr>
+<tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td>get document id.</td></tr>
+<tr><td valign="top"><a href="#get_idrev-1">get_idrev/1</a></td><td>get  a tuple containing docucment id and revision.</td></tr>
+<tr><td valign="top"><a href="#get_rev-1">get_rev/1</a></td><td>get document revision.</td></tr>
+<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>Returns the value of a simple key/value property in json object
+  Equivalent to get_value(Key, JsonObj, undefined).</td></tr>
+<tr><td valign="top"><a href="#get_value-3">get_value/3</a></td><td>Returns the value of a simple key/value property in json object
+  function from erlang_couchdb.</td></tr>
+<tr><td valign="top"><a href="#is_saved-1">is_saved/1</a></td><td>If document have been saved (revision is defined) return true,
+  else, return false.</td></tr>
+<tr><td valign="top"><a href="#set_value-3">set_value/3</a></td><td>set a value for a key in jsonobj.</td></tr>
+<tr><td valign="top"><a href="#take_value-2">take_value/2</a></td><td>Returns the value of a simple key/value property in json object and deletes
+  it form json object
+  Equivalent to take_value(Key, JsonObj, undefined).</td></tr>
+<tr><td valign="top"><a href="#take_value-3">take_value/3</a></td><td>Returns the value of a simple key/value property in json object and deletes
+  it from json object.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="delete_value-2">delete_value/2</a></h3>
+<div class="spec">
+<p><code>delete_value(Key::<a href="#type-key_val" docgen-rel="seetype" docgen-href="#key_val/0">key_val()</a>, JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a></code><br></p>
+<p> </p>
+</div><p>Deletes all entries associated with Key in json object.</p>
+
+<h3 class="function"><a name="extend-2">extend/2</a></h3>
+<div class="spec">
+<p><code>extend(Prop::<a href="#type-property" docgen-rel="seetype" docgen-href="#property/0">property()</a>, JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a></code><br></p>
+<p> </p>
+</div><p>extend a jsonobject by a property, list of property or another jsonobject</p>
+
+<h3 class="function"><a name="extend-3">extend/3</a></h3>
+<div class="spec">
+<p><code>extend(Key::binary(), Value::<a href="#type-json_term" docgen-rel="seetype" docgen-href="#json_term/0">json_term()</a>, JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a></code><br></p>
+<p> </p>
+</div><p>extend a jsonobject by key, value</p>
+
+<h3 class="function"><a name="get_id-1">get_id/1</a></h3>
+<div class="spec">
+<p><code>get_id(Doc::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; binary()</code><br></p>
+<p> </p>
+</div><p>get document id.</p>
+
+<h3 class="function"><a name="get_idrev-1">get_idrev/1</a></h3>
+<div class="spec">
+<p><code>get_idrev(Doc::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; {DocId, DocRev}</code><br></p>
+<p> </p>
+</div><p>get  a tuple containing docucment id and revision.</p>
+
+<h3 class="function"><a name="get_rev-1">get_rev/1</a></h3>
+<div class="spec">
+<p><code>get_rev(Doc::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; binary()</code><br></p>
+<p> </p>
+</div><p>get document revision.</p>
+
+<h3 class="function"><a name="get_value-2">get_value/2</a></h3>
+<div class="spec">
+<p><code>get_value(Key::<a href="#type-key_val" docgen-rel="seetype" docgen-href="#key_val/0">key_val()</a>, JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; term()</code><br></p>
+<p> </p>
+</div><p>Returns the value of a simple key/value property in json object
+  Equivalent to get_value(Key, JsonObj, undefined).</p>
+
+<h3 class="function"><a name="get_value-3">get_value/3</a></h3>
+<div class="spec">
+<p><code>get_value(Key::<a href="#type-lis" docgen-rel="seetype" docgen-href="#lis/0">lis()</a> | binary(), JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>, Default::term()) -&gt; term()</code><br></p>
+<p> </p>
+</div><p>Returns the value of a simple key/value property in json object
+  function from erlang_couchdb</p>
+
+<h3 class="function"><a name="is_saved-1">is_saved/1</a></h3>
+<div class="spec">
+<p><code>is_saved(Doc::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; boolean()</code><br></p>
+<p> </p>
+</div><p>If document have been saved (revision is defined) return true,
+  else, return false.</p>
+
+<h3 class="function"><a name="set_value-3">set_value/3</a></h3>
+<div class="spec">
+<p><code>set_value(Key::<a href="#type-key_val" docgen-rel="seetype" docgen-href="#key_val/0">key_val()</a>, Value::term(), JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; term()</code><br></p>
+<p> </p>
+</div><p>set a value for a key in jsonobj. If key exists it will be updated.</p>
+
+<h3 class="function"><a name="take_value-2">take_value/2</a></h3>
+<div class="spec">
+<p><code>take_value(Key::<a href="#type-key_val" docgen-rel="seetype" docgen-href="#key_val/0">key_val()</a>, JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>) -&gt; {term(), <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>}</code><br></p>
+<p> </p>
+</div><p>Returns the value of a simple key/value property in json object and deletes
+  it form json object
+  Equivalent to take_value(Key, JsonObj, undefined).</p>
+
+<h3 class="function"><a name="take_value-3">take_value/3</a></h3>
+<div class="spec">
+<p><code>take_value(Key::<a href="#type-key_val" docgen-rel="seetype" docgen-href="#key_val/0">key_val()</a> | binary(), JsonObj::<a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>, Default::term()) -&gt; {term(), <a href="#type-json_obj" docgen-rel="seetype" docgen-href="#json_obj/0">json_obj()</a>}</code><br></p>
+<p> </p>
+</div><p>Returns the value of a simple key/value property in json object and deletes
+  it from json object</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "Couchbeam Development",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "erlang-dev",
+  "workspaceFolder": "/workspace",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "erlang-ls.erlang-ls",
+        "pgourlain.erlang"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "ash"
+      }
+    }
+  },
+
+  "postCreateCommand": "apk add --no-cache git curl make gcc musl-dev && rebar3 get-deps",
+  
+  "forwardPorts": [5984],
+  
+  "remoteUser": "root"
+}

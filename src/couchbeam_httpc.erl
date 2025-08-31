@@ -122,7 +122,7 @@ db_resp_body(Ref) ->
     end.
 
 %% @doc Asemble the server URL for the given client
-%% @spec server_url({Host, Port}) -> iolist()
+-spec server_url(server()) -> binary().
 server_url(#server{url=Url}) ->
     Url.
 

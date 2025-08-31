@@ -100,8 +100,8 @@ fetch_sync_fun(Db) ->
     fun(Args, Url) ->
         case view_request(Db, Url, Args) of
             {ok, _, _, Ref} ->
-                {Props} = couchbeam_httpc:json_body(Ref),
-                {ok, couchbeam_util:get_value(<<"rows">>, Props)};
+                Result = couchbeam_httpc:json_body(Ref),
+                {ok, maps:get(<<"rows">>, Result, [])};
             Error ->
                 Error
         end
@@ -119,7 +119,7 @@ show(Db, ShowName) ->
 show(Db, ShowName, DocId) ->
     show(Db, ShowName, DocId, []).
 
--type show_option() :: {'query_string', binary()}. % "foo=bar&baz=biz"
+-type show_option() :: {'query_string', binary()}. % "foo=bar&amp;baz=biz"
 -type show_options() :: [show_option()].
 
 -spec show(db(), {binary(), binary()}, 'null' | binary(), show_options()) ->

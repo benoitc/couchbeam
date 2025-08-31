@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module gen_changes</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module gen_changes</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>gen_changes CouchDB continuous changes consumer behavior
+  This behaviour allows you to create easily a server that consume
+  Couchdb continuous changes.
+
+<p><b>This module defines the <code>gen_changes</code> behaviour.</b><br> Required callback functions: <code>init/1</code>, <code>handle_change/2</code>, <code>handle_call/3</code>, <code>handle_cast/2</code>, <code>handle_info/2</code>, <code>terminate/2</code>.</p>
+
+<h2><a name="description">Description</a></h2>gen_changes CouchDB continuous changes consumer behavior
+  This behaviour allows you to create easily a server that consume
+  Couchdb continuous changes
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#behaviour_info-1">behaviour_info/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#cast-2">cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_seq-1">get_seq/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start_link-4">start_link/4</a></td><td>create a gen_changes process as part of a supervision tree.</td></tr>
+<tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="behaviour_info-1">behaviour_info/1</a></h3>
+<div class="spec">
+<p><code>behaviour_info(X1) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="call-2">call/2</a></h3>
+<div class="spec">
+<p><code>call(Name, Request) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="call-3">call/3</a></h3>
+<div class="spec">
+<p><code>call(Name, Request, Timeout) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="cast-2">cast/2</a></h3>
+<div class="spec">
+<p><code>cast(Dest, Request) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
+<div class="spec">
+<p><code>code_change(OldVersion, State, Extra) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="get_seq-1">get_seq/1</a></h3>
+<div class="spec">
+<p><code>get_seq(Pid) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
+<div class="spec">
+<p><code>handle_call(Request, From, State) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
+<div class="spec">
+<p><code>handle_cast(Msg, State) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
+<div class="spec">
+<p><code>handle_info(Info, State) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="init-1">init/1</a></h3>
+<div class="spec">
+<p><code>init(X1) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="start_link-4">start_link/4</a></h3>
+<div class="spec">
+<p><code>start_link(Module, Db::<a href="#type-db" docgen-rel="seetype" docgen-href="#db/0">db()</a>, Options::<a href="#type-changesoptions" docgen-rel="seetype" docgen-href="#changesoptions/0">changesoptions()</a>, InitArgs::list()) -&gt; term()</code>
+<ul class="definitions"><li><code><a name="type-changesoptions">changesoptions()</a> = [<a href="#type-changeoption" docgen-rel="seetype" docgen-href="#changeoption/0">changeoption()</a>]</code></li><li><code><a name="type-changeoption">changeoption()</a> = {include_docs, string()} | {filter, string()} | {since, integer() | string()} | {heartbeat, string() | boolean()}</code></li></ul></p>
+<p> </p>
+</div><p>create a gen_changes process as part of a supervision tree.
+  The function should be called, directly or indirectly, by the supervisor.</p>
+
+<h3 class="function"><a name="stop-1">stop/1</a></h3>
+<div class="spec">
+<p><code>stop(Pid) -&gt; any()</code></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
+<div class="spec">
+<p><code>terminate(Reason, Gen_changes_state) -&gt; any()</code></p>
+<p> </p>
+</div>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

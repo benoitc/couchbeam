@@ -1,0 +1,6 @@
+%% encoding: UTF-8
+{application,couchbeam}.
+{modules,[couchbeam_app,couchbeam_attachments,couchbeam_changes,
+          couchbeam_changes_stream,couchbeam_changes_sup,couchbeam_doc,
+          couchbeam_ejson,couchbeam_httpc,couchbeam_sup,couchbeam_uuids,
+          couchbeam_view_stream,couchbeam_view_sup,gen_changes]}.
