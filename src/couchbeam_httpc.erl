@@ -148,8 +148,8 @@ reply_att({ok, 409, _, Ref}) ->
     {error, conflict};
 reply_att({ok, Status, _, Ref}) when Status =:= 200 orelse Status =:= 201 ->
   case couchbeam_httpc:json_body(Ref) of
-      {[{<<"ok">>, true}|R]} ->
-          {ok, {R}};
+      #{<<"ok">> := true} = Map ->
+          {ok, Map};
       {error, _} = Error ->
           Error
   end;

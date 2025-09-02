@@ -32,7 +32,7 @@
                 db,
                 options,
                 client_ref=nil,
-                decoder,
+                buffer= <<>>,
                 feed_type=continuous,
                 reconnect_after=1000,
                 async=normal}).
@@ -131,14 +131,14 @@ do_init_stream(#state{mref=MRef,
         [] ->
             couchbeam_httpc:request(get, Url, [], <<>>, ConnOpts1);
         DocIds ->
-            Body =  couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
+            Body =  couchbeam_ejson:encode(#{<<"doc_ids">> => DocIds}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:request(post, Url, Headers, Body, ConnOpts1)
     end,
 
     case {FeedType, proplists:get_value(since, Options, 0)} of
         {continuous, now} ->
-            {ok, State#state{decoder = nil, client_ref=ClientRef}};
+            {ok, State#state{client_ref=ClientRef}};
         _ ->
             receive
                 {'DOWN', MRef, _, _, _} ->
@@ -146,13 +146,7 @@ do_init_stream(#state{mref=MRef,
                     exit(normal);
                 {hackney_response, ClientRef, {status, 200, _}} ->
                     State1 = State#state{client_ref=ClientRef},
-                    DecoderFun = case FeedType of
-                                     longpoll ->
-                                         jsx:decoder(?MODULE, [State1], [stream]);
-                                     _ ->
-                                         nil
-                                 end,
-                    {ok, State1#state{decoder=DecoderFun}};
+                    {ok, State1};
                 {hackney_response, ClientRef, {error, Reason}} ->
                     exit(Reason)
             after ?TIMEOUT ->
@@ -176,9 +170,17 @@ loop(#state{owner=Owner,
         {hackney_response, ClientRef, {status, 200, _V}} ->
             loop(State);
         {hackney_response, ClientRef, done} ->
-            maybe_reconnect(State);
+            case State#state.feed_type of
+                longpoll ->
+                    %% decode accumulated buffer to emit results then reconnect/finish
+                    handle_longpoll_done(State),
+                    maybe_reconnect(State#state{buffer= <<>>});
+                _ ->
+                    maybe_reconnect(State)
+            end;
         {hackney_response, ClientRef, <<"\n">>} ->
-             maybe_continue(State);
+            %% heartbeat newline; process buffer if any full line exists
+            loop(State);
         {hackney_response, ClientRef, Data} when is_binary(Data) ->
             decode_data(Data, State);
         {hackney_response, ClientRef, Error} ->
@@ -212,6 +214,24 @@ maybe_reconnect(#state{owner=Owner, ref=StreamRef}) ->
     %% tell to the owner that we are done and exit,
     LastSeq = get(last_seq),
     Owner ! {StreamRef, {done, LastSeq}}.
+
+handle_longpoll_done(#state{owner=Owner, ref=Ref, client_ref=ClientRef, buffer=Buf}) ->
+    %% stop and release
+    catch hackney:stop_async(ClientRef),
+    catch hackney:skip_body(ClientRef),
+    case Buf of
+        <<>> -> ok;
+        _ ->
+            try
+                Map = couchbeam_ejson:decode(Buf),
+                Results = maps:get(<<"results">>, Map, []),
+                lists:foreach(fun(Change) -> seq_map(Change, #state{owner=Owner, ref=Ref}) end, Results),
+                case maps:get(<<"last_seq">>, Map, undefined) of
+                    undefined -> ok;
+                    Seq -> put(last_seq, Seq)
+                end
+            catch _:_ -> ok end
+    end.
 
 %% wait to reconnect
 wait_reconnect(#state{parent=Parent,
@@ -248,63 +268,36 @@ wait_reconnect(#state{parent=Parent,
     end.
 
 
-seq(Props,#state{owner=Owner,ref=Ref}) ->
-  Seq = couchbeam_util:get_value(<<"seq">>, Props),
-  put(last_seq, Seq),
-  Owner ! {Ref, {change, {Props}}}.
+seq_map(Map, #state{owner=Owner,ref=Ref}) ->
+  Seq = maps:get(<<"seq">>, Map, undefined),
+  case Seq of
+      undefined -> ok;
+      _ -> put(last_seq, Seq)
+  end,
+  Owner ! {Ref, {change, Map}}.
 
-decode(Data) ->
-  jsx:decode(Data,[return_tail,stream]).
-
-decodefun(nil) ->
-  fun(Data) -> decode(Data) end;
-decodefun(Fun) ->
-  Fun.
-
-decode_with_tail(Data, Fun, State) ->
-  case (decodefun(Fun))(Data) of
-    {with_tail,Props,Rest} ->
-      seq(Props,State),
-      decode_with_tail(Rest,decodefun(nil),State);
-    Other -> Other
-  end.
-
-decode_data(Data, #state{feed_type=continuous,
-  decoder=DecodeFun}=State) ->
-
-  {incomplete, DecodeFun2} =
-    try
-      decode_with_tail(Data,DecodeFun,State)
-    catch error:badarg -> 
-        maybe_close(State),
-        exit(badarg)
-    end,
-
-  try DecodeFun2(end_stream) of
-    Props ->
-      seq(Props,State),
-      maybe_continue(State#state{decoder=nil})
-  catch error:badarg -> maybe_continue(State#state{decoder=DecodeFun2})
-  end;
-decode_data(Data, #state{client_ref=ClientRef,
-                         decoder=DecodeFun}=State) ->
-    try
-        {incomplete, DecodeFun2} = DecodeFun(Data),
-        try DecodeFun2(end_stream) of done ->
-            %% stop the request
-            catch hackney:stop_async(ClientRef),
-            %% skip the rest of the body so the socket is
-            %% replaced in the pool
-            catch hackney:skip_body(ClientRef),
-            %% maybe reconnect
-            maybe_reconnect(State)
-        catch error:badarg ->
-            maybe_continue(State#state{decoder=DecodeFun2})
-        end
-    catch error:badarg -> 
-        maybe_close(State),
-        exit(badarg)
-    end.
+decode_data(Data, #state{feed_type=continuous, buffer=Buf}=State) ->
+    %% accumulate and split on newlines (each line is a JSON object)
+    Bin = <<Buf/binary, Data/binary>>,
+    Lines = binary:split(Bin, <<"\n">>, [global]),
+    {Complete, Remainder} = case lists:last(Lines) of
+                                <<>> -> {lists:sublist(Lines, length(Lines)-1), <<>>};
+                                Last -> {lists:sublist(Lines, length(Lines)-1), Last}
+                            end,
+    lists:foreach(fun(Line) ->
+                          case Line of
+                              <<>> -> ok;
+                              _ ->
+                                  try seq_map(couchbeam_ejson:decode(Line), State)
+                                  catch _:_ -> ok end
+                          end
+                  end, Complete),
+    maybe_continue(State#state{buffer=Remainder});
+decode_data(Data, #state{buffer=Buf, feed_type=longpoll}=State) ->
+    %% accumulate full body for longpoll
+    State1 = State#state{buffer = <<Buf/binary, Data/binary>>},
+    %% we will finalize on 'done' event in loop via maybe_reconnect
+    maybe_continue(State1).
 
 maybe_continue(#state{parent=Parent,
                       owner=Owner,

@@ -10,15 +10,7 @@
 
 -include("couchbeam.hrl").
 
-
--ifndef('WITH_JIFFY').
--define(JSON_ENCODE(D), jsx:encode(D)).
--define(JSON_DECODE(D), jsx:decode(D, [{return_maps, true}])).
-
--else.
--define(JSON_ENCODE(D), jiffy:encode(D, [uescape, use_nil])).
--define(JSON_DECODE(D), jiffy:decode(D, [return_maps])).
--endif.
+%% Use the Erlang/OTP 28+ built-in json library
 
 
 -spec encode(term()) -> binary().
@@ -26,14 +18,14 @@
 %% @doc encode an erlang term to JSON. Throw an exception if there is
 %% any error.
 encode(D) ->
-    ?JSON_ENCODE(D).
+    iolist_to_binary(json:encode(D)).
 
 -spec decode(binary()) -> term().
 %% @doc decode a binary to an erlang term (map). Throw an exception if there is
 %% any error.
 decode(D) ->
     try
-        ?JSON_DECODE(D)
+        json:decode(D)
     catch
         throw:Error ->
             throw({invalid_json, Error});

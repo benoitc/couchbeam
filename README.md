@@ -17,9 +17,7 @@ Couchbeam is a simple erlang library for [Barrel](https://barrel-db.org) or [Apa
 - Stream changes feeds
 - reduced memory usage
 - fetch and send attachments in a streaming fashion
-- by default use the JSX module to encode/decode JSON
-- support [Jiffy](http://github.com/davisp/jiffy) a JSON encoder/decoder
-in C.
+- JSON powered by Erlang/OTP's built-in json library (OTP 28+)
 
 #### Useful modules are:
 
@@ -88,22 +86,7 @@ Or add it to your rebar config
 ]}.
 ```
 
-Note to compile with jiffy you need to define in the erlang options the
-variable `WITH_JIFFY`.
-
-if you use rebar, add to your `rebar.config`:
-
-```
-   erlang
-{erl_opts, [{d, 'WITH_JIFFY'}]}.
-```
-
-or use the `rebar` command with the `-D` options:
-
-```
-   sh
-rebar compile -DWITH_JIFFY
-```
+Note: As of this version, couchbeam uses Erlang/OTP's json for JSON encoding/decoding (requires OTP 28+). No external JSON dependency is required.
 
 ## Basic Usage
 
@@ -438,4 +421,3 @@ issue](http://github.com/benoitc/couchbeam/issues).
 ## API Documentation
 
 Complete API documentation is available [here](doc/index.html) or can be generated locally with `rebar3 as docs ex_doc`.
-

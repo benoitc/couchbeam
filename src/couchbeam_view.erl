@@ -297,8 +297,8 @@ count(Db, ViewName, Options)->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      couchbeam_util:get_value(<<"total_rows">>, Props);
+                                                      Map = couchbeam_httpc:json_body(Ref),
+                                                      maps:get(<<"total_rows">>, Map);
                                                   Error ->
                                                       Error
                                               end
@@ -346,8 +346,8 @@ first(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      case couchbeam_util:get_value(<<"rows">>, Props) of
+                                                      Map = couchbeam_httpc:json_body(Ref),
+                                                      case maps:get(<<"rows">>, Map, []) of
                                                           [] ->
                                                               {ok, nil};
                                                           [Row] ->
@@ -583,9 +583,7 @@ view_request(#db{options=Opts}, Url, Args) ->
             couchbeam_httpc:db_request(get, Url, [], <<>>,
                                        Opts, [200]);
         post ->
-            Body = couchbeam_ejson:encode(
-                     {[{<<"keys">>, Args#view_query_args.keys}]}
-                    ),
+            Body = couchbeam_ejson:encode(#{<<"keys">> => Args#view_query_args.keys}),
 
             Hdrs = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:db_request(post, Url, Hdrs, Body,

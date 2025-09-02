@@ -35,7 +35,7 @@ services:
       "
 
   erlang-dev:
-    image: erlang:27-alpine
+    image: erlang:28-alpine
     container_name: couchbeam-erlang
     working_dir: /workspace
     volumes:
@@ -45,6 +45,8 @@ services:
         condition: service_completed_successfully
     environment:
       - COUCHDB_URL=http://admin:admin@couchdb:5984
+      - COUCHDB_ADMIN=admin
+      - COUCHDB_PASSWORD=admin
     command: tail -f /dev/null
     networks:
       - default
