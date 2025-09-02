@@ -43,7 +43,7 @@ jobs:
     - name: Setup Erlang/OTP
       uses: erlef/setup-beam@v1
       with:
-        otp-version: '27'
+        otp-version: '28'
         rebar3-version: '3.25'
     
     - name: Cache dependencies
@@ -64,4 +64,4 @@ jobs:
       env:
         COUCHDB_URL: http://localhost:5984
         COUCHDB_ADMIN: admin
-        COUCHDB_PASSWORD: change_me 
+        COUCHDB_PASSWORD: change_me
