@@ -209,6 +209,42 @@ with_changes_stream(Ref, Fun) ->
             end
     end.
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+changes_once_normal_test() ->
+    {ok, _} = application:ensure_all_started(couchbeam),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_changes_test">>),
+    Docs = [#{<<"_id">> => <<"c1">>}, #{<<"_id">> => <<"c2">>}],
+    couchbeam:save_docs(Db, Docs),
+    couchbeam:ensure_full_commit(Db),
+    {ok, _Seq, Changes} = follow_once(Db, [normal, {since, 0}]),
+    Ids = [maps:get(<<"id">>, C) || C <- Changes],
+    ?assert(lists:member(<<"c1">>, Ids)),
+    ?assert(lists:member(<<"c2">>, Ids)),
+    ok.
+
+changes_follow_longpoll_test() ->
+    {ok, _} = application:ensure_all_started(couchbeam),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_changes_test2">>),
+    {ok, Ref} = follow(Db, [longpoll, {since, now}]),
+    %% trigger a change
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"lc1">>}),
+    %% expect one change back
+    receive
+        {Ref, {change, Change}} ->
+            ?assertMatch(#{}, Change),
+            %% we can cancel after receiving
+            couchbeam_changes:cancel_stream(Ref),
+            ok
+    after 5000 ->
+            ?assert(false)
+    end.
+
+-endif.
+
 
 changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
     %% if we are filtering the changes using docids, send a POST request

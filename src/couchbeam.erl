@@ -1093,13 +1093,17 @@ wait_for_replication(_Db, DocId, 0) ->
     io:format("Timeout waiting for document ~p to replicate~n", [DocId]),
     throw({timeout, waiting_for_replication});
 wait_for_replication(Db, DocId, Retries) ->
-    case couchbeam:open_doc(Db, DocId) of
+    case catch couchbeam:open_doc(Db, DocId) of
         {ok, _} -> 
             io:format("Document ~p found in target db~n", [DocId]),
             ok;
         {error, not_found} ->
             io:format("Document ~p not found, retries left: ~p~n", [DocId, Retries-1]),
             timer:sleep(200),
+            wait_for_replication(Db, DocId, Retries - 1);
+        _Other ->
+            io:format("Transient error waiting for document ~p, retries left: ~p~n", [DocId, Retries-1]),
+            timer:sleep(300),
             wait_for_replication(Db, DocId, Retries - 1)
     end.
 

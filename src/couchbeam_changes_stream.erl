@@ -411,3 +411,26 @@ maybe_close(#state{client_ref=Ref}) ->
 %  [ post_decode(Term) || Term <- List];
 %post_decode(Term) ->
 %  Term.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+stream_changes_longpoll_test() ->
+    {ok, _} = application:ensure_all_started(couchbeam),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_changes_stream_test">>),
+    %% start longpoll stream
+    {ok, Ref} = couchbeam_changes:follow(Db, [longpoll, {since, now}]),
+    %% create a change
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"sc1">>}),
+    %% receive change and validate map structure
+    receive
+        {Ref, {change, Change}} ->
+            ?assertMatch(#{}, Change),
+            ?assertEqual(<<"sc1">>, maps:get(<<"id">>, Change)),
+            ok
+    after 5000 ->
+        ?assert(false)
+    end.
+
+-endif.

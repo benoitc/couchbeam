@@ -5,6 +5,10 @@
 -module(json_stream_parse).
 
 -export([init/0, feed/2, finish/1]).
+%% tests
+-ifdef(TEST).
+-export([parse_rows/1]).
+-endif.
 
 -record(st, {
     phase = find_rows :: find_rows | in_rows | done,
@@ -101,3 +105,33 @@ find_next(Buf, I, Char) when I < byte_size(Buf) ->
        true -> find_next(Buf, I+1, Char)
     end;
 find_next(_Buf, _I, _Char) -> not_found.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+parse_rows(Json) ->
+    P0 = init(),
+    {R1, P1} = feed(Json, P0),
+    {R2, _} = finish(P1),
+    R1 ++ R2.
+
+basic_chunked_parse_test() ->
+    %% Simulate a view JSON response split in chunks
+    Row1 = #{<<"id">> => <<"a">>, <<"key">> => <<"a">>, <<"value">> => 1},
+    Row2 = #{<<"id">> => <<"b">>, <<"key">> => <<"b">>, <<"value">> => 2},
+    BodyMap = #{<<"total_rows">> => 2, <<"offset">> => 0, <<"rows">> => [Row1, Row2]},
+    Bin = couchbeam_ejson:encode(BodyMap),
+    <<C1:30/binary, C2:25/binary, C3/binary>> = Bin,
+    P = init(),
+    {Rows0, P1} = feed(C1, P),
+    ?assertEqual([], Rows0),
+    {Rows1, P2} = feed(C2, P1),
+    %% depending on split, may or may not have a row; just ensure maps when present
+    lists:foreach(fun(X) -> ?assert(is_map(X)) end, Rows1),
+    {Rows2, _} = feed(C3, P2),
+    AllRows = Rows1 ++ Rows2,
+    ?assertEqual(2, length(AllRows)),
+    lists:foreach(fun(X) -> ?assert(is_map(X)) end, AllRows),
+    ok.
+
+-endif.

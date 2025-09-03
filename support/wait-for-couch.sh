@@ -18,7 +18,7 @@ done
 curl -fsS -u "$USER:$PASS" "$URL/_all_dbs" >/dev/null || true
 
 # ensure system databases exist (idempotent)
-curl -fsS -u "$USER:$PASS" -X PUT "$URL/_users" >/dev/null || true
-curl -fsS -u "$USER:$PASS" -X PUT "$URL/_replicator" >/dev/null || true
-curl -fsS -u "$USER:$PASS" -X PUT "$URL/_global_changes" >/dev/null || true
+curl -fs -u "$USER:$PASS" -X PUT "$URL/_users" >/dev/null 2>/dev/null || true
+curl -fs -u "$USER:$PASS" -X PUT "$URL/_replicator" >/dev/null 2>/dev/null || true
+curl -fs -u "$USER:$PASS" -X PUT "$URL/_global_changes" >/dev/null 2>/dev/null || true
 echo "Ready."

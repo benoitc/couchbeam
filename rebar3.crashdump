@@ -9,7 +9,7 @@ Error: terminating
                {line,114}]},
  {rebar_prv_eunit,do,2,
                   [{file,"/usr/src/rebar3-src/apps/rebar/src/rebar_prv_eunit.erl"},
-                   {line,71}]},
+                   {line,74}]},
  {rebar_core,do,2,
              [{file,"/usr/src/rebar3-src/apps/rebar/src/rebar_core.erl"},
               {line,155}]},

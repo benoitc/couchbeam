@@ -16,11 +16,13 @@ docker-logs:
 	$(COMPOSE) logs -f --tail=200
 
 docker-test:
-	$(COMPOSE) up --build --abort-on-container-exit test ; \
+	# Start CouchDB in the background
+	$(COMPOSE) up -d --build couchdb ; \
+	# Run tests as a one-off container, attach only to test output
+	$(COMPOSE) run --rm test ; \
 	status=$$? ; \
 	$(COMPOSE) down -v ; \
 	exit $$status
 
 docker-shell:
 	$(COMPOSE) run --rm test bash
-

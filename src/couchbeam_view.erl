@@ -675,6 +675,31 @@ basic_test() ->
     Rst5 = couchbeam_view:fold(AccFun, [], Db, {"couchbeam", "test"}, [{start_key, <<"test">>},   {end_key,<<"test3">>}]),
     ?assertEqual(3, length(Rst5)).
 
+stream_basic_test() ->
+    start_couchbeam_tests(),
+    Server = couchbeam:server_connection(),
+    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    Docs = [
+            #{<<"_id">> => <<"s1">>},
+            #{<<"_id">> => <<"s2">>},
+            #{<<"_id">> => <<"s3">>}
+           ],
+    couchbeam:save_docs(Db, Docs),
+    couchbeam:ensure_full_commit(Db),
+
+    {ok, Ref} = stream(Db, 'all_docs', []),
+    Collected = collect_stream(Ref, []),
+    %% there may be design docs; ensure at least our 3 are present
+    Ids = [maps:get(<<"id">>, Row) || Row <- Collected],
+    ?assert(lists:all(fun(E) -> lists:member(E, Ids) end, [<<"s1">>,<<"s2">>,<<"s3">>])).
+
+collect_stream(Ref, Acc) ->
+    receive
+        {Ref, {row, Row}} -> collect_stream(Ref, [Row|Acc]);
+        {Ref, done} -> lists:reverse(Acc)
+    after 5000 -> Acc
+    end.
+
 view_notfound_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
