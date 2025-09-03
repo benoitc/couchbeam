@@ -10,4 +10,5 @@ mime.types
 .rebar
 *.plt
 .idea
-*.iml
+*.im
+*.crashdump
