@@ -234,7 +234,7 @@ changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
             couchbeam_httpc:db_request(get, Url, [], <<>>, ConnOptions,
                                        [200, 202]);
         _ ->
-            Body =  couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
+            Body =  couchbeam_ejson:encode(#{<<"doc_ids">> => DocIds}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:db_request(post, Url, Headers, Body, ConnOptions,
                                        [200, 202])
@@ -242,9 +242,9 @@ changes_request(#db{server=Server, options=ConnOptions}=Db, Options) ->
 
     case Resp of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            LastSeq = couchbeam_util:get_value(<<"last_seq">>, Props),
-            Changes = couchbeam_util:get_value(<<"results">>, Props),
+            Props = couchbeam_httpc:json_body(Ref),
+            LastSeq = maps:get(<<"last_seq">>, Props),
+            Changes = maps:get(<<"results">>, Props),
             {ok, LastSeq, Changes};
         Error ->
             Error

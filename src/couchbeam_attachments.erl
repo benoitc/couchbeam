@@ -26,42 +26,20 @@ add_inline(Doc, Content, AName) ->
 %%      AName::string(), ContentType::string()) -> json_obj()
 %% @doc add attachment  to a doc and encode it with ContentType fixed.
 add_inline(Doc, Content, AName, ContentType) ->
-    {Props} = Doc,
     Data = base64:encode(Content),
-    Attachment = {AName, {[{<<"content_type">>, ContentType},
-                           {<<"data">>, Data}]}},
-
-    Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
-        undefined ->
-            [Attachment];
-        {Attachments} ->
-            case set_attachment(Attachments, [], Attachment) of
-                notfound ->
-                    [Attachment|Attachments];
-                A ->
-                    A
-                end
-        end,
-    couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc).
+    NewAtt = #{<<"content_type">> => ContentType,
+               <<"data">> => Data},
+    Atts0 = maps:get(<<"_attachments">>, Doc, #{}),
+    Atts1 = maps:put(AName, NewAtt, Atts0),
+    couchbeam_doc:set_value(<<"_attachments">>, Atts1, Doc).
 
 
-add_stub({Props} = Doc, Name, ContentType) ->
-    Att = {couchbeam_util:to_binary(Name), {[
-                    {<<"content_type">>, couchbeam_util:to_binary(ContentType)}
-                ]}},
-
-    Attachments1 = case proplists:get_value(<<"_attachments">>, Props) of
-        undefined ->
-            [Att];
-        {Attachments} ->
-            case set_attachment(Attachments, [], Att) of
-                notfound ->
-                    [Att|Attachments];
-                A ->
-                    A
-                end
-        end,
-    couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc).
+add_stub(Doc, Name, ContentType) ->
+    AttName = couchbeam_util:to_binary(Name),
+    Att = #{<<"content_type">> => couchbeam_util:to_binary(ContentType)},
+    Atts0 = maps:get(<<"_attachments">>, Doc, #{}),
+    Atts1 = maps:put(AttName, Att, Atts0),
+    couchbeam_doc:set_value(<<"_attachments">>, Atts1, Doc).
 
 
 %% @spec delete_inline(Doc::json_obj(), AName::string()) -> json_obj()
@@ -70,36 +48,15 @@ add_stub({Props} = Doc, Name, ContentType) ->
 delete_inline(Doc, AName) when is_list(AName) ->
     delete_inline(Doc, list_to_binary(AName));
 delete_inline(Doc, AName) when is_binary(AName) ->
-    {Props} = Doc,
-    case proplists:get_value(<<"_attachments">>, Props) of
-        undefined ->
-            Doc;
-        {Attachments} ->
-            case proplists:get_value(AName, Attachments) of
-                undefined ->
-                    Doc;
-                _ ->
-                    Attachments1 = proplists:delete(AName, Attachments),
-                    couchbeam_doc:set_value(<<"_attachments">>, {Attachments1}, Doc)
-                end
-        end.
+    case maps:get(<<"_attachments">>, Doc, undefined) of
+        undefined -> Doc;
+        Atts when is_map(Atts) ->
+            case maps:is_key(AName, Atts) of
+                false -> Doc;
+                true ->
+                    Atts1 = maps:remove(AName, Atts),
+                    couchbeam_doc:set_value(<<"_attachments">>, Atts1, Doc)
+            end
+    end.
 
-% @private
-set_attachment(Attachments, NewAttachments, Attachment) ->
-    set_attachment(Attachments, NewAttachments, Attachment, false).
-set_attachment([], Attachments, _Attachment, Found) ->
-    case Found of
-        true ->
-            Attachments;
-        false ->
-            notfound
-        end;
-set_attachment([{Name, V}|T], Attachments, Attachment, Found) ->
-    {AName, _} = Attachment,
-    {Attachment1, Found1} = if
-        Name =:= AName, Found =:= false ->
-            {Attachment, true};
-        true ->
-            {{Name, V}, Found}
-        end,
-    set_attachment(T, [Attachment1|Attachments], Attachment, Found1).
+% no-op legacy placeholder removed

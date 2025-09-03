@@ -1,0 +1,26 @@
+DOCKER?=docker
+COMPOSE?=docker compose
+
+.PHONY: docker-build docker-up docker-down docker-logs docker-test docker-shell
+
+docker-build:
+	$(COMPOSE) build
+
+docker-up:
+	$(COMPOSE) up -d couchdb
+
+docker-down:
+	$(COMPOSE) down -v
+
+docker-logs:
+	$(COMPOSE) logs -f --tail=200
+
+docker-test:
+	$(COMPOSE) up --build --abort-on-container-exit test ; \
+	status=$$? ; \
+	$(COMPOSE) down -v ; \
+	exit $$status
+
+docker-shell:
+	$(COMPOSE) run --rm test bash
+

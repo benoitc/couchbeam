@@ -1,0 +1,24 @@
+services:
+  couchdb:
+    image: couchdb:3.3
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=change_me
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://admin:change_me@localhost:5984/"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  test:
+    image: erlang:28
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      - COUCHDB_URL=http://couchdb:5984
+      - COUCHDB_ADMIN=admin
+      - COUCHDB_PASSWORD=change_me
+    depends_on:
+      couchdb:
+        condition: service_healthy
+    command: ["bash", "-lc", "chmod +x ./support/wait-for-couch.sh && ./support/wait-for-couch.sh && rebar3 eunit"]

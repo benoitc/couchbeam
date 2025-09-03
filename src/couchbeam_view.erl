@@ -100,8 +100,8 @@ fetch_sync_fun(Db) ->
     fun(Args, Url) ->
         case view_request(Db, Url, Args) of
             {ok, _, _, Ref} ->
-                {Props} = couchbeam_httpc:json_body(Ref),
-                {ok, couchbeam_util:get_value(<<"rows">>, Props)};
+                Props = couchbeam_httpc:json_body(Ref),
+                {ok, maps:get(<<"rows">>, Props)};
             Error ->
                 Error
         end
@@ -297,8 +297,8 @@ count(Db, ViewName, Options)->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      couchbeam_util:get_value(<<"total_rows">>, Props);
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      maps:get(<<"total_rows">>, Props);
                                                   Error ->
                                                       Error
                                               end
@@ -346,8 +346,8 @@ first(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      case couchbeam_util:get_value(<<"rows">>, Props) of
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      case maps:get(<<"rows">>, Props) of
                                                           [] ->
                                                               {ok, nil};
                                                           [Row] ->
@@ -583,9 +583,7 @@ view_request(#db{options=Opts}, Url, Args) ->
             couchbeam_httpc:db_request(get, Url, [], <<>>,
                                        Opts, [200]);
         post ->
-            Body = couchbeam_ejson:encode(
-                     {[{<<"keys">>, Args#view_query_args.keys}]}
-                    ),
+            Body = couchbeam_ejson:encode(#{<<"keys">> => Args#view_query_args.keys}),
 
             Hdrs = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:db_request(post, Url, Hdrs, Body,
@@ -629,25 +627,17 @@ basic_test() ->
 
     {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
-    DesignDoc = {[
-                  {<<"_id">>, <<"_design/couchbeam">>},
-                  {<<"language">>,<<"javascript">>},
-                  {<<"views">>,
-                   {[{<<"test">>,
-                      {[{<<"map">>,
-                         <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
-                        }]}
-                     },{<<"test2">>,
-                        {[{<<"map">>,
-                           <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
-                          }]}
-                       }]}
-                  }
-                 ]},
+    Views = #{
+      <<"test">> => #{<<"map">> => <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>},
+      <<"test2">> => #{<<"map">> => <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>}
+    },
+    DesignDoc = #{
+      <<"_id">> => <<"_design/couchbeam">>,
+      <<"language">> => <<"javascript">>,
+      <<"views">> => Views
+    },
 
-    Doc = {[
-            {<<"type">>, <<"test">>}
-           ]},
+    Doc = #{<<"type">> => <<"test">>},
 
     couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
     couchbeam:ensure_full_commit(Db),
@@ -661,15 +651,15 @@ basic_test() ->
     Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
     ?assertEqual(2, Count),
 
-    {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
-    {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
+    {ok, FirstRow} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
+    Doc1 = maps:get(<<"doc">>, FirstRow),
+    ?assertEqual(<<"test">>, maps:get(<<"type">>, Doc1)),
 
     Docs = [
-            {[{<<"_id">>, <<"test1">>}, {<<"type">>, <<"test">>}, {<<"value">>, 1}]},
-            {[{<<"_id">>, <<"test2">>}, {<<"type">>, <<"test">>}, {<<"value">>, 2}]},
-            {[{<<"_id">>, <<"test3">>}, {<<"type">>, <<"test">>}, {<<"value">>, 3}]},
-            {[{<<"_id">>, <<"test4">>}, {<<"type">>, <<"test">>}, {<<"value">>, 4}]}
+            #{<<"_id">> => <<"test1">>, <<"type">> => <<"test">>, <<"value">> => 1},
+            #{<<"_id">> => <<"test2">>, <<"type">> => <<"test">>, <<"value">> => 2},
+            #{<<"_id">> => <<"test3">>, <<"type">> => <<"test">>, <<"value">> => 3},
+            #{<<"_id">> => <<"test4">>, <<"type">> => <<"test">>, <<"value">> => 4}
            ],
 
     couchbeam:save_docs(Db, Docs),
