@@ -1,6 +1,18 @@
 couchbeam NEWS
 --------------
 
+version 2.0.0 / 2025-09-03
+--------------------------
+
+- move from propos lists to maps for json
+- remove JSX & Jiffy Usage  for erlang/0TP 28.0+ json module
+- View and changes streaming now use a simpler parser
+
+** BREAKING CHANGE **
+
+- move to maps, you will need to migrate your application to use them. 
+no backward compatibility is provided
+
 version 1.7.1 / 2025-07-24
 ---------------------------
 

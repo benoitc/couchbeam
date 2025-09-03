@@ -17,9 +17,7 @@ Couchbeam is a simple erlang library for [Barrel](https://barrel-db.org) or [Apa
 - Stream changes feeds
 - reduced memory usage
 - fetch and send attachments in a streaming fashion
-- by default use the JSX module to encode/decode JSON
-- support [Jiffy](http://github.com/davisp/jiffy) a JSON encoder/decoder
-in C.
+- JSON encoding/decoding via Erlang/OTP stdlib `json` with maps
 
 #### Useful modules are:
 
@@ -151,10 +149,10 @@ Make a new document:
 
 ```
    erlang
-Doc = {[
-{<<"_id">>, <<"test">>},
-{<<"content">>, <<"some text">>}
-]}.
+Doc = #{
+    <<"_id">> => <<"test">>,
+    <<"content">> => <<"some text">>
+}.
 ```
 
 And save it to the database:
@@ -201,18 +199,21 @@ Options = [include_docs],
 {ok, AllDocs} = couchbeam_view:all(Db, Options).
 ```
 
-Ex of results:
+Example result (abridged):
 
 ```
    erlang
-{ok,[{[{<<"id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
-          {<<"key">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
-          {<<"value">>,
-           {[{<<"rev">>,<<"15-15c0b3c4efa74f9a80d28ac040f18bdb">>}]}},
-          {<<"doc">>,
-           {[{<<"_id">>,<<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>},
-             {<<"_rev">>,<<"15-15c0b3c4efa74f9a80d28ac040f18"...>>}]}}]},
-        ]}.
+{ok, [
+    #{
+      <<"id">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
+      <<"key">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
+      <<"value">> => #{<<"rev">> => <<"15-15c0b3c4efa74f9a80d28ac040f18bdb">>},
+      <<"doc">> => #{
+        <<"_id">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
+        <<"_rev">> => <<"15-15c0b3c4efa74f9a80d28ac040f18"...>>
+      }
+    }
+]}.
 ```
 
 All functions to manipulate these results are in the `couchbeam_view` module.
@@ -238,21 +239,18 @@ Design doc are created like any documents:
 
 ```
    erlang
-DesignDoc = {[
-        {<<"_id">>, <<"_design/couchbeam">>},
-        {<<"language">>,<<"javascript">>},
-        {<<"views">>,
-            {[{<<"test">>,
-                {[{<<"map">>,
-                    <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
-                }]}
-            },{<<"test2">>,
-                {[{<<"map">>,
-                    <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
-                }]}
-            }]}
+DesignDoc = #{
+    <<"_id">> => <<"_design/couchbeam">>,
+    <<"language">> => <<"javascript">>,
+    <<"views">> => #{
+        <<"test">> => #{
+            <<"map">> => <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
+        },
+        <<"test2">> => #{
+            <<"map">> => <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
         }
-    ]},
+    }
+},
 {ok, DesignDoc1} = couchbeam:save_doc(Db, DesignDoc).
 ```
 
@@ -421,4 +419,3 @@ issue](http://github.com/benoitc/couchbeam/issues).
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_stream.md" class="module">couchbeam_view_stream</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_sup.md" class="module">couchbeam_view_sup</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/gen_changes.md" class="module">gen_changes</a></td></tr></table>
-

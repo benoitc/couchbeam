@@ -12,8 +12,8 @@
 -include("couchbeam.hrl").
 
 
-%% Migrate to Erlang/OTP 28 stdlib json module using maps.
-%% Objects are represented as maps; arrays as lists.
+%% JSON handling uses Erlang/OTP stdlib json with maps.
+%% JSON objects are represented as maps; arrays as lists.
 
 
 -spec encode(ejson()) -> binary().
@@ -36,6 +36,7 @@ decode(D) when is_binary(D) ->
     end;
 decode(D) ->
     decode(iolist_to_binary(D)).
-%% post_decode was used to convert jsx proplists to ejson; now it is identity.
+%% post_decode was previously used to convert jsx proplists / {[...]} objects
+%% to ejson. Since objects are now maps, it is identity.
 post_decode(Term) ->
     Term.

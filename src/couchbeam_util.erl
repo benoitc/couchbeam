@@ -62,7 +62,7 @@ encode_docid1(DocId) ->
 encode_docid_noop(DocId) ->
     DocId.
 
-%% @doc Encode needed value of Query proplists in json
+%% @doc Encode needed query parameter values for JSON
 encode_query([]) ->
     [];
 encode_query(QSL) when is_list(QSL) ->
@@ -118,19 +118,19 @@ oauth_header(Url, Action, OauthProps) ->
     {<<"Authorization">>, list_to_binary(Realm)}.
 
 
-%% @doc merge 2 proplists. All the Key - Value pairs from both proplists
-%% are included in the new proplists. If a key occurs in both dictionaries
+%% @doc Merge two property lists (lists of {Key,Value}). All the Key - Value
+%% pairs from both lists are included in the new list. If a key occurs in both dictionaries
 %% then Fun is called with the key and both values to return a new
 %% value. This a wreapper around dict:merge
 propmerge(F, L1, L2) ->
 	dict:to_list(dict:merge(F, dict:from_list(L1), dict:from_list(L2))).
 
-%% @doc Update a proplist with values of the second. In case the same
-%% key is in 2 proplists, the value from the first are kept.
+%% @doc Update a property list with values of the second. In case the same
+%% key is in both lists, the value from the first is kept.
 propmerge1(L1, L2) ->
     propmerge(fun(_, V1, _) -> V1 end, L1, L2).
 
-%% @doc replace a value in a proplist
+%% @doc Replace a value in a property list
 force_param(Key, Value, Options) ->
     case couchbeam_util:get_value(Key, Options) of
         undefined ->
@@ -139,7 +139,7 @@ force_param(Key, Value, Options) ->
             lists:keystore(Key, 1, Options, {Key, Value})
     end.
 
-%% @doc emulate proplists:get_value/2,3 but use faster lists:keyfind/3
+%% @doc Emulate proplists:get_value/2,3 for property lists but use faster lists:keyfind/3
 -spec get_value(Key :: term(), Prop :: [term()]) -> term().
 get_value(Key, Prop) ->
     get_value(Key, Prop, undefined).
