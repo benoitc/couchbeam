@@ -66,7 +66,7 @@
 %% --------------------------------------------------------------------
 
 %% @doc Create a server for connectiong to a CouchDB node
-%% @equiv server_connection("127.0.0.1", 5984, "", [], false)
+%% @equiv server_connection(URL, Options)
 server_connection() ->
     URL = couchbeam_util:binary_env("COUCHDB_URL", "http://127.0.0.1:5984"),
     ADMIN = couchbeam_util:binary_env("COUCHDB_ADMIN", "admin"),
@@ -152,7 +152,6 @@ server_connection(Host, Port, Prefix, Options) ->
     server_connection(Url, Options).
 
 %% @doc Get Information from the server
-%% @spec server_info(server()) -> {ok, iolist()}
 server_info(#server{url=Url, options=Opts}) ->
     case hackney:get(Url, [], <<>>, Opts) of
         {ok, 200, _, Ref} ->
@@ -167,28 +166,25 @@ server_info(#server{url=Url, options=Opts}) ->
     end.
 
 %% @doc Get one uuid from the server
-%% @spec get_uuid(server()) -> lists()
 get_uuid(Server) ->
     couchbeam_uuids:get_uuids(Server, 1).
 
 %% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
     couchbeam_uuids:get_uuids(Server, Count).
 
 
-%% @doc Handle replication. Pass an object containting all informations
-%% It allows to pass for example an authentication info
+%% @doc Handle replication. Pass a map containing all information.
+%% It allows passing authentication info, etc.
 %% ```
-%% RepObj = {[
-%% {<<"source">>, <<"sourcedb">>},
-%% {<<"target">>, <<"targetdb">>},
-%% {<<"create_target">>, true}
-%% ]}
+%% RepObj = #{
+%%   <<"source">> => <<"sourcedb">>,
+%%   <<"target">> => <<"targetdb">>,
+%%   <<"create_target">> => true
+%% }.
 %% replicate(Server, RepObj).
 %% '''
 %%
-%% @spec replicate(Server::server(), RepObj::{list()})
 %%          -> {ok, Result}|{error, Error}
 replicate(#server{}=Server, RepObj) when is_map(RepObj) ->
   case open_db(Server, <<"_replicator">>) of
@@ -199,13 +195,12 @@ replicate(Server, Props) when is_list(Props) ->
   replicate(Server, maps:from_list(Props)).
 
 %% @doc Handle replication.
-%% @spec replicate(Server::server(), Source::string(), Target::target())
 %%          ->  {ok, Result}|{error, Error}
 replicate(Server, Source, Target) ->
     replicate(Server, Source, Target, []).
 
 %% @doc handle Replication. Allows to pass options with source and
-%% target. Source and target can be either simple URI strings or 
+%% target. Source and target can be either simple URI strings or
 %% complex document structures with authentication. Options is a Json object.
 %% ex:
 %% ```
@@ -215,9 +210,13 @@ replicate(Server, Source, Target) ->
 %%
 %% %% Complex replication with authentication
 %% Source = "http://user:pass@remote.com:5984/db",
-%% Target = {[{<<"url">>, <<"http://localhost:5984/target_db">>},
-%%            {<<"auth">>, {[{<<"basic">>, {[{<<"username">>, <<"user">>},
-%%                                           {<<"password">>, <<"pass">>}]}}]}}]},
+%% Target = #{
+%%   <<"url">> => <<"http://localhost:5984/target_db">>,
+%%   <<"auth">> => #{
+%%     <<"basic">> => #{<<"username">> => <<"user">>,
+%%                      <<"password">> => <<"pass">>}
+%%   }
+%% },
 %% couchbeam:replicate(S, Source, Target, [{<<"continuous">>, true}]).
 %% '''
 replicate(Server, Source, Target, {Props}) ->
@@ -232,11 +231,9 @@ replicate(Server, Source, Target, Options) ->
   replicate(Server, RepProp).
 
 %% @doc get list of databases on a CouchDB node
-%% @spec all_dbs(server()) -> {ok, iolist()}
 all_dbs(#server{}=Server) -> all_dbs(Server, []).
 
 %% @doc get list of databases on a CouchDB node with optional filter
-%% @spec all_dbs(server(), view_options()) -> {ok, iolist()}
 all_dbs(#server{url=ServerUrl, options=Opts}, Options) ->
     Args = couchbeam_view:parse_view_options(Options),
     Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, Args#view_query_args.options),
@@ -277,7 +274,6 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if db with dbname exists on the CouchDB node
-%% @spec db_exists(server(), string()) -> boolean()
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
@@ -307,7 +303,6 @@ create_db(Server, DbName, Options) ->
 %% Params is a list of optionnal query argument you want to pass to the
 %% db. Useful for bigcouch for example.
 %%
-%% @spec create_db(Server::server(), DbName::string(),
 %%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}}
 create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0, Options,
           Params) ->
@@ -331,7 +326,6 @@ open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
 %% @doc Create a client for connection to a database
-%% @spec open_db(Server::server(), DbName::string(), Options::optionList())
 %%              -> {ok, db()}
 open_db(#server{options=Opts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, Opts),
@@ -352,7 +346,6 @@ open_or_create_db(Server, DbName, Options) ->
 
 %% @doc Create a client for connecting to a database and create the
 %%      database if needed.
-%% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
 open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
                   Options, Params) ->
 
@@ -376,7 +369,6 @@ delete_db(#db{server=Server, name=DbName}) ->
     delete_db(Server, DbName).
 
 %% @doc delete database
-%% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
 delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     Resp = couchbeam_httpc:request(delete, Url, [], <<>>, Opts),
@@ -388,7 +380,6 @@ delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     end.
 
 %% @doc get database info
-%% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
 db_info(#db{server=Server, name=DbName, options=Opts}) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]) of
@@ -402,7 +393,6 @@ db_info(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if doc with uuid exists in the given db
-%% @spec doc_exists(db(), string()) -> boolean()
 doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1), []),
@@ -418,7 +408,6 @@ open_doc(Db, DocId) ->
 
 %% @doc open a document
 %% Params is a list of query argument. Have a look in CouchDb API
-%% @spec open_doc(Db::db(), DocId::string(), Params::list())
 %%          -> {ok, Doc}|{error, Error}
 open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
@@ -486,17 +475,16 @@ save_doc(Db, Doc) ->
 %% @doc save a *document
 %% A document is a Json object like this one:
 %%
-%%      ```{[
-%%          {<<"_id">>, <<"myid">>},
-%%          {<<"title">>, <<"test">>}
-%%      ]}'''
+%%      ```#{
+%%          <<"_id">> => <<"myid">>,
+%%          <<"title">> => <<"test">>
+%%      }'''
 %%
 %% Options are arguments passed to the request. This function return a
 %% new document with last revision and a docid. If _id isn't specified in
 %% document it will be created. Id is created by extracting an uuid from
 %% the couchdb node.
 %%
-%% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
 save_doc(Db, Doc, Options) ->
     save_doc(Db, Doc, [], Options).
 
@@ -504,10 +492,10 @@ save_doc(Db, Doc, Options) ->
 %% @doc save a *document with all its attacjments
 %% A document is a Json object like this one:
 %%
-%%      ```{[
-%%          {<<"_id">>, <<"myid">>},
-%%          {<<"title">>, <<"test">>}
-%%      ]}'''
+%%      ```#{
+%%          <<"_id">> => <<"myid">>,
+%%          <<"title">> => <<"test">>
+%%      }'''
 %%
 %% Options are arguments passed to the request. This function return a
 %% new document with last revision and a docid. If _id isn't specified in
@@ -592,7 +580,6 @@ delete_doc(Db, Doc) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
 delete_doc(Db, Doc, Options) ->
     delete_docs(Db, [Doc], Options).
 
@@ -605,7 +592,6 @@ delete_docs(Db, Docs) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 delete_docs(Db, Docs, Options) ->
     Empty = couchbeam_util:get_value("empty_on_delete", Options, false),
 
@@ -631,7 +617,6 @@ save_docs(Db, Docs) ->
     save_docs(Db, Docs, []).
 
 %% @doc save a list of documents
-%% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
@@ -819,7 +804,6 @@ put_attachment(Db, DocId, Name, Body)->
     put_attachment(Db, DocId, Name, Body, []).
 
 %% @doc put an attachment
-%% @spec put_attachment(Db::db(), DocId::string(), Name::string(),
 %%                      Body::body(), Option::optionList()) -> {ok, iolist()}
 %%       optionList() = [option()]
 %%       option() = {rev, string()} |
@@ -890,7 +874,6 @@ delete_attachment(Db, Doc, Name) ->
     delete_attachment(Db, Doc, Name, []).
 
 %% @doc delete a document attachment
-%% @spec(db(), string()|list(), string(), list() -> {ok, Result} | {error, Error}
 delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                   Options) ->
     Options1 = couchbeam_util:parse_options(Options),
@@ -954,7 +937,6 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 %% @doc Compaction compresses the database file by removing unused
 %% sections created during updates.
 %% See [http://wiki.apache.org/couchdb/Compaction] for more informations
-%% @spec compact(Db::db()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>],
@@ -970,7 +952,6 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% @doc Like compact/1 but this compacts the view index from the
 %% current version of the design document.
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
-%% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>,

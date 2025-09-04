@@ -2,6 +2,8 @@ DOCKER?=docker
 COMPOSE?=docker compose
 
 .PHONY: docker-build docker-up docker-down docker-logs docker-test docker-shell
+docs:
+	rebar3 ex_doc
 
 docker-build:
 	$(COMPOSE) build

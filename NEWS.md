@@ -164,7 +164,7 @@ version 1.1.1 / 2014-11-11
 - update to [hackney 0.15.0](https://github.com/benoitc/hackney/releases ),
   improving performances and concurrency
 - fix `couchbeam:doc_exists/2`(#116)
-- fix `couchbeam:reply_att/1 (#114)
+- fix `couchbeam:reply_att/1` (#114)
 
 
 version 1.1.0 / 2014-10-28
@@ -251,10 +251,9 @@ version 0.10.0 / 2013-12-21
   revisions
 - add support of the [multipart
   API](http://docs.couchdb.org/en/latest/api/document/common.html#efficient-multiple-attachments-retrieving) when fetching a doc: This change make
-  `couchbeam:open_doc/3` return a multipart response `{ok, {multipart,
-Stream}}` when using the setting `attachments=true` option. A new option
-{`accept. <<"multipart/mixed">>}" can also be used with the options
-`open_revs` or `revs` to fetch the response as a multipart.
+  `couchbeam:open_doc/3` returns a multipart response `{ok, {multipart, Stream}}`
+  when using the `attachments=true` option. A new option `{accept, <<"multipart/mixed">>}`
+  can also be used with the options `open_revs` or `revs` to fetch the response as a multipart.
 - bump the [hackney](http://github.com/benoitc/hackney) version to
   **0.9.1** .
 
@@ -266,7 +265,7 @@ attachments or a doc wit all its revisions.
 version 0.9.3 / 2013-12-07
 --------------------------
 
-- fix: `couchbeam:open_or_create_db/2'
+- fix: couchbeam:open_or_create_db/2
 
 version 0.9.2 / 2013-12-07
 --------------------------
@@ -284,17 +283,17 @@ version 0.9.0 / 2013-12-05
 This is a major release pre-1.0. API is now frozen and won't change much
 until the version 1.0.
 
-- replaced the use of `ibrowse` by `hackney` to handle HTTP connections
+- replaced the use of ibrowse by hackney to handle HTTP connections
 - new [streaming
   API](https://github.com/benoitc/couchbeam#stream-view-results) in view
 - breaking change: remobe
 - breaking change: remove deprecated view API. Everything is now managed in the
   [couch_view](https://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view.md) module.
-- replace `couchbeam_changes:stream` and `couchbeam_changes:fetch`
-  functions by `couchbeam_changes/follow` and `couchbeam_changes:follow_once`.
+- replace 'couchbeam_changes:stream' and 'couchbeam_changes:fetch'
+  functions by 'couchbeam_changes/follow' and 'couchbeam_changes:follow_once'.
 - breaking change: new attachment API
 - new: JSX a pure erlang JSON encoder/decoder is now the default. Jiffy
-  can be set at the compilation by defining `WITH_JIFFY` in the Erlang
+  can be set at the compilation by defining 'WITH_JIFFY' in the Erlang
 options.
 - removed mochiweb dependency.
 

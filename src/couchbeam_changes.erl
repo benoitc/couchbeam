@@ -175,7 +175,7 @@ stream_next(Ref) ->
                 Pid ! {Ref, stream_next}
         end).
 
-%% @private
+%% internal
 collect_changes(Ref) ->
     collect_changes(Ref, []).
 

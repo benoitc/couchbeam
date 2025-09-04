@@ -368,7 +368,7 @@ system_code_change(Misc, _, _, _) ->
 
 %%% removed legacy jsx-driven decoder code
 
-%% @private
+%% internal
 
 %% parse options to get feed type when it's not passed in a tuple
 %% to support the old api.
@@ -403,14 +403,7 @@ maybe_close(#state{client_ref=nil}) ->
 maybe_close(#state{client_ref=Ref}) ->
     hackney:close(Ref).
 
-%post_decode([{}]) ->
-%    {[]};
-%post_decode([{_Key, _Value} | _Rest] = PropList) ->
-%  {[ {Key, post_decode(Value)} || {Key, Value} <- PropList ]};
-%post_decode(List) when is_list(List) ->
-%  [ post_decode(Term) || Term <- List];
-%post_decode(Term) ->
-%  Term.
+%% legacy jsx-driven post_decode removed; maps are used natively
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

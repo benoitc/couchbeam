@@ -34,8 +34,8 @@ random() ->
 utc_random() ->
     utc_suffix(hackney_bstr:to_hex(crypto:strong_rand_bytes(9))).
 
+-spec get_uuids(server(), integer()) -> list().
 %% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
 get_uuids(Server, Count) ->
     gen_server:call(?MODULE, {get_uuids, Server, Count}, infinity).
 
@@ -43,16 +43,16 @@ get_uuids(Server, Count) ->
 %% Function: start_link/0
 %% Description: Starts the server
 %%--------------------------------------------------------------------
+-spec start_link() -> {ok, pid()} | {error, term()}.
 %% @doc Starts the couchbeam process linked to the calling process. Usually
 %% invoked by the supervisor couchbeam_sup
-%% @spec start_link() -> {ok, pid()}
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %%---------------------------------------------------------------------------
 %% gen_server callbacks
 %%---------------------------------------------------------------------------
-%% @private
+%% internal
 
 init(_) ->
     process_flag(trap_exit, true),

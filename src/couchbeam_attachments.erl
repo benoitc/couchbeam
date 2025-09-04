@@ -13,17 +13,15 @@
 -export([add_inline/3, add_inline/4,
          add_stub/3,
         delete_inline/2]).
-
-%% @spec add_inline(Doc::json_obj(),Content::attachment_content(),
-%%      AName::string()) -> json_obj()
+ 
+-spec add_inline(doc(), iodata(), string() | binary()) -> doc().
 %% @doc add attachment  to a doc and encode it. Give possibility to send attachments inline.
 add_inline(Doc, Content, AName) ->
     AName1 = hackney_bstr:to_binary(AName),
     ContentType = mimerl:filename(AName1),
     add_inline(Doc, Content, AName1, ContentType).
 
-%% @spec add_inline(Doc::json_obj(), Content::attachment_content(),
-%%      AName::string(), ContentType::string()) -> json_obj()
+-spec add_inline(doc(), iodata(), string() | binary(), string() | binary()) -> doc().
 %% @doc add attachment  to a doc and encode it with ContentType fixed.
 add_inline(Doc, Content, AName, ContentType) ->
     Data = base64:encode(Content),
@@ -34,6 +32,7 @@ add_inline(Doc, Content, AName, ContentType) ->
     couchbeam_doc:set_value(<<"_attachments">>, Atts1, Doc).
 
 
+-spec add_stub(doc(), string() | binary(), string() | binary()) -> doc().
 add_stub(Doc, Name, ContentType) ->
     AttName = couchbeam_util:to_binary(Name),
     Att = #{<<"content_type">> => couchbeam_util:to_binary(ContentType)},
@@ -42,7 +41,7 @@ add_stub(Doc, Name, ContentType) ->
     couchbeam_doc:set_value(<<"_attachments">>, Atts1, Doc).
 
 
-%% @spec delete_inline(Doc::json_obj(), AName::string()) -> json_obj()
+-spec delete_inline(doc(), string() | binary()) -> doc().
 %% @doc delete an attachment record in doc. This is different from delete_attachment
 %%      change is only applied in Doc object. Save_doc should be save to save changes.
 delete_inline(Doc, AName) when is_list(AName) ->

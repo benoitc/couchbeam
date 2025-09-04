@@ -1,5 +1,5 @@
-%% @author Benoît Chesneau <benoitc@e-engura.org>
-%% @copyright 2009 Benoît Chesneau.
+%% @author Benoit Chesneau
+%% @copyright 2009-2025 Benoit Chesneau.
 %%
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");

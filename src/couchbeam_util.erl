@@ -243,14 +243,14 @@ shutdown_sync(Pid) ->
         erlang:demonitor(MRef, [flush])
     end.
 
-%% @spec start_app_deps(App :: atom()) -> ok
+-spec start_app_deps(atom()) -> ok.
 %% @doc Start depedent applications of App.
 start_app_deps(App) ->
     {ok, DepApps} = application:get_key(App, applications),
     [ensure_started(A) || A <- DepApps],
     ok.
 
-%% @spec ensure_started(Application :: atom()) -> ok
+-spec ensure_started(atom()) -> ok.
 %% @doc Start the named application if not already started.
 ensure_started(App) ->
     case application:start(App) of

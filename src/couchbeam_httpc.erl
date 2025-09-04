@@ -121,14 +121,16 @@ db_resp_body(Ref) ->
             <<>>
     end.
 
+-spec server_url(server()) -> binary().
 %% @doc Asemble the server URL for the given client
-%% @spec server_url({Host, Port}) -> iolist()
 server_url(#server{url=Url}) ->
     Url.
 
+-spec db_url(db()) -> binary().
 db_url(#db{name=DbName}) ->
     DbName.
 
+-spec doc_url(db(), binary()) -> binary().
 doc_url(Db, DocId) ->
     iolist_to_binary([db_url(Db), <<"/">>, DocId]).
 

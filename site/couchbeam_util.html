@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.38.2">
+    <meta name="project" content="couchbeam v2.0.0">
+
+
+    <title>couchbeam_util — couchbeam v2.0.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-DQDXQC7W.css" />
+
+    <script defer src="dist/sidebar_items-A03F7C15.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-DPJLHKSM.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+couchbeam
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v2.0.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras=""></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of couchbeam</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search" tabindex="-1">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">couchbeam_util</span> 
+      <small class="app-vsn" translate="no">(couchbeam v2.0.0)</small>
+
+    </h1>
+
+      <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L6" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#binary_env/2" data-no-tooltip="" translate="no">binary_env(Key, Default)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#dbname/1" data-no-tooltip="" translate="no">dbname(DbName)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#deprecated/3" data-no-tooltip="" translate="no">deprecated(Old, New, When)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_att_name/1" data-no-tooltip="" translate="no">encode_att_name(Name)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_docid1/1" data-no-tooltip="" translate="no">encode_docid1(DocId)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_docid/1" data-no-tooltip="" translate="no">encode_docid(DocId)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_docid_noop/1" data-no-tooltip="" translate="no">encode_docid_noop(DocId)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_query/1" data-no-tooltip="" translate="no">encode_query(QSL)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Encode needed query parameter values for JSON</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#encode_query_value/2" data-no-tooltip="" translate="no">encode_query_value(K, V)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Encode value in JSON if needed depending on the key</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#force_param/3" data-no-tooltip="" translate="no">force_param(Key, Value, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Replace a value in a property list</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_app_env/2" data-no-tooltip="" translate="no">get_app_env(Env, Default)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_value/2" data-no-tooltip="" translate="no">get_value(Key, Prop)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Emulate proplists:get_value/2,3 for property lists but use faster lists:keyfind/3</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_value/3" data-no-tooltip="" translate="no">get_value(Key, Prop, Default)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#oauth_header/3" data-no-tooltip="" translate="no">oauth_header(Url, Action, OauthProps)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#parse_options/1" data-no-tooltip="" translate="no">parse_options(Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>make view options a list</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#parse_options/2" data-no-tooltip="" translate="no">parse_options(Rest, Acc)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#propmerge1/2" data-no-tooltip="" translate="no">propmerge1(L1, L2)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Update a property list with values of the second. In case the same key is in both lists, the value from the first is kept.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#propmerge/3" data-no-tooltip="" translate="no">propmerge(F, L1, L2)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Merge two property lists (lists of {Key,Value}). All the Key - Value pairs from both lists are included in the new list. If a key occurs in both dictionaries then Fun is called with the key and both values to return a new value. This a wreapper around dict:merge</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#proxy_header/3" data-no-tooltip="" translate="no">proxy_header(UserName, Roles, Secret)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#proxy_token/2" data-no-tooltip="" translate="no">proxy_token(Secret, UserName)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#shutdown_sync/1" data-no-tooltip="" translate="no">shutdown_sync(Pid)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_app_deps/1" data-no-tooltip="" translate="no">start_app_deps(App)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Start depedent applications of App.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_atom/1" data-no-tooltip="" translate="no">to_atom(V)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_binary/1" data-no-tooltip="" translate="no">to_binary(V)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_integer/1" data-no-tooltip="" translate="no">to_integer(V)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_list/1" data-no-tooltip="" translate="no">to_list(V)</a>
+
+      </div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="binary_env/2">
+
+  <div class="detail-header">
+    <a href="#binary_env/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">binary_env(Key, Default)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L218" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="dbname/1">
+
+  <div class="detail-header">
+    <a href="#dbname/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">dbname(DbName)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L33" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="deprecated/3">
+
+  <div class="detail-header">
+    <a href="#deprecated/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">deprecated(Old, New, When)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L222" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="encode_att_name/1">
+
+  <div class="detail-header">
+    <a href="#encode_att_name/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_att_name(Name)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L40" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="encode_docid1/1">
+
+  <div class="detail-header">
+    <a href="#encode_docid1/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_docid1(DocId)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L53" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="encode_docid/1">
+
+  <div class="detail-header">
+    <a href="#encode_docid/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_docid(DocId)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L48" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="encode_docid_noop/1">
+
+  <div class="detail-header">
+    <a href="#encode_docid_noop/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_docid_noop(DocId)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L62" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="encode_query/1">
+
+  <div class="detail-header">
+    <a href="#encode_query/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_query(QSL)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L66" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>Encode needed query parameter values for JSON</p>
+  </section>
+</section>
+<section class="detail" id="encode_query_value/2">
+
+  <div class="detail-header">
+    <a href="#encode_query_value/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">encode_query_value(K, V)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L77" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>Encode value in JSON if needed depending on the key</p>
+  </section>
+</section>
+<section class="detail" id="force_param/3">
+
+  <div class="detail-header">
+    <a href="#force_param/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">force_param(Key, Value, Options)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L134" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>Replace a value in a property list</p>
+  </section>
+</section>
+<section class="detail" id="get_app_env/2">
+
+  <div class="detail-header">
+    <a href="#get_app_env/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_app_env(Env, Default)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L263" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="get_value/2">
+
+  <div class="detail-header">
+    <a href="#get_value/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_value(Key, Prop)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L144" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_value(Key :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>(), Prop :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()]) -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Emulate proplists:get_value/2,3 for property lists but use faster lists:keyfind/3</p>
+  </section>
+</section>
+<section class="detail" id="get_value/3">
+
+  <div class="detail-header">
+    <a href="#get_value/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_value(Key, Prop, Default)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L148" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_value(Key :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>(), Prop :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()], Default :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="oauth_header/3">
+
+  <div class="detail-header">
+    <a href="#oauth_header/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">oauth_header(Url, Action, OauthProps)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L84" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="parse_options/1">
+
+  <div class="detail-header">
+    <a href="#parse_options/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">parse_options(Options)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L162" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>make view options a list</p>
+  </section>
+</section>
+<section class="detail" id="parse_options/2">
+
+  <div class="detail-header">
+    <a href="#parse_options/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">parse_options(Rest, Acc)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L165" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="propmerge1/2">
+
+  <div class="detail-header">
+    <a href="#propmerge1/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">propmerge1(L1, L2)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L130" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>Update a property list with values of the second. In case the same key is in both lists, the value from the first is kept.</p>
+  </section>
+</section>
+<section class="detail" id="propmerge/3">
+
+  <div class="detail-header">
+    <a href="#propmerge/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">propmerge(F, L1, L2)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L125" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+<p>Merge two property lists (lists of {Key,Value}). All the Key - Value pairs from both lists are included in the new list. If a key occurs in both dictionaries then Fun is called with the key and both values to return a new value. This a wreapper around dict:merge</p>
+  </section>
+</section>
+<section class="detail" id="proxy_header/3">
+
+  <div class="detail-header">
+    <a href="#proxy_header/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">proxy_header(UserName, Roles, Secret)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L269" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="proxy_token/2">
+
+  <div class="detail-header">
+    <a href="#proxy_token/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">proxy_token(Secret, UserName)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L285" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="shutdown_sync/1">
+
+  <div class="detail-header">
+    <a href="#shutdown_sync/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">shutdown_sync(Pid)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L231" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="start_app_deps/1">
+
+  <div class="detail-header">
+    <a href="#start_app_deps/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">start_app_deps(App)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L248" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_app_deps(<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Start depedent applications of App.</p>
+  </section>
+</section>
+<section class="detail" id="to_atom/1">
+
+  <div class="detail-header">
+    <a href="#to_atom/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_atom(V)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L208" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="to_binary/1">
+
+  <div class="detail-header">
+    <a href="#to_binary/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_binary(V)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L178" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="to_integer/1">
+
+  <div class="detail-header">
+    <a href="#to_integer/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_integer(V)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L192" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="to_list/1">
+
+  <div class="detail-header">
+    <a href="#to_list/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_list(V)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_util.erl#L199" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+      <p>
+
+          <span class="line">
+            <a href="https://hex.pm/packages/couchbeam/2.0.0" class="footer-hex-package">Hex Package</a>
+
+            <a href="https://preview.hex.pm/preview/couchbeam/2.0.0">Hex Preview</a>
+
+          </span>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="couchbeam.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.38.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

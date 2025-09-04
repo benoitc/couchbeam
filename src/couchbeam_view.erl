@@ -75,7 +75,7 @@ fetch(Db, ViewName) ->
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}
 %%    | async_query</pre>
-%% <p>See {@link couchbeam_view:stream/4} for more information about
+%% <p>See {@link couchbeam_view:stream/3} for more information about
 %% options.</p>
 %% <p>Return: {ok, Rows} or {error, Error}</p>
 fetch(Db, ViewName, Options) ->
@@ -119,7 +119,7 @@ show(Db, ShowName) ->
 show(Db, ShowName, DocId) ->
     show(Db, ShowName, DocId, []).
 
--type show_option() :: {'query_string', binary()}. % "foo=bar&baz=biz"
+-type show_option() :: {'query_string', binary()}. % example: "foo=bar&amp;baz=biz"
 -type show_options() :: [show_option()].
 
 -spec show(db(), {binary(), binary()}, 'null' | binary(), show_options()) ->
@@ -163,7 +163,7 @@ show_doc_id(<<DocId/binary>>) -> [<<"/">>, couchbeam_util:encode_docid(DocId)].
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::design_name(),
                                                ViewName::view_name()}) -> {ok, StartRef::term(),
                                                                            ViewPid::pid()} | {error, term()}.
-%% @equiv stream(Db, ViewName, Client, [])
+%% @equiv stream(Db, ViewName, [])
 stream(Db, ViewName) ->
     stream(Db, ViewName, []).
 
@@ -171,63 +171,32 @@ stream(Db, ViewName) ->
                                                ViewName::view_name()}, Options::view_options())
             -> {ok, StartRef::term()} | {error, term()}.
 %% @doc stream view results to a pid
-%%  <p>Db: a db record</p>
-%%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
-%%  ViewName}</p>
-%%  <p>Client: pid where to send view events where events are:
-%%  <dl>
-%%      <dt>{row, StartRef, done}</dt>
-%%          <dd>All view results have been fetched</dd>
-%%      <dt>{row, StartRef, Row :: ejson_object()}</dt>
-%%          <dd>A row in the view</dd>
-%%      <dt>{error, StartRef, Error}</dt>
-%%          happend.</dd>
-%%  </dl></p>
-%%  <p><pre>Options :: view_options() [{key, binary()}
-%%    | descending
-%%    | {skip, integer()}
-%%    | group | {group_level, integer()}
-%%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}
-%%    | `{stream_to, Pid}': the pid where the changes will be sent,
-%%      by default the current pid. Used for continuous and longpoll
-%%      connections</pre>
+%%  Db: a db record
+%%  ViewName: 'all_docs' to get all docs or {DesignName, ViewName}
+%%  Client receives messages:
+%%    - {row, StartRef, done}                All rows have been fetched
+%%    - {row, StartRef, Row :: ejson_object()}  A row in the view
+%%    - {error, StartRef, Error}             An error occurred; stream closed
+%%  Options include (see couchbeam_view:parse_view_options/1):
+%%    - {key, Key}
+%%    - {start_docid, DocId} | {startkey_docid, DocId}
+%%    - {end_docid, DocId} | {endkey_docid, DocId}
+%%    - {start_key, Key} | {end_key, Key}
+%%    - {limit, N}
+%%    - {stale, ok | update_after | false}
+%%    - descending | {skip, N}
+%%    - group | {group_level, integer()}
+%%    - reduce | {reduce, boolean()}
+%%    - include_docs | conflicts | {inclusive_end, boolean()}
+%%    - {keys, [Key]}
+%%    - {stream_to, Pid}
+
+
+
 %%
-%%  <ul>
-%%      <li><code>{key, Key}</code>: key value</li>
-%%      <li><code>{start_docid, DocId}</code> | <code>{startkey_docid, DocId}</code>: document id to start with (to allow pagination
-%%          for duplicate start keys</li>
-%%      <li><code>{end_docid, DocId}</code> | <code>{endkey_docid, DocId}</code>: last document id to include in the result (to
-%%          allow pagination for duplicate endkeys)</li>
-%%      <li><code>{start_key, Key}</code>: start result from key value</li>
-%%      <li><code>{end_key, Key}</code>: end result from key value</li>
-%%      <li><code>{limit, Limit}</code>: Limit the number of documents in the result</li>
-%%      <li><code>{stale, Stale}</code>: If stale=ok is set, CouchDB will not refresh the view
-%%      even if it is stale, the benefit is a an improved query latency. If
-%%      stale=update_after is set, CouchDB will update the view after the stale
-%%      result is returned. If stale=false is set, CouchDB will update the view before
-%%      the query. The default value of this parameter is update_after.</li>
-%%      <li><code>descending</code>: reverse the result</li>
-%%      <li><code>{skip, N}</code>: skip n number of documents</li>
-%%      <li><code>group</code>: the reduce function reduces to a single result
-%%      row.</li>
-%%      <li><code>{group_level, Level}</code>: the reduce function reduces to a set
-%%      of distinct keys.</li>
-%%      <li><code>{reduce, boolean()}</code>: whether to use the reduce function of the view. It defaults to
-%%      true, if a reduce function is defined and to false otherwise.</li>
-%%      <li><code>include_docs</code>: automatically fetch and include the document
-%%      which emitted each view entry</li>
-%%      <li><code>{inclusive_end, boolean()}</code>: Controls whether the endkey is included in
-%%      the result. It defaults to true.</li>
-%%      <li><code>conflicts</code>: include conflicts</li>
-%%      <li><code>{keys, [Keys]}</code>: to pass multiple keys to the view query</li>
-%%  </ul></p>
-%%
-%% <p> Return <code>{ok, StartRef, ViewPid}</code> or <code>{error,
-                                                %Error}</code>. Ref can be
-%% used to disctint all changes from this pid. ViewPid is the pid of
-%% the view loop process. Can be used to monitor it or kill it
-%% when needed.</p>
+%% Return: {ok, StartRef, ViewPid} or {error, Reason}.
+%% Ref can be used to distinguish streams from this pid.
+%% ViewPid is the pid of the view loop process.
 stream(Db, ViewName, Options) ->
     {To, Options1} = case proplists:get_value(stream_to, Options) of
                          undefined ->
@@ -334,7 +303,7 @@ first(Db, ViewName) ->
 %%    | group | {group_level, integer()}
 %%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
 %%    | {keys, list(binary())}</pre>
-%% <p>See {@link couchbeam_view:stream/4} for more information about
+%% <p>See {@link couchbeam_view:stream/3} for more information about
 %% options.</p>
 %% <p>Return: {ok, Row} or {error, Error}</p>
 first(Db, ViewName, Options) ->
@@ -511,7 +480,7 @@ parse_view_options([{Key, Value}|Rest], #view_query_args{options=Opts}=Args)
 parse_view_options([_|Rest], Args) ->
     parse_view_options(Rest, Args).
 
-%% @private
+%% internal
 
 make_view(#db{server=Server}=Db, ViewName, Options, Fun) ->
     Args = parse_view_options(Options),

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.38.2">
+    <meta name="project" content="couchbeam v2.0.0">
+
+
+    <title>couchbeam_changes — couchbeam v2.0.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-DQDXQC7W.css" />
+
+    <script defer src="dist/sidebar_items-A03F7C15.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-DPJLHKSM.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+couchbeam
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v2.0.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras=""></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of couchbeam</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search" tabindex="-1">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">couchbeam_changes</span> 
+      <small class="app-vsn" translate="no">(couchbeam v2.0.0)</small>
+
+    </h1>
+
+      <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L6" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:changes_option/0" data-no-tooltip="" translate="no">changes_option/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:changes_options/0" data-no-tooltip="" translate="no">changes_options/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:db/0" data-no-tooltip="" translate="no">db/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:server/0" data-no-tooltip="" translate="no">server/0</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#cancel_stream/1" data-no-tooltip="" translate="no">cancel_stream(Ref)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#follow/1" data-no-tooltip="" translate="no">follow(Db)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#follow/2" data-no-tooltip="" translate="no">follow(Db, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stream changes to a pid</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#follow_once/1" data-no-tooltip="" translate="no">follow_once(Db)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#follow_once/2" data-no-tooltip="" translate="no">follow_once(Db, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>fetch all changes at once using a normal or longpoll connections.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stream_next/1" data-no-tooltip="" translate="no">stream_next(Ref)</a>
+
+      </div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:changes_option/0">
+
+  <div class="detail-header">
+    <a href="#t:changes_option/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">changes_option/0</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/_build/docs/lib/couchbeam/include/couchbeam.hrl#L54" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> changes_option() ::
+          continuous | longpoll | normal | include_docs |
+          {since, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>()} |
+          {timeout, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>()} |
+          heartbeat |
+          {heartbeat, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>()} |
+          {filter, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>()} |
+          {filter, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>(), [{<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>(), <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>() | <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>()}]} |
+          conflicts |
+          {style, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>()} |
+          descending.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:changes_options/0">
+
+  <div class="detail-header">
+    <a href="#t:changes_options/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">changes_options/0</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/_build/docs/lib/couchbeam/include/couchbeam.hrl#L61" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> changes_options() :: [<a href="#t:changes_option/0">changes_option</a>()].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:db/0">
+
+  <div class="detail-header">
+    <a href="#t:db/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">db/0</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/_build/docs/lib/couchbeam/include/couchbeam.hrl#L126" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> db() :: #db{server :: <a href="#t:server/0">server</a>(), name :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:binary/0">binary</a>(), options :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:server/0">
+
+  <div class="detail-header">
+    <a href="#t:server/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">server/0</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/_build/docs/lib/couchbeam/include/couchbeam.hrl#L117" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> server() :: #server{url :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>(), options :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="cancel_stream/1">
+
+  <div class="detail-header">
+    <a href="#cancel_stream/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">cancel_stream(Ref)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L159" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="follow/1">
+
+  <div class="detail-header">
+    <a href="#follow/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">follow(Db)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L16" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> follow(Db :: <a href="#t:db/0">db</a>()) -> {ok, StreamRef :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>()} | {error, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="follow/2">
+
+  <div class="detail-header">
+    <a href="#follow/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">follow(Db, Options)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L78" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> follow(Db :: <a href="#t:db/0">db</a>(), Options :: <a href="#t:changes_options/0">changes_options</a>()) -> {ok, StreamRef :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>()} | {error, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Stream changes to a pid</p><p>Db : a db record</p><p>Client : pid or callback where to send changes events where events are The pid receive these events:<dl><dt>{change, StartRef, {done, Lastseq::integer()}</dt><dd>Connection terminated or you got all changes</dd><dt>{change, StartRef, Row :: ejson_object()}</dt><dd>Line of change</dd><dt>{error, LastSeq::integer(), Msg::term()}</dt><dd>Got an error, connection is closed when an error happend.</dd></dl>LastSeq is the last sequence of changes.</p><p>While the callbac could be like:</p><pre><code class="makeup erlang" translate="no"><span class="w">       </span><span class="nf">fun</span><span class="p" data-group-id="4156723906-1">(</span><span class="p" data-group-id="4156723906-2">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">LastSeq</span><span class="p" data-group-id="4156723906-2">}</span><span class="p" data-group-id="4156723906-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+           </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+       </span><span class="nf">fun</span><span class="p" data-group-id="4156723906-3">(</span><span class="p" data-group-id="4156723906-4">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">LastSeq</span><span class="p" data-group-id="4156723906-4">}</span><span class="p" data-group-id="4156723906-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+           </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+       </span><span class="nf">fun</span><span class="p" data-group-id="4156723906-5">(</span><span class="p" data-group-id="4156723906-6">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">LastSeq</span><span class="p" data-group-id="4156723906-6">}</span><span class="p" data-group-id="4156723906-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+           </span><span class="ss">ok</span><span class="p">.</span></code></pre><p><pre><code class="makeup erlang" translate="no"><span class="o">&gt;</span><span class="n">Options</span><span class="w"> </span><span class="p">:</span><span class="p">:</span><span class="w"> </span><span class="nf">changes_stream_options</span><span class="p" data-group-id="2951266453-1">(</span><span class="p" data-group-id="2951266453-1">)</span><span class="w"> </span><span class="p" data-group-id="2951266453-2">[</span><span class="ss">continuous</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">longpoll</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">normal</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">include_docs</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-3">{</span><span class="ss">since</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="2951266453-4">(</span><span class="p" data-group-id="2951266453-4">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">now</span><span class="p" data-group-id="2951266453-3">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-5">{</span><span class="ss">timeout</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="2951266453-6">(</span><span class="p" data-group-id="2951266453-6">)</span><span class="p" data-group-id="2951266453-5">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">heartbeat</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-7">{</span><span class="ss">heartbeat</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="2951266453-8">(</span><span class="p" data-group-id="2951266453-8">)</span><span class="p" data-group-id="2951266453-7">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-9">{</span><span class="ss">filter</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2951266453-10">(</span><span class="p" data-group-id="2951266453-10">)</span><span class="p" data-group-id="2951266453-9">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-11">{</span><span class="ss">filter</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2951266453-12">(</span><span class="p" data-group-id="2951266453-12">)</span><span class="p">,</span><span class="w"> </span><span class="nf">list</span><span class="p" data-group-id="2951266453-13">(</span><span class="p" data-group-id="2951266453-14">{</span><span class="nf">string</span><span class="p" data-group-id="2951266453-15">(</span><span class="p" data-group-id="2951266453-15">)</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2951266453-16">(</span><span class="p" data-group-id="2951266453-16">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="2951266453-17">(</span><span class="p" data-group-id="2951266453-17">)</span><span class="p" data-group-id="2951266453-14">}</span><span class="p" data-group-id="2951266453-13">)</span><span class="p" data-group-id="2951266453-11">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-18">{</span><span class="ss">view</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2951266453-19">(</span><span class="p" data-group-id="2951266453-19">)</span><span class="p" data-group-id="2951266453-18">}</span><span class="p">,</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-20">{</span><span class="ss">docids</span><span class="p">,</span><span class="w"> </span><span class="ss">list</span><span class="p">)</span><span class="p">)</span><span class="p" data-group-id="2951266453-20">}</span><span class="p">,</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-21">{</span><span class="ss">stream_to</span><span class="p">,</span><span class="w"> </span><span class="nf">pid</span><span class="p" data-group-id="2951266453-22">(</span><span class="p" data-group-id="2951266453-22">)</span><span class="p" data-group-id="2951266453-21">}</span><span class="p">,</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="2951266453-23">{</span><span class="ss">async</span><span class="p">,</span><span class="w"> </span><span class="ss">once</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">normal</span><span class="p" data-group-id="2951266453-23">}</span><span class="p" data-group-id="2951266453-2">]</span></code></pre><ul><li><code>continuous | longpoll | normal</code>: set the type of changes feed to get</li><li><code>include_doc</code>: if you want to include the doc in the line of change</li><li><code>{timeout, Timeout::integer()}</code>: timeout</li><li><code>heartbeat | {heartbeat, Heartbeat::integer()}</code>: set couchdb to send a heartbeat to maintain connection open</li><li><code>{filter, FilterName} | {filter, FilterName, Args::list({key, value})}</code>: set the filter to use with optional arguments</li><li><code>{view, ViewName}</code>: use a view function as filter. Note that it requires to set filter special value <code>&quot;_view&quot;</code> to enable this feature.</li><li>&gt;<code>{stream_to, Pid}</code>: the pid where the changes will be sent, by default the current pid. Used for continuous and longpoll connections</li></ul></p><p>Return {ok, StartRef, ChangesPid} or {error, Error}. Ref can be used to disctint all changes from this pid. ChangesPid is the pid of the changes loop process. Can be used to monitor it or kill it when needed.</p>
+  </section>
+</section>
+<section class="detail" id="follow_once/1">
+
+  <div class="detail-header">
+    <a href="#follow_once/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">follow_once(Db)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L97" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> follow_once(Db :: <a href="#t:db/0">db</a>()) -> {ok, LastSeq :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>(), Changes :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()} | {error, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="follow_once/2">
+
+  <div class="detail-header">
+    <a href="#follow_once/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">follow_once(Db, Options)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L137" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> follow_once(Db :: <a href="#t:db/0">db</a>(), Options :: <a href="#t:changes_options/0">changes_options</a>()) ->
+                     {ok, LastSeq :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>(), Changes :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()} | {error, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>fetch all changes at once using a normal or longpoll connections.</p><p>Db : a db record</p><p><pre><code class="makeup erlang" translate="no"><span class="n">Options</span><span class="w"> </span><span class="p">:</span><span class="p">:</span><span class="w"> </span><span class="nf">changes_options</span><span class="p" data-group-id="1905556311-1">(</span><span class="p" data-group-id="1905556311-1">)</span><span class="w"> </span><span class="p" data-group-id="1905556311-2">[</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">longpoll</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">normal</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">include_docs</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-3">{</span><span class="ss">since</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="1905556311-4">(</span><span class="p" data-group-id="1905556311-4">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">now</span><span class="p" data-group-id="1905556311-3">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-5">{</span><span class="ss">timeout</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="1905556311-6">(</span><span class="p" data-group-id="1905556311-6">)</span><span class="p" data-group-id="1905556311-5">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="ss">heartbeat</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-7">{</span><span class="ss">heartbeat</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="1905556311-8">(</span><span class="p" data-group-id="1905556311-8">)</span><span class="p" data-group-id="1905556311-7">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-9">{</span><span class="ss">filter</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="1905556311-10">(</span><span class="p" data-group-id="1905556311-10">)</span><span class="p" data-group-id="1905556311-9">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-11">{</span><span class="ss">filter</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="1905556311-12">(</span><span class="p" data-group-id="1905556311-12">)</span><span class="p">,</span><span class="w"> </span><span class="nf">list</span><span class="p" data-group-id="1905556311-13">(</span><span class="p" data-group-id="1905556311-14">{</span><span class="nf">string</span><span class="p" data-group-id="1905556311-15">(</span><span class="p" data-group-id="1905556311-15">)</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="1905556311-16">(</span><span class="p" data-group-id="1905556311-16">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="1905556311-17">(</span><span class="p" data-group-id="1905556311-17">)</span><span class="p" data-group-id="1905556311-14">}</span><span class="p" data-group-id="1905556311-13">)</span><span class="p" data-group-id="1905556311-11">}</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-18">{</span><span class="ss">docids</span><span class="p">,</span><span class="w"> </span><span class="nf">list</span><span class="p" data-group-id="1905556311-19">(</span><span class="p" data-group-id="1905556311-19">)</span><span class="p">)</span><span class="p">)</span><span class="p" data-group-id="1905556311-18">}</span><span class="p">,</span><span class="w">
+     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="1905556311-20">{</span><span class="ss">stream_to</span><span class="p">,</span><span class="w"> </span><span class="nf">pid</span><span class="p" data-group-id="1905556311-21">(</span><span class="p" data-group-id="1905556311-21">)</span><span class="p" data-group-id="1905556311-20">}</span><span class="w">
+     </span><span class="p" data-group-id="1905556311-2">]</span></code></pre><ul><li><code>longpoll | normal</code>: set the type of changes feed to get</li><li><code>include_docs</code>: if you want to include the doc in the line of change</li><li><code>{timeout, Timeout::integer()}</code>: timeout</li><li><code>heartbeat | {heartbeat, Heartbeat::integer()}</code>: set couchdb to send a heartbeat to maintain connection open</li><li><code>{filter, FilterName} | {filter, FilterName, Args::list({key, value})</code>: set the filter to use with optional arguments</li><li><code>{view, ViewName}</code>: use a view function as filter. Note that it requires to set filter special value <code>&quot;_view&quot;</code> to enable this feature.</li></ul></p><p>Result: <code>{ok, LastSeq::integer(), Rows::list()}</code> or <code>{error, LastSeq, Error}</code>. LastSeq is the last sequence of changes.</p>
+  </section>
+</section>
+<section class="detail" id="stream_next/1">
+
+  <div class="detail-header">
+    <a href="#stream_next/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">stream_next(Ref)</h1>
+
+
+        <a href="https://github.com/benoitc/couchbeam/blob/v2.0.0/src/couchbeam_changes.erl#L173" class="icon-action" rel="help" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+      <p>
+
+          <span class="line">
+            <a href="https://hex.pm/packages/couchbeam/2.0.0" class="footer-hex-package">Hex Package</a>
+
+            <a href="https://preview.hex.pm/preview/couchbeam/2.0.0">Hex Preview</a>
+
+          </span>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="couchbeam.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.38.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

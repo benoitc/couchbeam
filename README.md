@@ -2,7 +2,7 @@
 
 # Couchbeam - simple Apache CouchDB client library for Erlang applications #
 
-Copyright (c) 2009-2025 Benoît Chesneau.
+Copyright (c) 2009-2025 Benoit Chesneau.
 
 __Version:__ 1.7.1
 
@@ -318,7 +318,7 @@ To fetch an attachment:
 {ok Att1} = couchbeam:fetch_attachment(Db, DocId, AttName).
 ```
 
-You can use `couchbeam:stream_fetch_attachment/6` for the stream
+You can use `couchbeam:stream_attachment/1` for the stream
 fetch.
 
 To delete an attachment:
@@ -376,7 +376,7 @@ for more info.
 You can authenticate to the database or Apache CouchDB or RCOUCH server by filling
 options to the Option list in `couchbeam:server_connection/4` for the
 server or in `couchbeam:create_db/3`, `couchbeam:open_db/3`,
-`couchbeam:wopen_or_create_db/3` functions.
+`couchbeam:open_or_create_db/3` functions.
 
 To set basic_auth on a server:
 
@@ -397,25 +397,3 @@ in the `couchbeam:server_connection/2` documentation.
 
 For issues, comments or feedback please [create an
 issue](http://github.com/benoitc/couchbeam/issues).
-
-
-## Modules ##
-
-
-<table width="100%" border="0" summary="list of modules">
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam.md" class="module">couchbeam</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_app.md" class="module">couchbeam_app</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_attachments.md" class="module">couchbeam_attachments</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_changes.md" class="module">couchbeam_changes</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_changes_stream.md" class="module">couchbeam_changes_stream</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_changes_sup.md" class="module">couchbeam_changes_sup</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_doc.md" class="module">couchbeam_doc</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_ejson.md" class="module">couchbeam_ejson</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_httpc.md" class="module">couchbeam_httpc</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_sup.md" class="module">couchbeam_sup</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_util.md" class="module">couchbeam_util</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_uuids.md" class="module">couchbeam_uuids</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view.md" class="module">couchbeam_view</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_stream.md" class="module">couchbeam_view_stream</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/couchbeam_view_sup.md" class="module">couchbeam_view_sup</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/couchbeam/blob/master/doc/gen_changes.md" class="module">gen_changes</a></td></tr></table>

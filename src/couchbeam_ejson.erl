@@ -36,7 +36,7 @@ decode(D) when is_binary(D) ->
     end;
 decode(D) ->
     decode(iolist_to_binary(D)).
-%% post_decode was previously used to convert jsx proplists / {[...]} objects
+%% post_decode was previously used to convert jsx proplists / old tuple-wrapped object forms
 %% to ejson. Since objects are now maps, it is identity.
 post_decode(Term) ->
     Term.
