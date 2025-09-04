@@ -12,3 +12,4 @@ mime.types
 .idea
 *.im
 *.crashdump
+site/
