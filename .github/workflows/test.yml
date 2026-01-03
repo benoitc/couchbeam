@@ -7,12 +7,19 @@ on:
     branches: [ master, main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  linux:
+    name: Linux OTP ${{ matrix.otp }}
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ['27.3', '28.0']
+        rebar3: ['3.25.0']
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup CouchDB with single node configuration
       run: |
         # Create local.ini with single node configuration
@@ -20,48 +27,150 @@ jobs:
         sudo tee /opt/couchdb/etc/local.d/10-single-node.ini > /dev/null <<EOF
         [couchdb]
         single_node=true
-        
+
         [admins]
         admin = change_me
         EOF
-        
+
         # Start CouchDB container with the configuration
         docker run -d \
           --name couchdb \
           -p 5984:5984 \
           -v /opt/couchdb/etc/local.d:/opt/couchdb/etc/local.d \
           couchdb:3.3
-        
+
         # Wait for CouchDB to be ready
         timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
-        
+
         # Create system databases
         curl -X PUT http://admin:change_me@localhost:5984/_users
         curl -X PUT http://admin:change_me@localhost:5984/_replicator
         curl -X PUT http://admin:change_me@localhost:5984/_global_changes
-    
+
     - name: Setup Erlang/OTP
       uses: erlef/setup-beam@v1
       with:
-        otp-version: '27'
-        rebar3-version: '3.25'
-    
+        otp-version: ${{ matrix.otp }}
+        rebar3-version: ${{ matrix.rebar3 }}
+
     - name: Cache dependencies
       uses: actions/cache@v3
       with:
         path: |
           _build
           ~/.cache/rebar3
-        key: ${{ runner.os }}-erlang-${{ hashFiles('rebar.lock') }}
+        key: linux-otp-${{ matrix.otp }}-${{ hashFiles('rebar.lock') }}
         restore-keys: |
-          ${{ runner.os }}-erlang-
-    
+          linux-otp-${{ matrix.otp }}-
+
     - name: Compile
       run: rebar3 compile
-    
+
+    - name: Run xref
+      run: rebar3 xref
+
     - name: Run tests
       run: rebar3 as test eunit
       env:
         COUCHDB_URL: http://localhost:5984
         COUCHDB_ADMIN: admin
-        COUCHDB_PASSWORD: change_me 
+        COUCHDB_PASSWORD: change_me
+
+    - name: Run dialyzer
+      run: rebar3 dialyzer
+
+  macos:
+    name: macOS OTP ${{ matrix.otp }}
+    runs-on: macos-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ['27.3', '28.0']
+        rebar3: ['3.25.0']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup CouchDB
+      run: |
+        brew install couchdb
+        # Start CouchDB
+        brew services start couchdb
+        # Wait for CouchDB to be ready
+        for i in {1..30}; do curl -s http://127.0.0.1:5984/ && break || sleep 2; done
+        # Create admin user and system databases
+        curl -X PUT http://127.0.0.1:5984/_node/_local/_config/admins/admin -d '"change_me"'
+        curl -X PUT http://admin:change_me@127.0.0.1:5984/_users
+        curl -X PUT http://admin:change_me@127.0.0.1:5984/_replicator
+        curl -X PUT http://admin:change_me@127.0.0.1:5984/_global_changes
+
+    - name: Setup Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ matrix.otp }}
+        rebar3-version: ${{ matrix.rebar3 }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          _build
+          ~/.cache/rebar3
+        key: macos-otp-${{ matrix.otp }}-${{ hashFiles('rebar.lock') }}
+        restore-keys: |
+          macos-otp-${{ matrix.otp }}-
+
+    - name: Compile
+      run: rebar3 compile
+
+    - name: Run xref
+      run: rebar3 xref
+
+    - name: Run tests
+      run: rebar3 as test eunit
+      env:
+        COUCHDB_URL: http://localhost:5984
+        COUCHDB_ADMIN: admin
+        COUCHDB_PASSWORD: change_me
+
+    - name: Run dialyzer
+      run: rebar3 dialyzer
+
+  freebsd:
+    name: FreeBSD OTP ${{ matrix.otp }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ['27']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test on FreeBSD
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        prepare: |
+          pkg install -y erlang rebar3 couchdb3
+          # Configure CouchDB
+          echo '[admins]' >> /usr/local/etc/couchdb/local.ini
+          echo 'admin = change_me' >> /usr/local/etc/couchdb/local.ini
+          echo '[couchdb]' >> /usr/local/etc/couchdb/local.ini
+          echo 'single_node = true' >> /usr/local/etc/couchdb/local.ini
+          # Start CouchDB
+          service couchdb onestart
+          sleep 5
+          # Create system databases
+          curl -X PUT http://admin:change_me@127.0.0.1:5984/_users
+          curl -X PUT http://admin:change_me@127.0.0.1:5984/_replicator
+          curl -X PUT http://admin:change_me@127.0.0.1:5984/_global_changes
+        run: |
+          export COUCHDB_URL=http://localhost:5984
+          export COUCHDB_ADMIN=admin
+          export COUCHDB_PASSWORD=change_me
+          rebar3 compile
+          rebar3 xref
+          rebar3 as test eunit
