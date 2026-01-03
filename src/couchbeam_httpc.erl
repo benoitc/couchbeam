@@ -67,7 +67,7 @@ maybe_proxyauth_header(Headers, Options) ->
       {lists:append([ProxyauthProps,Headers]), proplists:delete(proxyauth, Options)}
   end.
 
-db_resp({ok, Ref}=Resp, _Expect) when is_reference(Ref) ->
+db_resp({ok, Ref}=Resp, _Expect) when is_pid(Ref) ->
     Resp;
 db_resp({ok, 401, _}, _Expect) ->
     {error, unauthenticated};
