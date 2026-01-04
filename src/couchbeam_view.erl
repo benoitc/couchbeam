@@ -104,8 +104,8 @@ fetch_sync_fun(Db) ->
     fun(Args, Url) ->
         case view_request(Db, Url, Args) of
             {ok, _, _, Ref} ->
-                {Props} = couchbeam_httpc:json_body(Ref),
-                {ok, couchbeam_util:get_value(<<"rows">>, Props)};
+                Props = couchbeam_httpc:json_body(Ref),
+                {ok, maps:get(<<"rows">>, Props)};
             Error ->
                 Error
         end
@@ -308,8 +308,8 @@ count(Db, ViewName, Options)->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      couchbeam_util:get_value(<<"total_rows">>, Props);
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      maps:get(<<"total_rows">>, Props);
                                                   Error ->
                                                       Error
                                               end
@@ -357,8 +357,8 @@ first(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      case couchbeam_util:get_value(<<"rows">>, Props) of
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      case maps:get(<<"rows">>, Props) of
                                                           [] ->
                                                               {ok, nil};
                                                           [Row] ->
@@ -897,9 +897,9 @@ view_test() ->
         ?assertEqual(2, Count),
 
         %% Test first
-        {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"}, [include_docs, sync_query]),
-        {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
-        ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
+        {ok, FirstRow} = couchbeam_view:first(Db, {"couchbeam", "test"}, [include_docs, sync_query]),
+        Doc1 = maps:get(<<"doc">>, FirstRow),
+        ?assertEqual(<<"test">>, maps:get(<<"type">>, Doc1)),
 
         %% Test with start_key/end_key
         {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, sync_query]),
@@ -950,69 +950,59 @@ view_mock_response(Url) ->
                     case HasLimit1 of
                         true ->
                             %% first/3 - return single row
-                            {[
-                                {<<"total_rows">>, 2},
-                                {<<"offset">>, 0},
-                                {<<"rows">>, [
-                                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>},
-                                      {<<"value">>, {[{<<"_id">>, <<"doc1">>}]}},
-                                      {<<"doc">>, {[{<<"_id">>, <<"doc1">>}, {<<"type">>, <<"test">>}]}}]}
-                                ]}
-                            ]};
+                            #{<<"total_rows">> => 2,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc1">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc1">>, <<"type">> => <<"test">>}}
+                              ]};
                         false ->
                             %% Normal query - return 2 docs
-                            {[
-                                {<<"total_rows">>, 2},
-                                {<<"offset">>, 0},
-                                {<<"rows">>, [
-                                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>},
-                                      {<<"value">>, {[{<<"_id">>, <<"doc1">>}]}},
-                                      {<<"doc">>, {[{<<"_id">>, <<"doc1">>}, {<<"type">>, <<"test">>}]}}]},
-                                    {[{<<"id">>, <<"doc2">>}, {<<"key">>, <<"doc2">>},
-                                      {<<"value">>, {[{<<"_id">>, <<"doc2">>}]}},
-                                      {<<"doc">>, {[{<<"_id">>, <<"doc2">>}, {<<"type">>, <<"test">>}]}}]}
-                                ]}
-                            ]}
+                            #{<<"total_rows">> => 2,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc1">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc1">>, <<"type">> => <<"test">>}},
+                                  #{<<"id">> => <<"doc2">>, <<"key">> => <<"doc2">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc2">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc2">>, <<"type">> => <<"test">>}}
+                              ]}
                     end;
                 _ ->
                     %% Query with start_key - check for end_key
                     case binary:match(UrlBin, <<"end_key">>) of
                         nomatch ->
                             %% Just start_key - return 4 docs
-                            {[
-                                {<<"total_rows">>, 4},
-                                {<<"offset">>, 0},
-                                {<<"rows">>, [
-                                    {[{<<"id">>, <<"test1">>}, {<<"key">>, <<"test1">>}, {<<"value">>, 1}]},
-                                    {[{<<"id">>, <<"test2">>}, {<<"key">>, <<"test2">>}, {<<"value">>, 2}]},
-                                    {[{<<"id">>, <<"test3">>}, {<<"key">>, <<"test3">>}, {<<"value">>, 3}]},
-                                    {[{<<"id">>, <<"test4">>}, {<<"key">>, <<"test4">>}, {<<"value">>, 4}]}
-                                ]}
-                            ]};
+                            #{<<"total_rows">> => 4,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"test1">>, <<"key">> => <<"test1">>, <<"value">> => 1},
+                                  #{<<"id">> => <<"test2">>, <<"key">> => <<"test2">>, <<"value">> => 2},
+                                  #{<<"id">> => <<"test3">>, <<"key">> => <<"test3">>, <<"value">> => 3},
+                                  #{<<"id">> => <<"test4">>, <<"key">> => <<"test4">>, <<"value">> => 4}
+                              ]};
                         _ ->
                             %% start_key and end_key - return 3 docs
-                            {[
-                                {<<"total_rows">>, 3},
-                                {<<"offset">>, 0},
-                                {<<"rows">>, [
-                                    {[{<<"id">>, <<"test1">>}, {<<"key">>, <<"test1">>}, {<<"value">>, 1}]},
-                                    {[{<<"id">>, <<"test2">>}, {<<"key">>, <<"test2">>}, {<<"value">>, 2}]},
-                                    {[{<<"id">>, <<"test3">>}, {<<"key">>, <<"test3">>}, {<<"value">>, 3}]}
-                                ]}
-                            ]}
+                            #{<<"total_rows">> => 3,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"test1">>, <<"key">> => <<"test1">>, <<"value">> => 1},
+                                  #{<<"id">> => <<"test2">>, <<"key">> => <<"test2">>, <<"value">> => 2},
+                                  #{<<"id">> => <<"test3">>, <<"key">> => <<"test3">>, <<"value">> => 3}
+                              ]}
                     end
             end;
         _ ->
             %% _all_docs - return 3 docs
-            {[
-                {<<"total_rows">>, 3},
-                {<<"offset">>, 0},
-                {<<"rows">>, [
-                    {[{<<"id">>, <<"_design/couchbeam">>}, {<<"key">>, <<"_design/couchbeam">>}, {<<"value">>, {[]}}]},
-                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>}, {<<"value">>, {[]}}]},
-                    {[{<<"id">>, <<"doc2">>}, {<<"key">>, <<"doc2">>}, {<<"value">>, {[]}}]}
-                ]}
-            ]}
+            #{<<"total_rows">> => 3,
+              <<"offset">> => 0,
+              <<"rows">> => [
+                  #{<<"id">> => <<"_design/couchbeam">>, <<"key">> => <<"_design/couchbeam">>, <<"value">> => #{}},
+                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>, <<"value">> => #{}},
+                  #{<<"id">> => <<"doc2">>, <<"key">> => <<"doc2">>, <<"value">> => #{}}
+              ]}
     end,
     couchbeam_mocks:set_body(Ref, Response),
     {ok, 200, [], Ref}.

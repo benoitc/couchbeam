@@ -31,10 +31,11 @@
 -type design_name() :: binary() | string().
 -type view_name() :: binary() | string().
 
+%% JSON types now use maps instead of proplists
 -type ejson() :: ejson_object() | ejson_array().
 
 -type ejson_array() :: [ejson_term()].
--type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
+-type ejson_object() :: map().
 
 -type ejson_key() :: binary() | atom().
 
