@@ -1408,10 +1408,25 @@ doc_mock_handle_request(put, Url, _Headers, Body) ->
     %% save_doc - PUT /db/docid
     DocId = extract_mock_docid(Url),
     Docs = get(mock_docs),
+    {DocProps} = couchbeam_ejson:decode(Body),
+    %% Extract and store inline attachments if present
+    case proplists:get_value(<<"_attachments">>, DocProps) of
+        undefined -> ok;
+        {AttList} ->
+            Atts = case get(mock_attachments) of undefined -> #{}; A -> A end,
+            NewAtts = lists:foldl(fun({AttName, {AttProps}}, Acc) ->
+                case proplists:get_value(<<"data">>, AttProps) of
+                    undefined -> Acc;
+                    Base64Data ->
+                        Data = base64:decode(Base64Data),
+                        maps:put({DocId, AttName}, Data, Acc)
+                end
+            end, Atts, AttList),
+            put(mock_attachments, NewAtts)
+    end,
     case maps:is_key(DocId, Docs) of
         true ->
             %% Check if update (has _rev) or conflict
-            {DocProps} = couchbeam_ejson:decode(Body),
             case proplists:get_value(<<"_rev">>, DocProps) of
                 undefined ->
                     {error, conflict};
@@ -1428,7 +1443,6 @@ doc_mock_handle_request(put, Url, _Headers, Body) ->
         false ->
             %% New document
             NewRev = generate_mock_rev(),
-            {DocProps} = couchbeam_ejson:decode(Body),
             NewDoc = {[{<<"_id">>, DocId}, {<<"_rev">>, NewRev} |
                        proplists:delete(<<"_rev">>, proplists:delete(<<"_id">>, DocProps))]},
             put(mock_docs, maps:put(DocId, {NewDoc, NewRev}, Docs)),
@@ -1662,6 +1676,136 @@ copy_doc_test() ->
     ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
     ok.
 
+
+attachments_mock_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_attachments, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for document and attachment operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                att_mock_handle_request(Method, Url, Headers, Body)
+            end),
+
+        %% Mock hackney:get for fetch_attachment
+        meck:expect(hackney, get, fun(Url, _Headers, _Body, _Opts) ->
+            case extract_mock_attachment_info(Url) of
+                {DocId, AttName} ->
+                    Atts = get(mock_attachments),
+                    case maps:get({DocId, AttName}, Atts, undefined) of
+                        undefined ->
+                            {ok, 404, [], make_ref()};
+                        AttBody ->
+                            Ref = make_ref(),
+                            couchbeam_mocks:set_body(Ref, AttBody),
+                            {ok, 200, [], Ref}
+                    end;
+                _ ->
+                    {ok, 404, [], make_ref()}
+            end
+        end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Create a document
+        Doc = {[{<<"_id">>, <<"test">>}]},
+        {ok, Doc1} = couchbeam:save_doc(Db, Doc),
+        RevDoc1 = couchbeam_doc:get_rev(Doc1),
+
+        %% Put attachment
+        {ok, {Res}} = couchbeam:put_attachment(Db, "test", "test.txt", <<"hello">>, [{rev, RevDoc1}]),
+        RevDoc11 = proplists:get_value(<<"rev">>, Res),
+        ?assertNot(RevDoc1 =:= RevDoc11),
+
+        %% Fetch attachment
+        {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test.txt"),
+        ?assertEqual(<<"hello">>, Attachment),
+
+        %% Open doc and delete attachment
+        {ok, Doc2} = couchbeam:open_doc(Db, "test"),
+        ?assertMatch({ok, {_}}, couchbeam:delete_attachment(Db, Doc2, "test.txt")),
+
+        %% Verify attachment is deleted
+        ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test", "test.txt")),
+
+        %% Test inline attachments
+        Doc3 = {[{<<"_id">>, <<"test2">>}]},
+        Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
+        {ok, _} = couchbeam:save_doc(Db, Doc4),
+        {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
+        ?assertEqual(<<"test">>, Attachment1),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_attachments),
+        erase(mock_uuid_counter),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper for attachments mock test
+att_mock_handle_request(put, Url, _Headers, Body) ->
+    case is_attachment_url(Url) of
+        {true, DocId, AttName} ->
+            %% PUT attachment
+            Atts = get(mock_attachments),
+            BodyBin = if is_binary(Body) -> Body; true -> iolist_to_binary(Body) end,
+            put(mock_attachments, maps:put({DocId, AttName}, BodyBin, Atts)),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, NewRev}]}),
+            {ok, 201, [], Ref};
+        false ->
+            %% Regular doc PUT
+            doc_mock_handle_request(put, Url, [], Body)
+    end;
+att_mock_handle_request(delete, Url, _Headers, _Body) ->
+    case is_attachment_url(Url) of
+        {true, DocId, AttName} ->
+            Atts = get(mock_attachments),
+            put(mock_attachments, maps:remove({DocId, AttName}, Atts)),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"rev">>, NewRev}]}),
+            {ok, 200, [], Ref};
+        false ->
+            doc_mock_handle_request(delete, Url, [], <<>>)
+    end;
+att_mock_handle_request(Method, Url, Headers, Body) ->
+    doc_mock_handle_request(Method, Url, Headers, Body).
+
+%% Check if URL is for an attachment (has 3 path parts: db/doc/att)
+is_attachment_url(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId, AttName | _] ->
+                    %% Check it's not a special endpoint
+                    case binary:match(AttName, <<"_">>) of
+                        {0, _} -> false;  % _all_docs, _bulk_docs, etc.
+                        _ -> {true, DocId, AttName}
+                    end;
+                _ -> false
+            end;
+        _ -> false
+    end.
+
+%% Extract doc id and attachment name from URL
+extract_mock_attachment_info(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId, AttName | _] -> {DocId, AttName};
+                _ -> undefined
+            end;
+        _ -> undefined
+    end.
 
 attachments_test() ->
     start_couchbeam_tests(),
