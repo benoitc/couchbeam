@@ -192,13 +192,6 @@ wait_mp_doc(Ref, Buffer) ->
                             end},
                     {doc, Doc, NState}
             end;
-        mp_mixed ->
-            %% we are starting a multipart/mixed (probably on revs)
-            %% continue
-            wait_mp_doc(Ref, Buffer);
-        mp_mixed_eof ->
-            %% end of multipar/mixed wait for the next doc
-            wait_mp_doc(Ref, Buffer);
         eof ->
             eof
     end.
@@ -235,9 +228,6 @@ wait_mp_att(Ref, {AttName, AttNames}) ->
             %% wait for the next attachment
             NState = {Ref, fun() -> wait_mp_att(Ref, {nil, AttNames}) end},
             {att_eof, AttName, NState};
-        mp_mixed_eof ->
-            %% wait for the next doc
-            wait_mp_doc(Ref, <<>>);
         eof ->
             %% we are done with the multipart request
             eof

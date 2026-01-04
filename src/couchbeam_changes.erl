@@ -45,12 +45,12 @@ follow(Db) ->
     follow(Db, []).
 
 %% @doc Start following changes on a database with options
--spec follow(Db::db(), Options::list()) -> {ok, reference()} | {error, term()}.
+-spec follow(Db::db(), Options::list()) -> {ok, reference()}.
 follow(Db, Options) ->
     follow(Db, Options, self()).
 
 %% @doc Start following changes, sending messages to specified pid
--spec follow(Db::db(), Options::list(), To::pid()) -> {ok, reference()} | {error, term()}.
+-spec follow(Db::db(), Options::list(), To::pid()) -> {ok, reference()}.
 follow(Db, Options, To) ->
     Ref = make_ref(),
     Options1 = parse_options(Options, []),
@@ -141,12 +141,8 @@ follow_once(Db, Options) ->
             FinalOptions = couchbeam_util:force_param(reconnect_after, false, Options1),
             case proplists:get_value(feed, FinalOptions) of
                 longpoll ->
-                    case follow(Db, FinalOptions) of
-                        {ok, Ref} ->
-                            collect_changes(Ref);
-                        {error, _} = Error ->
-                            Error
-                    end;
+                    {ok, Ref} = follow(Db, FinalOptions),
+                    collect_changes(Ref);
                 _ ->
                     changes_request(Db, FinalOptions)
             end
