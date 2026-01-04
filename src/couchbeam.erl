@@ -1106,6 +1106,30 @@ basic_test() ->
     ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
     ok.
 
+basic_mock_test() ->
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock hackney:get for server_info
+        ServerInfoResponse = {[{<<"couchdb">>, <<"Welcome">>},
+                               {<<"version">>, <<"3.3.0">>},
+                               {<<"uuid">>, <<"test-uuid">>}]},
+        Ref = make_ref(),
+        meck:expect(hackney, get, fun(_Url, _Headers, _Body, _Opts) ->
+            couchbeam_mocks:set_body(Ref, ServerInfoResponse),
+            {ok, 200, [], Ref}
+        end),
+
+        Server = couchbeam:server_connection(),
+        {ok, {Data}} = couchbeam:server_info(Server),
+        ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
+        ?assertEqual(<<"3.3.0">>, proplists:get_value(<<"version">>, Data)),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
+
 db_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
