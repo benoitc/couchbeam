@@ -608,4 +608,158 @@ with_view_stream(Ref, Fun) ->
             end
     end.
 
-%% View tests require CouchDB with JavaScript views - see integration tests
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+%% Mock view tests - return pre-computed results based on JS map function logic
+%% Uses sync_query option to avoid async streaming which is harder to mock
+view_test() ->
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for view queries
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, Url, _H, _B, _O, _E) ->
+                view_mock_response(Url);
+               (post, Url, _H, _B, _O, _E) ->
+                view_mock_response(Url)
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Test _all_docs - returns 3 docs (design doc + 2 test docs)
+        {ok, AllDocs} = couchbeam_view:fetch(Db, 'all_docs', [sync_query]),
+        ?assertEqual(3, length(AllDocs)),
+
+        %% Test named view - returns docs where type == "test" (2 docs)
+        {ok, Rst} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [sync_query]),
+        ?assertEqual(2, length(Rst)),
+
+        %% Test count
+        Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
+        ?assertEqual(2, Count),
+
+        %% Test first
+        {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"}, [include_docs, sync_query]),
+        {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
+        ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
+
+        %% Test with start_key/end_key
+        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, sync_query]),
+        ?assertEqual(4, length(Rst3)),
+
+        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, {end_key, <<"test3">>}, sync_query]),
+        ?assertEqual(3, length(Rst4)),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
+
+view_notfound_test() ->
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request to return 404 for non-existent view
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, _Url, _H, _B, _O, _E) ->
+                {error, not_found}
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        ?assertEqual({error, not_found}, couchbeam_view:fetch(Db, {"couchbeam", "test"}, [sync_query])),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper to generate mock view responses based on URL
+view_mock_response(Url) ->
+    UrlBin = iolist_to_binary(Url),
+    Ref = make_ref(),
+    %% Check for limit=1 (used by first/3)
+    HasLimit1 = case binary:match(UrlBin, <<"limit=1">>) of
+        nomatch -> false;
+        _ -> true
+    end,
+    Response = case binary:match(UrlBin, <<"_all_docs">>) of
+        nomatch ->
+            %% Named view query - check for options
+            case binary:match(UrlBin, <<"start_key">>) of
+                nomatch ->
+                    %% Basic view query - return docs where type == "test"
+                    case HasLimit1 of
+                        true ->
+                            %% first/3 - return single row
+                            {[
+                                {<<"total_rows">>, 2},
+                                {<<"offset">>, 0},
+                                {<<"rows">>, [
+                                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>},
+                                      {<<"value">>, {[{<<"_id">>, <<"doc1">>}]}},
+                                      {<<"doc">>, {[{<<"_id">>, <<"doc1">>}, {<<"type">>, <<"test">>}]}}]}
+                                ]}
+                            ]};
+                        false ->
+                            %% Normal query - return 2 docs
+                            {[
+                                {<<"total_rows">>, 2},
+                                {<<"offset">>, 0},
+                                {<<"rows">>, [
+                                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>},
+                                      {<<"value">>, {[{<<"_id">>, <<"doc1">>}]}},
+                                      {<<"doc">>, {[{<<"_id">>, <<"doc1">>}, {<<"type">>, <<"test">>}]}}]},
+                                    {[{<<"id">>, <<"doc2">>}, {<<"key">>, <<"doc2">>},
+                                      {<<"value">>, {[{<<"_id">>, <<"doc2">>}]}},
+                                      {<<"doc">>, {[{<<"_id">>, <<"doc2">>}, {<<"type">>, <<"test">>}]}}]}
+                                ]}
+                            ]}
+                    end;
+                _ ->
+                    %% Query with start_key - check for end_key
+                    case binary:match(UrlBin, <<"end_key">>) of
+                        nomatch ->
+                            %% Just start_key - return 4 docs
+                            {[
+                                {<<"total_rows">>, 4},
+                                {<<"offset">>, 0},
+                                {<<"rows">>, [
+                                    {[{<<"id">>, <<"test1">>}, {<<"key">>, <<"test1">>}, {<<"value">>, 1}]},
+                                    {[{<<"id">>, <<"test2">>}, {<<"key">>, <<"test2">>}, {<<"value">>, 2}]},
+                                    {[{<<"id">>, <<"test3">>}, {<<"key">>, <<"test3">>}, {<<"value">>, 3}]},
+                                    {[{<<"id">>, <<"test4">>}, {<<"key">>, <<"test4">>}, {<<"value">>, 4}]}
+                                ]}
+                            ]};
+                        _ ->
+                            %% start_key and end_key - return 3 docs
+                            {[
+                                {<<"total_rows">>, 3},
+                                {<<"offset">>, 0},
+                                {<<"rows">>, [
+                                    {[{<<"id">>, <<"test1">>}, {<<"key">>, <<"test1">>}, {<<"value">>, 1}]},
+                                    {[{<<"id">>, <<"test2">>}, {<<"key">>, <<"test2">>}, {<<"value">>, 2}]},
+                                    {[{<<"id">>, <<"test3">>}, {<<"key">>, <<"test3">>}, {<<"value">>, 3}]}
+                                ]}
+                            ]}
+                    end
+            end;
+        _ ->
+            %% _all_docs - return 3 docs
+            {[
+                {<<"total_rows">>, 3},
+                {<<"offset">>, 0},
+                {<<"rows">>, [
+                    {[{<<"id">>, <<"_design/couchbeam">>}, {<<"key">>, <<"_design/couchbeam">>}, {<<"value">>, {[]}}]},
+                    {[{<<"id">>, <<"doc1">>}, {<<"key">>, <<"doc1">>}, {<<"value">>, {[]}}]},
+                    {[{<<"id">>, <<"doc2">>}, {<<"key">>, <<"doc2">>}, {<<"value">>, {[]}}]}
+                ]}
+            ]}
+    end,
+    couchbeam_mocks:set_body(Ref, Response),
+    {ok, 200, [], Ref}.
+
+-endif.

@@ -1678,4 +1678,176 @@ extract_mock_attachment_info(Url) when is_binary(Url) ->
         _ -> undefined
     end.
 
+%% Multipart test - tests open_doc with attachments returning multipart response
+multipart_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_mp_state, init),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request to return multipart response
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, _Url, _H, _B, _O, _E) ->
+                Ref = make_ref(),
+                put(mock_mp_ref, Ref),
+                {ok, 200, [{<<"Content-Type">>, <<"multipart/related; boundary=xyz">>}], Ref}
+            end),
+
+        %% Mock hackney_headers:parse to detect multipart
+        meck:new(hackney_headers, [passthrough, no_link]),
+        meck:expect(hackney_headers, parse, fun(<<"content-type">>, _) ->
+            {<<"multipart">>, <<"related">>, [{<<"boundary">>, <<"xyz">>}]}
+        end),
+
+        %% Mock hackney:stream_multipart with state machine
+        meck:expect(hackney, stream_multipart, fun(_Ref) ->
+            mp_next_event()
+        end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Test multipart response
+        {ok, {multipart, Stream}} = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
+        Collected = collect_mp(couchbeam:stream_doc(Stream), []),
+        ?assert(proplists:is_defined(doc, Collected)),
+        MpDoc = proplists:get_value(doc, Collected),
+        ?assertEqual(<<"test">>, couchbeam_doc:get_id(MpDoc)),
+        ?assertEqual(<<"hello">>, proplists:get_value(<<"test.txt">>, Collected)),
+        ok
+    after
+        erase(mock_mp_state),
+        erase(mock_mp_ref),
+        catch meck:unload(hackney_headers),
+        couchbeam_mocks:teardown()
+    end.
+
+%% State machine for multipart events
+mp_next_event() ->
+    State = get(mock_mp_state),
+    {Event, NextState} = case State of
+        init ->
+            {{headers, [{<<"Content-Type">>, <<"application/json">>}]}, doc_body};
+        doc_body ->
+            Doc = couchbeam_ejson:encode({[
+                {<<"_id">>, <<"test">>},
+                {<<"_rev">>, <<"1-abc">>},
+                {<<"_attachments">>, {[
+                    {<<"test.txt">>, {[
+                        {<<"content_type">>, <<"text/plain">>},
+                        {<<"length">>, 5},
+                        {<<"follows">>, true}
+                    ]}}
+                ]}}
+            ]}),
+            {{body, Doc}, doc_end};
+        doc_end ->
+            {end_of_part, att_headers};
+        att_headers ->
+            {{headers, [{<<"Content-Disposition">>, <<"attachment; filename=\"test.txt\"">>}]}, att_body};
+        att_body ->
+            {{body, <<"hello">>}, att_end};
+        att_end ->
+            {end_of_part, done};
+        done ->
+            {eof, done}
+    end,
+    put(mock_mp_state, NextState),
+    Event.
+
+%% Collect multipart results
+collect_mp({doc, Doc, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), [{doc, Doc}|Acc]);
+collect_mp({att, Name, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>}|Acc]);
+collect_mp({att_body, Name, Chunk, Next}, Acc) ->
+    Buffer = proplists:get_value(Name, Acc, <<>>),
+    collect_mp(couchbeam:stream_doc(Next), lists:keystore(Name, 1, Acc, {Name, <<Buffer/binary, Chunk/binary>>}));
+collect_mp({att_eof, _Name, Next}, Acc) ->
+    collect_mp(couchbeam:stream_doc(Next), Acc);
+collect_mp(eof, Acc) ->
+    Acc.
+
+%% Replicate test - tests replication document creation and related operations
+replicate_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    %% Mock UUIDs for replication doc
+    meck:new(couchbeam_uuids, [passthrough, no_link]),
+    meck:expect(couchbeam_uuids, get_uuids, fun(_Server, _Count) ->
+        [generate_mock_uuid()]
+    end),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for replication operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, _H, Body, _O, _E) ->
+                replicate_mock_handle(Method, Url, Body)
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"source">>, options=[]},
+        Db2 = #db{server=Server, name = <<"target">>, options=[]},
+
+        %% Test replicate - creates a replication document
+        {ok, RepDoc} = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
+        ?assert(couchbeam_doc:is_saved(RepDoc)),
+
+        %% Test get_missing_revs
+        {ok, Missing} = couchbeam:get_missing_revs(Db2, [{<<"doc1">>, [<<"1-abc">>, <<"2-def">>]}]),
+        ?assertEqual([{<<"doc1">>, [<<"1-abc">>, <<"2-def">>], []}], Missing),
+
+        %% Test ensure_full_commit
+        {ok, StartTime} = couchbeam:ensure_full_commit(Db),
+        ?assert(is_binary(StartTime)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Handle replication-related mock requests
+replicate_mock_handle(put, Url, Body) ->
+    UrlBin = iolist_to_binary(Url),
+    case binary:match(UrlBin, <<"_replicator">>) of
+        nomatch ->
+            doc_mock_handle_request(put, Url, [], Body);
+        _ ->
+            %% Save replication doc to _replicator
+            DocId = generate_mock_uuid(),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, NewRev}]}),
+            {ok, 201, [], Ref}
+    end;
+replicate_mock_handle(post, Url, Body) ->
+    UrlBin = iolist_to_binary(Url),
+    case binary:match(UrlBin, <<"_revs_diff">>) of
+        nomatch ->
+            case binary:match(UrlBin, <<"_ensure_full_commit">>) of
+                nomatch ->
+                    {ok, 200, [], make_ref()};
+                _ ->
+                    %% ensure_full_commit
+                    Ref = make_ref(),
+                    couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"instance_start_time">>, <<"0">>}]}),
+                    {ok, 201, [], Ref}
+            end;
+        _ ->
+            %% _revs_diff - return all revisions as missing
+            {IdRevs} = couchbeam_ejson:decode(Body),
+            Result = lists:foldl(fun({DocId, Revs}, Acc) ->
+                [{DocId, {[{<<"missing">>, Revs}]}} | Acc]
+            end, [], IdRevs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {Result}),
+            {ok, 200, [], Ref}
+    end;
+replicate_mock_handle(Method, Url, Body) ->
+    doc_mock_handle_request(Method, Url, [], Body).
+
 -endif.
