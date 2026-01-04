@@ -521,3 +521,109 @@ changes_request(#db{server = Server, options = ConnOptions} = Db, Options) ->
             Error
     end.
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+%% Test parse_lines helper
+parse_lines_test() ->
+    %% Create a minimal state for testing
+    State = #state{
+        owner = self(),
+        ref = make_ref(),
+        buffer_size = 0,
+        buffer = [],
+        last_seq = 0
+    },
+
+    %% Test single complete line
+    Line1 = <<"{\"seq\":1,\"id\":\"doc1\",\"changes\":[{\"rev\":\"1-abc\"}]}\n">>,
+    {State1, Remaining1} = parse_lines(Line1, State),
+    ?assertEqual(<<>>, Remaining1),
+    ?assertEqual(1, State1#state.last_seq),
+
+    %% Test incomplete line (no newline)
+    Incomplete = <<"{\"seq\":2,\"id\":\"doc2\"">>,
+    {State2, Remaining2} = parse_lines(Incomplete, State),
+    ?assertEqual(Incomplete, Remaining2),
+    ?assertEqual(0, State2#state.last_seq),
+
+    %% Test multiple lines
+    MultiLine = <<"{\"seq\":1,\"id\":\"a\",\"changes\":[]}\n{\"seq\":2,\"id\":\"b\",\"changes\":[]}\n">>,
+    {State3, Remaining3} = parse_lines(MultiLine, State),
+    ?assertEqual(<<>>, Remaining3),
+    ?assertEqual(2, State3#state.last_seq),
+
+    %% Test empty lines (heartbeat)
+    WithEmpty = <<"\n\n{\"seq\":3,\"id\":\"c\",\"changes\":[]}\n">>,
+    {State4, _} = parse_lines(WithEmpty, State),
+    ?assertEqual(3, State4#state.last_seq),
+    ok.
+
+%% Test follow_once with mocked response
+follow_once_test() ->
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request to return changes response
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, Url, _H, _B, _O, _E) ->
+                UrlBin = iolist_to_binary(Url),
+                case binary:match(UrlBin, <<"_changes">>) of
+                    nomatch ->
+                        {error, not_found};
+                    _ ->
+                        Ref = make_ref(),
+                        meck:expect(hackney, body, fun(_) ->
+                            Changes = [
+                                #{<<"seq">> => 1, <<"id">> => <<"doc1">>, <<"changes">> => [#{<<"rev">> => <<"1-abc">>}]},
+                                #{<<"seq">> => 2, <<"id">> => <<"doc2">>, <<"changes">> => [#{<<"rev">> => <<"1-def">>}]}
+                            ],
+                            Body = couchbeam_ejson:encode(#{
+                                <<"results">> => Changes,
+                                <<"last_seq">> => 2
+                            }),
+                            {ok, Body}
+                        end),
+                        {ok, 200, [], Ref}
+                end
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server = Server, name = <<"testdb">>, options = []},
+
+        {ok, LastSeq, Changes} = follow_once(Db, [normal]),
+        ?assertEqual(2, LastSeq),
+        ?assertEqual(2, length(Changes)),
+
+        [C1, C2] = Changes,
+        ?assertEqual(<<"doc1">>, maps:get(<<"id">>, C1)),
+        ?assertEqual(<<"doc2">>, maps:get(<<"id">>, C2)),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
+
+%% Test option parsing
+parse_options_test() ->
+    %% Test continuous option
+    Opts1 = parse_options([continuous], []),
+    ?assertEqual(continuous, proplists:get_value(feed, Opts1)),
+
+    %% Test longpoll option
+    Opts2 = parse_options([longpoll], []),
+    ?assertEqual(longpoll, proplists:get_value(feed, Opts2)),
+
+    %% Test include_docs
+    Opts3 = parse_options([include_docs], []),
+    ?assertEqual(true, proplists:get_value(include_docs, Opts3)),
+
+    %% Test combined options
+    Opts4 = parse_options([continuous, include_docs, {since, 10}], []),
+    ?assertEqual(continuous, proplists:get_value(feed, Opts4)),
+    ?assertEqual(true, proplists:get_value(include_docs, Opts4)),
+    ?assertEqual(10, proplists:get_value(since, Opts4)),
+    ok.
+
+-endif.
+

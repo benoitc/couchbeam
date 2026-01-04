@@ -154,3 +154,68 @@ utc_suffix(Suffix) ->
     Then = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
     Prefix = io_lib:format("~14.16.0b", [(Nowsecs - Then) * 1000000 + Micro]),
     list_to_binary(Prefix ++ Suffix).
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+%% Test random UUID generation
+random_test() ->
+    Uuid1 = random(),
+    Uuid2 = random(),
+
+    %% Should be binary
+    ?assert(is_binary(Uuid1)),
+    ?assert(is_binary(Uuid2)),
+
+    %% Should be 32 hex chars (16 bytes * 2)
+    ?assertEqual(32, byte_size(Uuid1)),
+    ?assertEqual(32, byte_size(Uuid2)),
+
+    %% Should be unique
+    ?assertNotEqual(Uuid1, Uuid2),
+
+    %% Should be valid hex
+    ?assertMatch({ok, _}, parse_hex(Uuid1)),
+    ok.
+
+%% Test UTC random UUID generation
+utc_random_test() ->
+    Uuid1 = utc_random(),
+    timer:sleep(1),  %% Ensure different timestamp
+    Uuid2 = utc_random(),
+
+    %% Should be binary
+    ?assert(is_binary(Uuid1)),
+    ?assert(is_binary(Uuid2)),
+
+    %% Should be 32 hex chars (14 prefix + 18 suffix)
+    ?assertEqual(32, byte_size(Uuid1)),
+    ?assertEqual(32, byte_size(Uuid2)),
+
+    %% Should be unique
+    ?assertNotEqual(Uuid1, Uuid2),
+
+    %% UTC UUIDs should sort chronologically
+    %% (earlier UUID should be "less than" later one)
+    ?assert(Uuid1 < Uuid2),
+
+    %% Should be valid hex
+    ?assertMatch({ok, _}, parse_hex(Uuid1)),
+    ok.
+
+%% Test multiple random UUIDs are unique
+random_uniqueness_test() ->
+    Uuids = [random() || _ <- lists:seq(1, 100)],
+    UniqueUuids = lists:usort(Uuids),
+    ?assertEqual(100, length(UniqueUuids)),
+    ok.
+
+%% Helper to validate hex string
+parse_hex(Bin) ->
+    try
+        {ok, binary_to_integer(Bin, 16)}
+    catch
+        _:_ -> {error, invalid_hex}
+    end.
+
+-endif.
