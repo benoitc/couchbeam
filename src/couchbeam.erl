@@ -1156,6 +1156,135 @@ db_test() ->
     ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
     ok.
 
+db_mock_test() ->
+    couchbeam_mocks:setup(),
+    %% Track created databases
+    put(mock_dbs, []),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for database operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, _Headers, _Body, _Options, _Expect) ->
+                db_mock_handle_request(Method, Url)
+            end),
+
+        %% Mock request for delete_db and open_or_create_db (use request directly)
+        meck:expect(couchbeam_httpc, request,
+            fun(delete, Url, _Headers, _Body, _Options) ->
+                DbName = extract_mock_dbname(Url),
+                Dbs = get(mock_dbs),
+                case lists:member(DbName, Dbs) of
+                    true ->
+                        put(mock_dbs, lists:delete(DbName, Dbs)),
+                        Ref = make_ref(),
+                        couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}]}),
+                        {ok, 200, [], Ref};
+                    false ->
+                        {ok, 404, [], make_ref()}
+                end;
+               (get, Url, _Headers, _Body, _Options) ->
+                %% open_or_create_db uses GET to check if db exists
+                DbName = extract_mock_dbname(Url),
+                Dbs = get(mock_dbs),
+                case lists:member(DbName, Dbs) of
+                    true ->
+                        Ref = make_ref(),
+                        couchbeam_mocks:set_body(Ref, {[{<<"db_name">>, DbName}]}),
+                        {ok, 200, [], Ref};
+                    false ->
+                        {ok, 404, [], make_ref()}
+                end;
+               (Method, Url, Headers, Body, Options) ->
+                meck:passthrough([Method, Url, Headers, Body, Options])
+            end),
+
+        Server = couchbeam:server_connection(),
+
+        %% Test db creation
+        ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb")),
+        ?assertEqual({error, db_exists}, couchbeam:create_db(Server, "couchbeam_testdb")),
+        ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb2")),
+
+        %% Test all_dbs
+        {ok, AllDbs} = couchbeam:all_dbs(Server),
+        ?assert(is_list(AllDbs)),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs)),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb2">>, AllDbs)),
+
+        %% Test db_exists
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+
+        %% Test delete_db
+        ?assertMatch({ok, _}, couchbeam:delete_db(Server, "couchbeam_testdb2")),
+        {ok, AllDbs1} = couchbeam:all_dbs(Server),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs1)),
+        ?assertEqual(false, lists:member(<<"couchbeam_testdb2">>, AllDbs1)),
+
+        %% Test db_exists after delete
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+        ?assertEqual(false, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+
+        %% Test open_or_create_db
+        ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb")),
+        ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
+        ok
+    after
+        erase(mock_dbs),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper for db_mock_test - handle db_request calls
+db_mock_handle_request(put, Url) ->
+    DbName = extract_mock_dbname(Url),
+    Dbs = get(mock_dbs),
+    case lists:member(DbName, Dbs) of
+        true ->
+            {error, precondition_failed};
+        false ->
+            put(mock_dbs, [DbName | Dbs]),
+            {ok, 201, [], make_ref()}
+    end;
+db_mock_handle_request(head, Url) ->
+    DbName = extract_mock_dbname(Url),
+    Dbs = get(mock_dbs),
+    case lists:member(DbName, Dbs) of
+        true -> {ok, 200, []};
+        false -> {error, not_found}
+    end;
+db_mock_handle_request(get, Url) ->
+    case binary:match(Url, <<"_all_dbs">>) of
+        nomatch ->
+            %% db_info request
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"db_name">>, <<"testdb">>}]}),
+            {ok, 200, [], Ref};
+        _ ->
+            %% all_dbs request
+            Dbs = get(mock_dbs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Dbs),
+            {ok, 200, [], Ref}
+    end;
+db_mock_handle_request(_Method, _Url) ->
+    {ok, 200, [], make_ref()}.
+
+%% Extract database name from URL
+extract_mock_dbname(Url) when is_binary(Url) ->
+    %% URL like "http://127.0.0.1:5984/dbname" or with query params
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            %% Path is like "/dbname" or "/dbname/"
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [DbName | _] -> DbName;
+                [] -> <<>>
+            end;
+        _ ->
+            <<>>
+    end.
+
 basic_doc_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
