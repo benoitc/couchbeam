@@ -20,6 +20,10 @@
          show/2, show/3, show/4
         ]).
 
+%% JSX decoder callbacks for view streaming
+-export([init/1, handle_event/2, wait_rows/2, wait_rows1/2, wait_val/2,
+         collect_object/2, maybe_continue_decoding/1, maybe_continue_view/1]).
+
 -define(COLLECT_TIMEOUT, 10000).
 
 -spec all(Db::db()) ->
@@ -238,40 +242,47 @@ stream(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               Ref = make_ref(),
                                               Req = {Db, Url, Args},
-                                              case supervisor:start_child(couchbeam_view_sup, [To,
-                                                                                               Ref,
-                                                                                               Req,
-                                                                                               Options]) of
-                                                  {ok, _Pid} ->
-                                                      {ok, Ref};
-                                                  Error ->
-                                                      Error
-                                              end
+                                              AsyncMode = proplists:get_value(async, Options, normal),
+                                              %% Spawn linked process instead of using supervisor
+                                              StreamPid = spawn_link(fun() ->
+                                                  init_view_stream(To, Ref, Req, Options, AsyncMode)
+                                              end),
+                                              %% Store in process dictionary for cancel/stream_next
+                                              put({view_stream, Ref}, StreamPid),
+                                              {ok, Ref}
                                       end).
 
 
 cancel_stream(Ref) ->
-    with_view_stream(Ref, fun(Pid) ->
-                                  case supervisor:terminate_child(couchbeam_view_sup, Pid) of
-                                      ok ->
-                                          case supervisor:delete_child(couchbeam_view_sup,
-                                                                       Pid) of
-                                              ok ->
-                                                  ok;
-                                              {error, not_found} ->
-                                                  ok;
-                                              Error ->
-                                                  Error
-                                          end;
-                                      Error ->
-                                          Error
-                                  end
-                          end).
+    case get({view_stream, Ref}) of
+        undefined ->
+            {error, stream_undefined};
+        Pid when is_pid(Pid) ->
+            case is_process_alive(Pid) of
+                true ->
+                    Pid ! {Ref, cancel},
+                    erase({view_stream, Ref}),
+                    ok;
+                false ->
+                    erase({view_stream, Ref}),
+                    {error, stream_undefined}
+            end
+    end.
 
 stream_next(Ref) ->
-    with_view_stream(Ref, fun(Pid) ->
-                                  Pid ! {Ref, stream_next}
-                          end).
+    case get({view_stream, Ref}) of
+        undefined ->
+            {error, stream_undefined};
+        Pid when is_pid(Pid) ->
+            case is_process_alive(Pid) of
+                true ->
+                    Pid ! {Ref, stream_next},
+                    ok;
+                false ->
+                    erase({view_stream, Ref}),
+                    {error, stream_undefined}
+            end
+    end.
 
 -spec count(Db::db()) -> integer() | {error, term()}.
 %% @equiv count(Db, 'all_docs', [])
@@ -592,20 +603,264 @@ view_request(#db{options=Opts}, Url, Args) ->
                                        Opts, [200])
     end.
 
-with_view_stream(Ref, Fun) ->
-    case ets:lookup(couchbeam_view_streams, Ref) of
-        [] ->
-            {error, stream_undefined};
-        [{Ref, Pid}] ->
-            %% Check if the process is still alive to avoid race conditions
-            case is_process_alive(Pid) of
-                true ->
-                    Fun(Pid);
-                false ->
-                    %% Clean up the stale entry
-                    ets:delete(couchbeam_view_streams, Ref),
-                    {error, stream_undefined}
-            end
+%% ----------------------------------
+%% View streaming implementation
+%% Uses hackney's process-per-connection model
+%% ----------------------------------
+
+-define(STREAM_TIMEOUT, 10000).
+
+-record(view_stream_state, {
+    owner :: pid(),
+    ref :: reference(),
+    mref :: reference(),
+    db :: db(),
+    url :: binary(),
+    args :: view_query_args(),
+    client_ref = nil :: pid() | nil,
+    decoder :: function(),
+    async = normal :: once | normal
+}).
+
+init_view_stream(Owner, Ref, {Db, Url, Args}, _Options, AsyncMode) ->
+    %% Monitor the owner - exit if owner dies
+    MRef = erlang:monitor(process, Owner),
+
+    State = #view_stream_state{
+        owner = Owner,
+        ref = Ref,
+        mref = MRef,
+        db = Db,
+        url = Url,
+        args = Args,
+        async = AsyncMode
+    },
+
+    case do_init_view_stream(State) of
+        {ok, State1} ->
+            view_stream_loop(State1);
+        {error, Reason} ->
+            Owner ! {Ref, {error, Reason}}
+    end.
+
+do_init_view_stream(#view_stream_state{mref = MRef, db = Db, url = Url,
+                                        args = Args} = State) ->
+    #db{options = Opts} = Db,
+
+    %% Async request with flow control
+    FinalOpts = [{async, once} | Opts],
+
+    Result = case Args#view_query_args.method of
+        get ->
+            couchbeam_httpc:request(get, Url, [], <<>>, FinalOpts);
+        post ->
+            Body = couchbeam_ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+            Headers = [{<<"Content-Type">>, <<"application/json">>}],
+            couchbeam_httpc:request(post, Url, Headers, Body, FinalOpts)
+    end,
+
+    case Result of
+        {ok, ClientRef} ->
+            receive
+                {'DOWN', MRef, _, _, _} ->
+                    exit(normal);
+                {hackney_response, ClientRef, {status, 200, _}} ->
+                    DecoderFun = jsx:decoder(?MODULE, [State], [stream]),
+                    {ok, State#view_stream_state{client_ref = ClientRef,
+                                                  decoder = DecoderFun}};
+                {hackney_response, ClientRef, {status, 404, _}} ->
+                    {error, not_found};
+                {hackney_response, ClientRef, {status, Status, Reason}} ->
+                    {error, {http_error, Status, Reason}};
+                {hackney_response, ClientRef, {error, Reason}} ->
+                    {error, Reason}
+            after ?STREAM_TIMEOUT ->
+                {error, timeout}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+view_stream_loop(#view_stream_state{owner = Owner, ref = Ref, mref = MRef,
+                                     client_ref = ClientRef} = State) ->
+    hackney:stream_next(ClientRef),
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {hackney_response, ClientRef, {headers, _Headers}} ->
+            view_stream_loop(State);
+        {hackney_response, ClientRef, done} ->
+            Owner ! {Ref, done};
+        {hackney_response, ClientRef, Data} when is_binary(Data) ->
+            decode_view_data(Data, State);
+        {hackney_response, ClientRef, {error, Reason}} ->
+            Owner ! {Ref, {error, Reason}},
+            exit(Reason);
+
+        %% Control messages
+        {Ref, stream_next} ->
+            view_stream_loop(State);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok}
+    end.
+
+decode_view_data(Data, #view_stream_state{owner = Owner, ref = Ref,
+                                           client_ref = ClientRef,
+                                           decoder = DecodeFun} = State) ->
+    try
+        {incomplete, DecodeFun2} = DecodeFun(Data),
+        try DecodeFun2(end_stream) of
+            done ->
+                catch hackney:stop_async(ClientRef),
+                catch hackney:skip_body(ClientRef),
+                Owner ! {Ref, done}
+        catch error:badarg ->
+            maybe_continue_view(State#view_stream_state{decoder = DecodeFun2})
+        end
+    catch error:badarg ->
+        hackney:close(ClientRef),
+        exit(badarg)
+    end.
+
+maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                        client_ref = ClientRef,
+                                        async = once} = State) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, stream_next} ->
+            view_stream_loop(State);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok}
+    after 0 ->
+        view_stream_loop(State)
+    end;
+maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                        client_ref = ClientRef} = State) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok};
+        {Ref, pause} ->
+            erlang:hibernate(?MODULE, maybe_continue_view, [State]);
+        {Ref, resume} ->
+            view_stream_loop(State)
+    after 0 ->
+        view_stream_loop(State)
+    end.
+
+init([State]) ->
+    {wait_rows, 0, [[]], State}.
+
+handle_event(end_json, _) ->
+    done;
+handle_event(Event, {Fun, _, _, _} = St) ->
+    ?MODULE:Fun(Event, St).
+
+wait_rows(start_object, St) ->
+    St;
+wait_rows(end_object, St) ->
+    St;
+wait_rows({key, <<"rows">>}, {_, _, _, St}) ->
+    {wait_rows1, 0, [[]], St};
+wait_rows({key, <<"total_rows">>}, {_, _, _, St}) ->
+    {wait_val, 0, [[]], St};
+wait_rows({key, <<"offset">>}, {_, _, _, St}) ->
+    {wait_val, 0, [[]], St}.
+
+wait_val({_, _}, {_, _, _, St}) ->
+    {wait_rows, 0, [[]], St}.
+
+wait_rows1(start_array, {_, _, _, St}) ->
+    {wait_rows1, 0, [[]], St};
+wait_rows1(start_object, {_, _, Terms, St}) ->
+    {collect_object, 0, [[] | Terms], St};
+wait_rows1(end_array, {_, _, _, St}) ->
+    {wait_rows, 0, [[]], St}.
+
+collect_object(start_object, {_, NestCount, Terms, St}) ->
+    {collect_object, NestCount + 1, [[] | Terms], St};
+
+collect_object(end_object, {_, NestCount, [[], {key, Key}, Last | Terms], St}) ->
+    {collect_object, NestCount - 1, [[{Key, {[{}]}}] ++ Last] ++ Terms, St};
+
+collect_object(end_object, {_, NestCount, [Object, {key, Key}, Last | Terms], St}) ->
+    {collect_object, NestCount - 1,
+     [[{Key, {lists:reverse(Object)}}] ++ Last] ++ Terms, St};
+
+collect_object(end_object, {_, 0, [[], Last | Terms], St}) ->
+    [[Row]] = [[{[{}]}] ++ Last] ++ Terms,
+    send_row(Row, St);
+
+collect_object(end_object, {_, NestCount, [[], Last | Terms], St}) ->
+    {collect_object, NestCount - 1, [[{[{}]}] ++ Last] ++ Terms, St};
+
+collect_object(end_object, {_, 0, [Object, Last | Terms], St}) ->
+    [[Row]] = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
+    send_row(Row, St);
+
+collect_object(end_object, {_, NestCount, [Object, Last | Terms], St}) ->
+    Acc = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
+    {collect_object, NestCount - 1, Acc, St};
+
+collect_object(start_array, {_, NestCount, Terms, St}) ->
+    {collect_object, NestCount, [[] | Terms], St};
+
+collect_object(end_array, {_, NestCount, [List, {key, Key}, Last | Terms], St}) ->
+    {collect_object, NestCount,
+     [[{Key, lists:reverse(List)}] ++ Last] ++ Terms, St};
+
+collect_object(end_array, {_, NestCount, [List, Last | Terms], St}) ->
+    {collect_object, NestCount, [[lists:reverse(List)] ++ Last] ++ Terms, St};
+
+collect_object({key, Key}, {_, NestCount, Terms, St}) ->
+    {collect_object, NestCount, [{key, Key}] ++ Terms, St};
+
+collect_object({_, Event}, {_, NestCount, [{key, Key}, Last | Terms], St}) ->
+    {collect_object, NestCount, [[{Key, Event}] ++ Last] ++ Terms, St};
+
+collect_object({_, Event}, {_, NestCount, [Last | Terms], St}) ->
+    {collect_object, NestCount, [[Event] ++ Last] ++ Terms, St}.
+
+send_row(Row, #view_stream_state{owner = Owner, ref = Ref} = St) ->
+    Owner ! {Ref, {row, couchbeam_ejson:post_decode(Row)}},
+    maybe_continue_decoding(St).
+
+maybe_continue_decoding(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                            client_ref = ClientRef,
+                                            async = once} = St) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, stream_next} ->
+            {wait_rows1, 0, [[]], St};
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok},
+            exit(normal)
+    after 5000 ->
+        erlang:hibernate(?MODULE, maybe_continue_decoding, [St])
+    end;
+
+maybe_continue_decoding(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                            client_ref = ClientRef} = St) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok},
+            exit(normal);
+        {Ref, pause} ->
+            erlang:hibernate(?MODULE, maybe_continue_decoding, [St]);
+        {Ref, resume} ->
+            {wait_rows1, 0, [[]], St}
+    after 0 ->
+        {wait_rows1, 0, [[]], St}
     end.
 
 -ifdef(TEST).

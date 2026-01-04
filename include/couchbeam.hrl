@@ -148,13 +148,8 @@
         http_options = []}).
 -type changes_args() :: #changes_args{}.
 
--record(gen_changes_state, {
-    stream_ref,
-    last_seq=0,
-    mod,
-    modstate,
-    db,
-    options}).
+%% Note: gen_changes behavior has been removed.
+%% Use couchbeam_changes:follow/2 with message handling instead.
 
 -define(USER_AGENT, "couchbeam/0.9.0").
 
