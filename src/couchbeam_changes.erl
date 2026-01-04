@@ -10,6 +10,9 @@
 
 -include("couchbeam.hrl").
 
+%% Import json_stream_parse state record for pattern matching
+-record(st, {phase, buf, i, in_string, escape, arr_depth, obj_depth, obj_start}).
+
 -export([follow/1, follow/2, follow/3,
          cancel/1,
          stream_next/1,
@@ -18,10 +21,6 @@
 %% Internal exports for spawn
 -export([init_stream/1]).
 
-%% JSX decoder callbacks (for longpoll mode)
--export([init/1, handle_event/2, wait_results/2, wait_results1/2,
-         collect_object/2, maybe_continue_decoding/1]).
-
 -record(state, {
     owner :: pid(),
     ref :: reference(),
@@ -29,7 +28,7 @@
     db :: db(),
     options :: list(),
     client_ref = nil :: pid() | nil,
-    decoder = nil :: function() | nil,
+    parser = nil :: term(),  %% json_stream_parse state or line buffer
     feed_type = continuous :: continuous | longpoll | normal,
     reconnect_after = 1000 :: integer() | false,
     async = normal :: once | normal,
@@ -193,7 +192,7 @@ do_init_stream(#state{mref = MRef, db = Db, options = Options,
         [] ->
             couchbeam_httpc:request(get, Url, [], <<>>, ConnOpts1);
         _ ->
-            Body = couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
+            Body = couchbeam_ejson:encode(#{<<"doc_ids">> => DocIds}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:request(post, Url, Headers, Body, ConnOpts1)
     end,
@@ -203,20 +202,20 @@ do_init_stream(#state{mref = MRef, db = Db, options = Options,
             %% Wait for initial status
             case {FeedType, proplists:get_value(since, Options, 0)} of
                 {continuous, now} ->
-                    {ok, State#state{decoder = nil, client_ref = ClientRef}};
+                    {ok, State#state{parser = <<>>, client_ref = ClientRef}};
                 _ ->
                     receive
                         {'DOWN', MRef, _, _, _} ->
                             exit(normal);
                         {hackney_response, ClientRef, {status, 200, _}} ->
-                            DecoderFun = case FeedType of
+                            Parser = case FeedType of
                                 longpoll ->
-                                    jsx:decoder(?MODULE, [State], [stream]);
+                                    json_stream_parse:init();
                                 _ ->
-                                    nil
+                                    <<>>  %% Line buffer for continuous
                             end,
                             {ok, State#state{client_ref = ClientRef,
-                                             decoder = DecoderFun}};
+                                             parser = Parser}};
                         {hackney_response, ClientRef, {status, Status, Reason}} ->
                             {error, {http_error, Status, Reason}};
                         {hackney_response, ClientRef, {error, Reason}} ->
@@ -331,66 +330,64 @@ maybe_continue(#state{ref = Ref, mref = MRef, owner = Owner} = State) ->
 %% Internal: JSON decoding
 %% ------------------------------------------------------------------
 
-decode_data(Data, #state{feed_type = continuous, decoder = DecodeFun} = State) ->
-    {incomplete, DecodeFun2} =
-        try
-            decode_with_tail(Data, DecodeFun, State)
-        catch error:badarg ->
-            maybe_close(State),
-            exit(badarg)
-        end,
+%% Continuous mode: line-based parsing (each change is a JSON object on its own line)
+decode_data(Data, #state{feed_type = continuous, parser = Buffer} = State) ->
+    NewBuffer = <<Buffer/binary, Data/binary>>,
+    {State1, Remaining} = parse_lines(NewBuffer, State),
+    maybe_continue(State1#state{parser = Remaining});
 
-    try DecodeFun2(end_stream) of
-        Props ->
-            State1 = send_change(Props, State),
-            maybe_continue(State1#state{decoder = nil})
-    catch error:badarg ->
-        maybe_continue(State#state{decoder = DecodeFun2})
+%% Longpoll mode: use json_stream_parse for streaming
+decode_data(Data, #state{feed_type = longpoll, parser = Parser,
+                         client_ref = ClientRef} = State) ->
+    {Changes, Parser1} = json_stream_parse:feed(Data, Parser),
+    State1 = lists:foldl(fun send_change/2, State, Changes),
+    case Parser1 of
+        #st{phase = done} ->
+            %% All results parsed
+            catch hackney:stop_async(ClientRef),
+            catch hackney:skip_body(ClientRef),
+            maybe_reconnect(State1#state{parser = Parser1});
+        _ ->
+            maybe_continue(State1#state{parser = Parser1})
     end;
 
-decode_data(Data, #state{client_ref = ClientRef, decoder = DecodeFun} = State) ->
-    try
-        {incomplete, DecodeFun2} = DecodeFun(Data),
-        try DecodeFun2(end_stream) of
-            done ->
-                catch hackney:stop_async(ClientRef),
-                catch hackney:skip_body(ClientRef),
-                maybe_reconnect(State)
-        catch error:badarg ->
-            maybe_continue(State#state{decoder = DecodeFun2})
-        end
-    catch error:badarg ->
-        maybe_close(State),
-        exit(badarg)
+%% Normal mode (non-streaming): shouldn't get here, but handle gracefully
+decode_data(_Data, State) ->
+    maybe_continue(State).
+
+%% Parse newline-delimited JSON objects for continuous feed
+parse_lines(Buffer, State) ->
+    case binary:split(Buffer, <<"\n">>) of
+        [Line, Rest] when byte_size(Line) > 0 ->
+            %% Got a complete line - parse it
+            case catch couchbeam_ejson:decode(Line) of
+                {'EXIT', _} ->
+                    %% Invalid JSON, skip this line
+                    parse_lines(Rest, State);
+                Change when is_map(Change) ->
+                    State1 = send_change(Change, State),
+                    parse_lines(Rest, State1);
+                _ ->
+                    parse_lines(Rest, State)
+            end;
+        [<<>>, Rest] ->
+            %% Empty line (heartbeat), continue
+            parse_lines(Rest, State);
+        [Incomplete] ->
+            %% No complete line yet
+            {State, Incomplete}
     end.
 
-decode(Data) ->
-    jsx:decode(Data, [return_tail, stream]).
-
-decodefun(nil) ->
-    fun(D) -> decode(D) end;
-decodefun(Fun) ->
-    Fun.
-
-decode_with_tail(Data, Fun, State) ->
-    case (decodefun(Fun))(Data) of
-        {with_tail, Props, Rest} ->
-            State1 = send_change(Props, State),
-            decode_with_tail(Rest, decodefun(nil), State1);
-        Other ->
-            Other
-    end.
-
-send_change(Props, #state{buffer_size = 0, owner = Owner, ref = Ref} = State) ->
+send_change(Change, #state{buffer_size = 0, owner = Owner, ref = Ref} = State) ->
     %% No buffering - send immediately
-    Seq = couchbeam_util:get_value(<<"seq">>, Props),
-    Owner ! {Ref, {change, {Props}}},
+    Seq = maps:get(<<"seq">>, Change, State#state.last_seq),
+    Owner ! {Ref, {change, Change}},
     State#state{last_seq = Seq};
 
-send_change(Props, #state{buffer_size = N, buffer = Buffer,
-                          owner = Owner, ref = Ref} = State) ->
-    Seq = couchbeam_util:get_value(<<"seq">>, Props),
-    NewBuffer = [{Props} | Buffer],
+send_change(Change, #state{buffer_size = N, buffer = Buffer,
+                           owner = Owner, ref = Ref} = State) ->
+    Seq = maps:get(<<"seq">>, Change, State#state.last_seq),
+    NewBuffer = [Change | Buffer],
     case length(NewBuffer) >= N of
         true ->
             %% Buffer full - send batch
@@ -508,7 +505,7 @@ changes_request(#db{server = Server, options = ConnOptions} = Db, Options) ->
             couchbeam_httpc:db_request(get, Url, [], <<>>, ConnOptions,
                                        [200, 202]);
         _ ->
-            Body = couchbeam_ejson:encode({[{<<"doc_ids">>, DocIds}]}),
+            Body = couchbeam_ejson:encode(#{<<"doc_ids">> => DocIds}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:db_request(post, Url, Headers, Body, ConnOptions,
                                        [200, 202])
@@ -516,119 +513,11 @@ changes_request(#db{server = Server, options = ConnOptions} = Db, Options) ->
 
     case Resp of
         {ok, _, _, ClientRef} ->
-            {Props} = couchbeam_httpc:json_body(ClientRef),
-            LastSeq = couchbeam_util:get_value(<<"last_seq">>, Props),
-            Changes = couchbeam_util:get_value(<<"results">>, Props),
+            Props = couchbeam_httpc:json_body(ClientRef),
+            LastSeq = maps:get(<<"last_seq">>, Props),
+            Changes = maps:get(<<"results">>, Props),
             {ok, LastSeq, Changes};
         Error ->
             Error
     end.
 
-%% ------------------------------------------------------------------
-%% JSX decoder callbacks (for longpoll mode)
-%% ------------------------------------------------------------------
-
-init([State]) ->
-    {wait_results, 0, [[]], State}.
-
-handle_event(end_json, _) ->
-    done;
-handle_event(Event, {Fun, _, _, _} = St) ->
-    ?MODULE:Fun(Event, St).
-
-wait_results(start_object, St) ->
-    St;
-wait_results(end_object, St) ->
-    St;
-wait_results({key, <<"results">>}, {_, _, _, St}) ->
-    {wait_results1, 0, [[]], St};
-wait_results(_, {_, _, _, St}) ->
-    {wait_results, 0, [[]], St}.
-
-wait_results1(start_array, {_, _, _, St}) ->
-    {wait_results1, 0, [[]], St};
-wait_results1(start_object, {_, _, Terms, St}) ->
-    {collect_object, 0, [[] | Terms], St};
-wait_results1(end_array, {_, _, _, St}) ->
-    {wait_results, 0, [[]], St}.
-
-collect_object(start_object, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount + 1, [[] | Terms], St};
-
-collect_object(end_object, {_, NestCount, [[], {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount - 1, [[{Key, {[{}]}}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, NestCount, [Object, {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount - 1,
-     [[{Key, {lists:reverse(Object)}}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, 0, [[], Last | Terms], St}) ->
-    [[Change]] = [[{[{}]}] ++ Last] ++ Terms,
-    send_change_longpoll(Change, St);
-
-collect_object(end_object, {_, NestCount, [[], Last | Terms], St}) ->
-    {collect_object, NestCount - 1, [[{[{}]}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, 0, [Object, Last | Terms], St}) ->
-    [[Change]] = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
-    send_change_longpoll(Change, St);
-
-collect_object(end_object, {_, NestCount, [Object, Last | Terms], St}) ->
-    Acc = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
-    {collect_object, NestCount - 1, Acc, St};
-
-collect_object(start_array, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount, [[] | Terms], St};
-
-collect_object(end_array, {_, NestCount, [List, {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount,
-     [[{Key, lists:reverse(List)}] ++ Last] ++ Terms, St};
-
-collect_object(end_array, {_, NestCount, [List, Last | Terms], St}) ->
-    {collect_object, NestCount, [[lists:reverse(List)] ++ Last] ++ Terms, St};
-
-collect_object({key, Key}, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount, [{key, Key}] ++ Terms, St};
-
-collect_object({_, Event}, {_, NestCount, [{key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount, [[{Key, Event}] ++ Last] ++ Terms, St};
-
-collect_object({_, Event}, {_, NestCount, [Last | Terms], St}) ->
-    {collect_object, NestCount, [[Event] ++ Last] ++ Terms, St}.
-
-send_change_longpoll({Props} = Change, #state{owner = Owner, ref = Ref} = St) ->
-    Seq = couchbeam_util:get_value(<<"seq">>, Props),
-    Owner ! {Ref, {change, Change}},
-    maybe_continue_decoding(St#state{last_seq = Seq}).
-
-maybe_continue_decoding(#state{ref = Ref, mref = MRef, owner = Owner,
-                               client_ref = ClientRef, async = once} = St) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            exit(normal);
-        {Ref, stream_next} ->
-            {wait_results1, 0, [[]], St};
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            Owner ! {Ref, cancelled},
-            exit(normal)
-    after 5000 ->
-        erlang:hibernate(?MODULE, maybe_continue_decoding, [St])
-    end;
-
-maybe_continue_decoding(#state{ref = Ref, mref = MRef, owner = Owner,
-                               client_ref = ClientRef} = St) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            exit(normal);
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            Owner ! {Ref, cancelled},
-            exit(normal);
-        {Ref, pause} ->
-            erlang:hibernate(?MODULE, maybe_continue_decoding, [St]);
-        {Ref, resume} ->
-            {wait_results1, 0, [[]], St}
-    after 0 ->
-        {wait_results1, 0, [[]], St}
-    end.

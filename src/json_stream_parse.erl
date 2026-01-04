@@ -1,6 +1,7 @@
 %%% -*- erlang -*-
-%% Simple streaming JSON row parser for CouchDB view responses.
-%% Parses the response and emits each row (as a map) incrementally.
+%% Simple streaming JSON parser for CouchDB view/changes responses.
+%% Parses the response and emits each row/change (as a map) incrementally.
+%% Looks for both "rows" (views) and "results" (changes) arrays.
 
 -module(json_stream_parse).
 
@@ -83,19 +84,29 @@ parse(S=#st{phase=in_rows, buf=Buf, i=I,
 parse(S=#st{phase=in_rows}, Acc) -> {lists:reverse(Acc), S};
 parse(S, Acc) -> {lists:reverse(Acc), S}.
 
-%% Find the start of the rows array: look for the token "rows" then the following '['
+%% Find the start of the rows/results array: look for "rows" or "results" token then the following '['
 find_rows_start(Buf, StartI) ->
-    case binary:match(Buf, <<"\"rows\"">>, [{scope, {StartI, byte_size(Buf)-StartI}}]) of
-        nomatch -> not_found;
+    Scope = {StartI, byte_size(Buf)-StartI},
+    %% Try to find "rows" (views) or "results" (changes)
+    case binary:match(Buf, <<"\"rows\"">>, [{scope, Scope}]) of
         {Pos, _Len} ->
-            %% find ':' then '[' after it
-            case find_next(Buf, Pos+5, $:) of
+            find_array_after_key(Buf, Pos, 5);
+        nomatch ->
+            case binary:match(Buf, <<"\"results\"">>, [{scope, Scope}]) of
+                {Pos, _Len} ->
+                    find_array_after_key(Buf, Pos, 8);
+                nomatch ->
+                    not_found
+            end
+    end.
+
+find_array_after_key(Buf, Pos, KeyLen) ->
+    case find_next(Buf, Pos+KeyLen+1, $:) of
+        not_found -> not_found;
+        ColonI ->
+            case find_next(Buf, ColonI+1, $[) of
                 not_found -> not_found;
-                ColonI ->
-                    case find_next(Buf, ColonI+1, $[) of
-                        not_found -> not_found;
-                        ArrI -> {Pos, ArrI}
-                    end
+                ArrI -> {Pos, ArrI}
             end
     end.
 
@@ -132,6 +143,19 @@ basic_chunked_parse_test() ->
     AllRows = Rows1 ++ Rows2,
     ?assertEqual(2, length(AllRows)),
     lists:foreach(fun(X) -> ?assert(is_map(X)) end, AllRows),
+    ok.
+
+%% Test parsing changes feed response (uses "results" instead of "rows")
+changes_results_parse_test() ->
+    Change1 = #{<<"seq">> => 1, <<"id">> => <<"doc1">>, <<"changes">> => [#{<<"rev">> => <<"1-abc">>}]},
+    Change2 = #{<<"seq">> => 2, <<"id">> => <<"doc2">>, <<"changes">> => [#{<<"rev">> => <<"1-def">>}]},
+    BodyMap = #{<<"results">> => [Change1, Change2], <<"last_seq">> => 2},
+    Bin = couchbeam_ejson:encode(BodyMap),
+    Results = parse_rows(Bin),
+    ?assertEqual(2, length(Results)),
+    [R1, R2] = Results,
+    ?assertEqual(1, maps:get(<<"seq">>, R1)),
+    ?assertEqual(2, maps:get(<<"seq">>, R2)),
     ok.
 
 -endif.
