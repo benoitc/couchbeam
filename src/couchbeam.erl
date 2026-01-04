@@ -1316,6 +1316,198 @@ basic_doc_test() ->
     ?assertEqual( <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, couchbeam_doc:get_id(Doc5)),
     ok.
 
+basic_doc_mock_test() ->
+    couchbeam_mocks:setup(),
+    %% Track documents: #{DocId => {Doc, Rev}}
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock couchbeam_uuids:get_uuids for auto-generated IDs
+        meck:new(couchbeam_uuids, [passthrough, no_link]),
+        meck:expect(couchbeam_uuids, get_uuids, fun(_Server, Count) ->
+            Counter = get(mock_uuid_counter),
+            Uuids = [list_to_binary("auto-uuid-" ++ integer_to_list(Counter + I))
+                     || I <- lists:seq(1, Count)],
+            put(mock_uuid_counter, Counter + Count),
+            Uuids
+        end),
+
+        %% Mock db_request for document operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
+
+        %% Mock request for db operations (create_db uses this via db_mock_test pattern)
+        meck:expect(couchbeam_httpc, request,
+            fun(get, Url, _H, _B, _O) ->
+                %% For open_or_create_db check
+                case binary:match(Url, <<"couchbeam_testdb">>) of
+                    nomatch -> {ok, 404, [], make_ref()};
+                    _ -> {ok, 200, [], make_ref()}
+                end;
+               (Method, Url, Headers, Body, Options) ->
+                meck:passthrough([Method, Url, Headers, Body, Options])
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Test save_doc with auto-generated ID
+        {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
+        ?assertMatch({_}, Doc),
+
+        %% Test save_doc with specific ID
+        {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
+        ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
+
+        %% Test conflict on duplicate save
+        ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
+
+        %% Test lookup_doc_rev
+        Rev = couchbeam:lookup_doc_rev(Db, "test"),
+        ?assertMatch(<<_/binary>>, Rev),
+
+        %% Test open_doc
+        {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
+        ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
+        ?assertEqual(<<"blah">>, proplists:get_value(<<"test">>, Doc1)),
+
+        %% Test save and open another doc
+        _ = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
+        {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
+        ?assertMatch({_}, Doc2),
+        ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
+        ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
+
+        %% Test doc_exists
+        ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),
+
+        %% Test delete_doc
+        ?assertMatch({ok, _}, couchbeam:delete_doc(Db, Doc2)),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
+        ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
+
+        %% Test special characters in doc ID
+        Doc3 = {[{<<"_id">>, <<"special-chars-test">>}]},
+        {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
+        {ok, Doc5} = couchbeam:open_doc(Db, <<"special-chars-test">>),
+        ?assertEqual(<<"special-chars-test">>, couchbeam_doc:get_id(Doc5)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper for basic_doc_mock_test - handle document requests
+doc_mock_handle_request(put, Url, _Headers, Body) ->
+    %% save_doc - PUT /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:is_key(DocId, Docs) of
+        true ->
+            %% Check if update (has _rev) or conflict
+            {DocProps} = couchbeam_ejson:decode(Body),
+            case proplists:get_value(<<"_rev">>, DocProps) of
+                undefined ->
+                    {error, conflict};
+                _Rev ->
+                    %% Update with new rev
+                    NewRev = generate_mock_rev(),
+                    UpdatedDoc = {[{<<"_id">>, DocId}, {<<"_rev">>, NewRev} |
+                                   proplists:delete(<<"_rev">>, proplists:delete(<<"_id">>, DocProps))]},
+                    put(mock_docs, maps:put(DocId, {UpdatedDoc, NewRev}, Docs)),
+                    Ref = make_ref(),
+                    couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, NewRev}]}),
+                    {ok, 201, [], Ref}
+            end;
+        false ->
+            %% New document
+            NewRev = generate_mock_rev(),
+            {DocProps} = couchbeam_ejson:decode(Body),
+            NewDoc = {[{<<"_id">>, DocId}, {<<"_rev">>, NewRev} |
+                       proplists:delete(<<"_rev">>, proplists:delete(<<"_id">>, DocProps))]},
+            put(mock_docs, maps:put(DocId, {NewDoc, NewRev}, Docs)),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, NewRev}]}),
+            {ok, 201, [], Ref}
+    end;
+doc_mock_handle_request(get, Url, _Headers, _Body) ->
+    %% open_doc - GET /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {Doc, _Rev} ->
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Doc),
+            {ok, 200, [], Ref}
+    end;
+doc_mock_handle_request(head, Url, _Headers, _Body) ->
+    %% lookup_doc_rev or doc_exists - HEAD /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {_Doc, Rev} ->
+            ETag = <<"\"", Rev/binary, "\"">>,
+            {ok, 200, [{<<"ETag">>, ETag}]}
+    end;
+doc_mock_handle_request(post, Url, _Headers, Body) ->
+    %% _bulk_docs - POST /db/_bulk_docs
+    case binary:match(Url, <<"_bulk_docs">>) of
+        nomatch ->
+            {ok, 200, [], make_ref()};
+        _ ->
+            {BodyProps} = couchbeam_ejson:decode(Body),
+            InputDocs = proplists:get_value(<<"docs">>, BodyProps, []),
+            Results = lists:map(fun({DocProps}) ->
+                DocId = proplists:get_value(<<"_id">>, DocProps),
+                IsDeleted = proplists:get_value(<<"_deleted">>, DocProps, false),
+                case IsDeleted of
+                    true ->
+                        put(mock_docs, maps:remove(DocId, get(mock_docs))),
+                        {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, generate_mock_rev()}]};
+                    false ->
+                        NewRev = generate_mock_rev(),
+                        NewDoc = {[{<<"_id">>, DocId}, {<<"_rev">>, NewRev} |
+                                   proplists:delete(<<"_deleted">>, proplists:delete(<<"_rev">>, proplists:delete(<<"_id">>, DocProps)))]},
+                        put(mock_docs, maps:put(DocId, {NewDoc, NewRev}, get(mock_docs))),
+                        {[{<<"ok">>, true}, {<<"id">>, DocId}, {<<"rev">>, NewRev}]}
+                end
+            end, InputDocs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Results),
+            {ok, 201, [], Ref}
+    end;
+doc_mock_handle_request(_Method, _Url, _Headers, _Body) ->
+    {ok, 200, [], make_ref()}.
+
+%% Extract document ID from URL like "http://127.0.0.1:5984/db/docid"
+extract_mock_docid(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId | _] -> DocId;
+                _ -> <<>>
+            end;
+        _ ->
+            <<>>
+    end.
+
+%% Generate a mock revision
+generate_mock_rev() ->
+    Counter = get(mock_uuid_counter),
+    put(mock_uuid_counter, Counter + 1),
+    iolist_to_binary(["1-mock-rev-", integer_to_list(Counter)]).
+
 bulk_doc_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
