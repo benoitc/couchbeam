@@ -1070,43 +1070,8 @@ format_replication_endpoint(#db{server=#server{url=BaseUrl, options=Options}, na
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("kernel/include/file.hrl").
-
-
-clean_dbs() ->
-    Server = couchbeam:server_connection(),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb3"),
-    timer:sleep(300),
-    ok.
-
-start_couchbeam_tests() ->
-    {ok, _} = application:ensure_all_started(couchbeam),
-    clean_dbs().
-
-wait_for_replication(_Db, DocId, 0) ->
-    io:format("Timeout waiting for document ~p to replicate~n", [DocId]),
-    throw({timeout, waiting_for_replication});
-wait_for_replication(Db, DocId, Retries) ->
-    case couchbeam:open_doc(Db, DocId) of
-        {ok, _} -> 
-            io:format("Document ~p found in target db~n", [DocId]),
-            ok;
-        {error, not_found} ->
-            io:format("Document ~p not found, retries left: ~p~n", [DocId, Retries-1]),
-            timer:sleep(200),
-            wait_for_replication(Db, DocId, Retries - 1)
-    end.
 
 basic_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, {Data}} = couchbeam:server_info(Server),
-    ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
-    ok.
-
-basic_mock_test() ->
     couchbeam_mocks:setup(),
     try
         {ok, _} = application:ensure_all_started(couchbeam),
@@ -1131,32 +1096,6 @@ basic_mock_test() ->
     end.
 
 db_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-
-    %% test db creation
-    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb")),
-    ?assertEqual({error, db_exists}, couchbeam:create_db(Server, "couchbeam_testdb")),
-    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb2")),
-
-    {ok, AllDbs} = couchbeam:all_dbs(Server),
-    ?assert(is_list(AllDbs) =:= true),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs)),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb2">>, AllDbs)),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb2")),
-    ?assertMatch({ok, _}, couchbeam:delete_db(Server, "couchbeam_testdb2")),
-    {ok, AllDbs1} = couchbeam:all_dbs(Server),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs1)),
-    ?assertEqual(false, lists:member(<<"couchbeam_testdb2">>, AllDbs1)),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
-    ?assertEqual(false, couchbeam:db_exists(Server, "couchbeam_testdb2")),
-
-    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb")),
-    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
-    ok.
-
-db_mock_test() ->
     couchbeam_mocks:setup(),
     %% Track created databases
     put(mock_dbs, []),
@@ -1286,37 +1225,6 @@ extract_mock_dbname(Url) when is_binary(Url) ->
     end.
 
 basic_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
-    ?assertMatch({_}, Doc),
-    {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
-    ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
-
-    Rev = couchbeam:lookup_doc_rev(Db, "test"),
-    {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
-    ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
-    ?assertEqual(<<"blah">>, proplists:get_value(<<"test">>, Doc1)),
-
-    _ = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
-    {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
-    ?assertMatch({_}, Doc2),
-    ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
-    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),
-    ?assertMatch({ok, _}, couchbeam:delete_doc(Db, Doc2)),
-    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
-    ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
-
-    Doc3 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
-    {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
-    {ok, Doc5} = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
-    ?assertEqual( <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, couchbeam_doc:get_id(Doc5)),
-    ok.
-
-basic_doc_mock_test() ->
     couchbeam_mocks:setup(),
     %% Track documents: #{DocId => {Doc, Rev}}
     put(mock_docs, #{}),
@@ -1557,26 +1465,6 @@ generate_mock_uuid() ->
     iolist_to_binary(["mock-uuid-", integer_to_list(Counter)]).
 
 bulk_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-
-    Doc1 = {[{<<"_id">>, <<"a">>}]},
-    Doc2 = {[{<<"_id">>, <<"b">>}]},
-    {ok, [{Props1}, {Props2}]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
-    ?assertEqual(<<"a">>, proplists:get_value(<<"id">>, Props1)),
-    ?assertEqual(<<"b">>, proplists:get_value(<<"id">>, Props2)),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
-
-
-    {ok, Doc3} = couchbeam:open_doc(Db, <<"a">>),
-    {ok, Doc4} = couchbeam:open_doc(Db, <<"b">>),
-    couchbeam:delete_docs(Db, [Doc3, Doc4]),
-    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
-    ok.
-
-bulk_doc_mock_test() ->
     couchbeam_mocks:setup(),
     put(mock_docs, #{}),
     put(mock_uuid_counter, 0),
@@ -1616,7 +1504,7 @@ bulk_doc_mock_test() ->
         couchbeam_mocks:teardown()
     end.
 
-copy_doc_mock_test() ->
+copy_doc_test() ->
     couchbeam_mocks:setup(),
     put(mock_docs, #{}),
     put(mock_uuid_counter, 0),
@@ -1659,25 +1547,8 @@ copy_doc_mock_test() ->
         couchbeam_mocks:teardown()
     end.
 
-copy_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
 
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, 1}]}),
-    {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, Doc),
-    {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
-    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
-
-    {ok, _Doc3} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test_copy">>}]}),
-    {ok, CopyId1, _} = couchbeam:copy_doc(Db, Doc, <<"test_copy">>),
-    ?assertEqual(<<"test_copy">>, CopyId1),
-    {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
-    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
-    ok.
-
-
-attachments_mock_test() ->
+attachments_test() ->
     couchbeam_mocks:setup(),
     put(mock_docs, #{}),
     put(mock_attachments, #{}),
@@ -1806,205 +1677,5 @@ extract_mock_attachment_info(Url) when is_binary(Url) ->
             end;
         _ -> undefined
     end.
-
-attachments_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    Doc = {[{<<"_id">>, <<"test">>}]},
-    {ok, Doc1} = couchbeam:save_doc(Db, Doc),
-    RevDoc1 = couchbeam_doc:get_rev(Doc1),
-    {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test", [{rev, RevDoc1}]),
-    RevDoc11 = proplists:get_value(<<"rev">>, Res),
-    ?assertNot(RevDoc1 =:= RevDoc11),
-    {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test"),
-    ?assertEqual( <<"test">>, Attachment),
-    {ok, Doc2} = couchbeam:open_doc(Db, "test"),
-    ?assertMatch({ok, {_}}, couchbeam:delete_attachment(Db, Doc2, "test")),
-    Doc3 = {[{<<"_id">>, <<"test2">>}]},
-    Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
-    Doc5 = couchbeam_attachments:add_inline(Doc4, "test2", "test2.txt"),
-    {ok, _} = couchbeam:save_doc(Db, Doc5),
-    {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
-    {ok, Attachment2} = couchbeam:fetch_attachment(Db, "test2", "test2.txt"),
-    ?assertEqual( <<"test">>, Attachment1),
-    ?assertEqual( <<"test2">>, Attachment2),
-    {ok, Doc6} = couchbeam:open_doc(Db, "test2"),
-    Doc7 = couchbeam_attachments:delete_inline(Doc6, "test2.txt"),
-    {ok, _} = couchbeam:save_doc(Db, Doc7),
-    ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test2", "test2.txt")),
-    {ok, Attachment4} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
-    ?assertEqual( <<"test">>, Attachment4),
-    {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
-
-    TestFileName = data_path("1M"),
-    {ok, FileInfo} = file:read_file_info(TestFileName),
-    {ok, Fd} = file:open(TestFileName, [read]),
-    FileSize = FileInfo#file_info.size,
-    StreamFun = fun() ->
-                        case file:read(Fd, 4096) of
-                            {ok, Data} ->  {ok, iolist_to_binary(Data)};
-                            _ -> eof
-                        end
-                end,
-    {ok, _Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), "1M", StreamFun,
-                                           [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
-
-    file:close(Fd),
-    {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
-    Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
-    ?assert(Attachements /= undefined),
-    Attachment5 = couchbeam_doc:get_value(<<"1M">>, Attachements),
-    ?assert(Attachment5 /= undefined),
-    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, Attachment5)),
-    {ok, Bin} = couchbeam:fetch_attachment(Db, couchbeam_doc:get_id(Doc8), "1M"),
-    ?assertEqual(FileSize, iolist_size(Bin)),
-
-    {ok, _Res3}= couchbeam:put_attachment(Db, "test/2", "test", "test"),
-    {ok, Attachment10} = couchbeam:fetch_attachment(Db, "test/2", "test"),
-    ?assertEqual(<<"test">>, Attachment10),
-    {ok, _Res4}= couchbeam:put_attachment(Db, "test3", "test", "test"),
-    {ok, Attachment11} = couchbeam:fetch_attachment(Db, "test3", "test"),
-    ?assertEqual(<<"test">>, Attachment11),
-    ok.
-
-multipart_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-
-    {ok, _Res4}= couchbeam:put_attachment(Db, "test", "test", "test"),
-    Resp = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
-    ?assertMatch( {ok, {multipart, _}}, Resp),
-
-    {ok, {multipart, Stream}} = Resp,
-    Collected = collect_mp(couchbeam:stream_doc(Stream), []),
-    ?assert(proplists:is_defined(doc, Collected)),
-    MpDoc = proplists:get_value(doc, Collected),
-    MpDocId = couchbeam_doc:get_id(MpDoc),
-    ?assertEqual(<<"test">>, MpDocId),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected)),
-
-    Resp1 = couchbeam:open_doc(Db, <<"test">>, [{open_revs, all},
-                                                {accept, <<"multipart/mixed">>}]),
-    ?assertMatch( {ok, {multipart, _}}, Resp1),
-    {ok, {multipart, Stream1}} = Resp1,
-    Collected1 = collect_mp(couchbeam:stream_doc(Stream1), []),
-    MpDoc1 = proplists:get_value(doc, Collected1),
-    MpDocId1 = couchbeam_doc:get_id(MpDoc1),
-    ?assertEqual(<<"test">>, MpDocId1),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected1)),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test2">>}]},
-                                   [{<<"test.txt">>, <<"test">>}], []),
-    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc)),
-    {ok, MpAttachment1} = couchbeam:fetch_attachment(Db, <<"test2">>, <<"test.txt">>),
-    ?assertEqual(<<"test">>, MpAttachment1),
-
-    TestFileName = data_path("1M"),
-    {ok, FileInfo} = file:read_file_info(TestFileName),
-    FileSize = FileInfo#file_info.size,
-
-    {ok, Doc1} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test5">>}]},
-                                    [{<<"1M">>, {file, TestFileName}}], []),
-
-    ?assert(couchbeam_doc:is_saved(Doc1)),
-    {ok, Doc2} = couchbeam:open_doc(Db, <<"test5">>),
-    MpAttachments = couchbeam_doc:get_value(<<"_attachments">>, Doc2),
-    ?assert(MpAttachments /= undefined),
-    MpAttachment2 = couchbeam_doc:get_value(<<"1M">>, MpAttachments),
-    ?assert(MpAttachment2 /= undefined),
-    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, MpAttachment2)),
-    {ok, MpBin} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
-    ?assertEqual(FileSize, iolist_size(MpBin)),
-    {ok, MpDoc2} = couchbeam:save_doc(Db, Doc2, [{<<"hello.txt">>, <<"world">>}], []),
-    ?assert(couchbeam_doc:is_saved(MpDoc2)),
-    MpAttachments3= couchbeam_doc:get_value(<<"_attachments">>, MpDoc2),
-    ?assert(MpAttachments3 /= undefined),
-    MpAttachment4 = couchbeam_doc:get_value(<<"1M">>, MpAttachments3),
-    ?assert(MpAttachment4 /= undefined),
-    {ok, MpBin1} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
-    ?assertEqual(FileSize, iolist_size(MpBin1)),
-    MpAttachment5 = couchbeam_doc:get_value(<<"hello.txt">>, MpAttachments3),
-    ?assert(MpAttachment5 /= undefined),
-    {ok, MpBin2} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"hello.txt">>),
-    ?assertEqual(<<"world">>, MpBin2),
-    ok.
-
-replicate_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-
-    %% Ensure _replicator database exists
-    true = couchbeam:db_exists(Server, <<"_replicator">>),
-
-    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
-    {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
-
-    DocId11 = <<"test">>,
-    {ok, Doc11} = couchbeam:save_doc(Db, {[{<<"_id">>, DocId11}]}),
-    DocRev11 = couchbeam_doc:get_rev(Doc11),
-    io:format("Created document with ID: ~p, Rev: ~p~n", [DocId11, DocRev11]),
-    
-    Result = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
-    ?assertMatch({ok, _}, Result),
-    
-    {ok, RepDoc} = Result,
-    RepDocId = couchbeam_doc:get_id(RepDoc),
-    io:format("Replication document created with ID: ~p~n", [RepDocId]),
-    
-    %% Check the replication document in _replicator db
-    {ok, ReplicatorDb} = couchbeam:open_db(Server, <<"_replicator">>),
-    timer:sleep(100), % Give time for replication doc to be written
-    {ok, RepDocFromDb} = couchbeam:open_doc(ReplicatorDb, RepDocId),
-    io:format("Replication document: ~p~n", [RepDocFromDb]),
-
-    %% Wait for replication to complete by polling for the document
-    io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
-    wait_for_replication(Db2, DocId11, 30),
-
-    {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
-    DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
-    ?assertEqual(DocRev11_2, DocRev11),
-
-    {ok, Doc12} = couchbeam:save_doc(Db, Doc11 ),
-    {ok, Doc13} = couchbeam:save_doc(Db, Doc12),
-
-    DocRev12 = couchbeam_doc:get_rev(Doc12),
-    DocRev13 = couchbeam_doc:get_rev(Doc13),
-    {ok, Missing} = couchbeam:get_missing_revs(Db2, [{DocId11, [DocRev12,
-                                                                DocRev13]}]),
-    ?assertEqual([{DocId11, [DocRev12, DocRev13], [DocRev11]}], Missing),
-
-    {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
-    ?assert(is_binary(InstanceStartTime)),
-    ok.
-
-collect_mp({doc, Doc, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{doc, Doc} | Acc]);
-collect_mp({att, Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>} | Acc]);
-collect_mp({att_body, Name, Chunk, Next}, Acc) ->
-    Buffer = proplists:get_value(Name, Acc),
-    NBuffer = << Buffer/binary, Chunk/binary >>,
-    Acc1 = lists:keystore(Name, 1, Acc, {Name, NBuffer}),
-    collect_mp(couchbeam:stream_doc(Next), Acc1);
-collect_mp({att_eof, _Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), Acc);
-collect_mp(eof, Acc) ->
-    Acc.
-
-data_path(Basename) ->
-    FName = filename:join([filename:dirname(filename:absname(?FILE)), "..", "support",
-                           Basename]),
-
-    case filelib:is_file(FName) of
-        true -> FName;
-        false ->
-            F = filename:join([filename:dirname(code:which(?MODULE)), "..", "support",
-                               Basename]),
-            F
-    end.
-
 
 -endif.
