@@ -20,33 +20,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup CouchDB with single node configuration
-      run: |
-        # Create local.ini with single node configuration
-        sudo mkdir -p /opt/couchdb/etc/local.d
-        sudo tee /opt/couchdb/etc/local.d/10-single-node.ini > /dev/null <<EOF
-        [couchdb]
-        single_node=true
-
-        [admins]
-        admin = change_me
-        EOF
-
-        # Start CouchDB container with the configuration
-        docker run -d \
-          --name couchdb \
-          -p 5984:5984 \
-          -v /opt/couchdb/etc/local.d:/opt/couchdb/etc/local.d \
-          couchdb:3.3
-
-        # Wait for CouchDB to be ready
-        timeout 60 bash -c 'until curl -f http://localhost:5984/_up; do sleep 2; done'
-
-        # Create system databases
-        curl -X PUT http://admin:change_me@localhost:5984/_users
-        curl -X PUT http://admin:change_me@localhost:5984/_replicator
-        curl -X PUT http://admin:change_me@localhost:5984/_global_changes
-
     - name: Setup Erlang/OTP
       uses: erlef/setup-beam@v1
       with:
@@ -71,10 +44,6 @@ jobs:
 
     - name: Run tests
       run: rebar3 as test eunit
-      env:
-        COUCHDB_URL: http://localhost:5984
-        COUCHDB_ADMIN: admin
-        COUCHDB_PASSWORD: change_me
 
     - name: Run dialyzer
       run: rebar3 dialyzer
@@ -91,19 +60,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Setup CouchDB
-      run: |
-        brew install couchdb
-        # Start CouchDB
-        brew services start couchdb
-        # Wait for CouchDB to be ready
-        for i in {1..30}; do curl -s http://127.0.0.1:5984/ && break || sleep 2; done
-        # Create admin user and system databases
-        curl -X PUT http://127.0.0.1:5984/_node/_local/_config/admins/admin -d '"change_me"'
-        curl -X PUT http://admin:change_me@127.0.0.1:5984/_users
-        curl -X PUT http://admin:change_me@127.0.0.1:5984/_replicator
-        curl -X PUT http://admin:change_me@127.0.0.1:5984/_global_changes
 
     - name: Setup Erlang/OTP
       uses: erlef/setup-beam@v1
@@ -129,10 +85,6 @@ jobs:
 
     - name: Run tests
       run: rebar3 as test eunit
-      env:
-        COUCHDB_URL: http://localhost:5984
-        COUCHDB_ADMIN: admin
-        COUCHDB_PASSWORD: change_me
 
     - name: Run dialyzer
       run: rebar3 dialyzer
@@ -154,23 +106,8 @@ jobs:
       with:
         usesh: true
         prepare: |
-          pkg install -y erlang rebar3 couchdb3
-          # Configure CouchDB
-          echo '[admins]' >> /usr/local/etc/couchdb/local.ini
-          echo 'admin = change_me' >> /usr/local/etc/couchdb/local.ini
-          echo '[couchdb]' >> /usr/local/etc/couchdb/local.ini
-          echo 'single_node = true' >> /usr/local/etc/couchdb/local.ini
-          # Start CouchDB
-          service couchdb onestart
-          sleep 5
-          # Create system databases
-          curl -X PUT http://admin:change_me@127.0.0.1:5984/_users
-          curl -X PUT http://admin:change_me@127.0.0.1:5984/_replicator
-          curl -X PUT http://admin:change_me@127.0.0.1:5984/_global_changes
+          pkg install -y erlang rebar3
         run: |
-          export COUCHDB_URL=http://localhost:5984
-          export COUCHDB_ADMIN=admin
-          export COUCHDB_PASSWORD=change_me
           rebar3 compile
           rebar3 xref
           rebar3 as test eunit
