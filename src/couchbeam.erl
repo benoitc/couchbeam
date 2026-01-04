@@ -1528,6 +1528,46 @@ bulk_doc_test() ->
     ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
     ok.
 
+bulk_doc_mock_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for document operations (reuse doc_mock_handle_request)
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Test bulk save
+        Doc1 = {[{<<"_id">>, <<"a">>}]},
+        Doc2 = {[{<<"_id">>, <<"b">>}]},
+        {ok, [{Props1}, {Props2}]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
+        ?assertEqual(<<"a">>, proplists:get_value(<<"id">>, Props1)),
+        ?assertEqual(<<"b">>, proplists:get_value(<<"id">>, Props2)),
+
+        %% Verify docs exist
+        ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
+        ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
+
+        %% Test bulk delete
+        {ok, Doc3} = couchbeam:open_doc(Db, <<"a">>),
+        {ok, Doc4} = couchbeam:open_doc(Db, <<"b">>),
+        couchbeam:delete_docs(Db, [Doc3, Doc4]),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"b">>)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        couchbeam_mocks:teardown()
+    end.
+
 copy_doc_test() ->
     start_couchbeam_tests(),
     Server = couchbeam:server_connection(),
