@@ -111,3 +111,61 @@ jobs:
           rebar3 compile
           rebar3 xref
           rebar3 as test eunit
+
+  # Optional integration tests with real CouchDB
+  integration:
+    name: Integration Tests (CouchDB)
+    runs-on: ubuntu-22.04
+    # This job is optional - don't block CI if it fails
+    continue-on-error: true
+
+    services:
+      couchdb:
+        image: couchdb:3.3
+        env:
+          COUCHDB_USER: admin
+          COUCHDB_PASSWORD: admin
+        ports:
+          - 5984:5984
+        options: >-
+          --health-cmd "curl -f http://localhost:5984/_up || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: '27.3'
+        rebar3-version: '3.25.0'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          _build
+          ~/.cache/rebar3
+        key: integration-otp-27-${{ hashFiles('rebar.lock') }}
+        restore-keys: |
+          integration-otp-27-
+
+    - name: Compile
+      run: rebar3 compile
+
+    - name: Wait for CouchDB
+      run: |
+        until curl -sf http://localhost:5984/_up; do
+          echo "Waiting for CouchDB..."
+          sleep 2
+        done
+        echo "CouchDB is ready"
+
+    - name: Run integration tests
+      env:
+        COUCHDB_URL: http://localhost:5984
+        COUCHDB_USER: admin
+        COUCHDB_PASS: admin
+      run: rebar3 ct --suite=couchbeam_integration_SUITE --readable=true
