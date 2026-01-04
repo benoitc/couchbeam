@@ -24,10 +24,10 @@
 -record(state, {
     owner :: pid(),
     ref :: reference(),
-    mref :: reference(),
+    mref :: reference() | undefined,
     db :: db(),
     options :: list(),
-    client_ref = nil :: pid() | nil,
+    client_ref = nil :: reference() | nil,
     parser = nil :: term(),  %% json_stream_parse state or line buffer
     feed_type = continuous :: continuous | longpoll | normal,
     reconnect_after = 1000 :: integer() | false,

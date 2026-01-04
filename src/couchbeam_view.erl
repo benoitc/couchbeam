@@ -8,6 +8,9 @@
 
 -include("couchbeam.hrl").
 
+%% Import json_stream_parse state record for pattern matching
+-record(st, {phase, buf, i, in_string, escape, arr_depth, obj_depth, obj_start}).
+
 -export([stream/2, stream/3,
          cancel_stream/1, stream_next/1,
          fetch/1, fetch/2, fetch/3,
@@ -20,9 +23,8 @@
          show/2, show/3, show/4
         ]).
 
-%% JSX decoder callbacks for view streaming
--export([init/1, handle_event/2, wait_rows/2, wait_rows1/2, wait_val/2,
-         collect_object/2, maybe_continue_decoding/1, maybe_continue_view/1]).
+%% Internal exports for view streaming
+-export([maybe_continue_view/1]).
 
 -define(COLLECT_TIMEOUT, 10000).
 
@@ -595,7 +597,7 @@ view_request(#db{options=Opts}, Url, Args) ->
                                        Opts, [200]);
         post ->
             Body = couchbeam_ejson:encode(
-                     {[{<<"keys">>, Args#view_query_args.keys}]}
+                     #{<<"keys">> => Args#view_query_args.keys}
                     ),
 
             Hdrs = [{<<"Content-Type">>, <<"application/json">>}],
@@ -617,8 +619,8 @@ view_request(#db{options=Opts}, Url, Args) ->
     db :: db(),
     url :: binary(),
     args :: view_query_args(),
-    client_ref = nil :: pid() | nil,
-    decoder :: function(),
+    client_ref = nil :: reference() | nil,
+    parser :: term(),  %% json_stream_parse state
     async = normal :: once | normal
 }).
 
@@ -654,7 +656,7 @@ do_init_view_stream(#view_stream_state{mref = MRef, db = Db, url = Url,
         get ->
             couchbeam_httpc:request(get, Url, [], <<>>, FinalOpts);
         post ->
-            Body = couchbeam_ejson:encode({[{<<"keys">>, Args#view_query_args.keys}]}),
+            Body = couchbeam_ejson:encode(#{<<"keys">> => Args#view_query_args.keys}),
             Headers = [{<<"Content-Type">>, <<"application/json">>}],
             couchbeam_httpc:request(post, Url, Headers, Body, FinalOpts)
     end,
@@ -665,9 +667,9 @@ do_init_view_stream(#view_stream_state{mref = MRef, db = Db, url = Url,
                 {'DOWN', MRef, _, _, _} ->
                     exit(normal);
                 {hackney_response, ClientRef, {status, 200, _}} ->
-                    DecoderFun = jsx:decoder(?MODULE, [State], [stream]),
+                    Parser = json_stream_parse:init(),
                     {ok, State#view_stream_state{client_ref = ClientRef,
-                                                  decoder = DecoderFun}};
+                                                  parser = Parser}};
                 {hackney_response, ClientRef, {status, 404, _}} ->
                     {error, not_found};
                 {hackney_response, ClientRef, {status, Status, Reason}} ->
@@ -707,20 +709,18 @@ view_stream_loop(#view_stream_state{owner = Owner, ref = Ref, mref = MRef,
 
 decode_view_data(Data, #view_stream_state{owner = Owner, ref = Ref,
                                            client_ref = ClientRef,
-                                           decoder = DecodeFun} = State) ->
-    try
-        {incomplete, DecodeFun2} = DecodeFun(Data),
-        try DecodeFun2(end_stream) of
-            done ->
-                catch hackney:stop_async(ClientRef),
-                catch hackney:skip_body(ClientRef),
-                Owner ! {Ref, done}
-        catch error:badarg ->
-            maybe_continue_view(State#view_stream_state{decoder = DecodeFun2})
-        end
-    catch error:badarg ->
-        hackney:close(ClientRef),
-        exit(badarg)
+                                           parser = Parser} = State) ->
+    {Rows, Parser1} = json_stream_parse:feed(Data, Parser),
+    %% Send each row to owner
+    lists:foreach(fun(Row) -> Owner ! {Ref, {row, Row}} end, Rows),
+    case Parser1 of
+        #st{phase = done} ->
+            %% All rows parsed
+            catch hackney:stop_async(ClientRef),
+            catch hackney:skip_body(ClientRef),
+            Owner ! {Ref, done};
+        _ ->
+            maybe_continue_view(State#view_stream_state{parser = Parser1})
     end.
 
 maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
@@ -751,116 +751,6 @@ maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
             view_stream_loop(State)
     after 0 ->
         view_stream_loop(State)
-    end.
-
-init([State]) ->
-    {wait_rows, 0, [[]], State}.
-
-handle_event(end_json, _) ->
-    done;
-handle_event(Event, {Fun, _, _, _} = St) ->
-    ?MODULE:Fun(Event, St).
-
-wait_rows(start_object, St) ->
-    St;
-wait_rows(end_object, St) ->
-    St;
-wait_rows({key, <<"rows">>}, {_, _, _, St}) ->
-    {wait_rows1, 0, [[]], St};
-wait_rows({key, <<"total_rows">>}, {_, _, _, St}) ->
-    {wait_val, 0, [[]], St};
-wait_rows({key, <<"offset">>}, {_, _, _, St}) ->
-    {wait_val, 0, [[]], St}.
-
-wait_val({_, _}, {_, _, _, St}) ->
-    {wait_rows, 0, [[]], St}.
-
-wait_rows1(start_array, {_, _, _, St}) ->
-    {wait_rows1, 0, [[]], St};
-wait_rows1(start_object, {_, _, Terms, St}) ->
-    {collect_object, 0, [[] | Terms], St};
-wait_rows1(end_array, {_, _, _, St}) ->
-    {wait_rows, 0, [[]], St}.
-
-collect_object(start_object, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount + 1, [[] | Terms], St};
-
-collect_object(end_object, {_, NestCount, [[], {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount - 1, [[{Key, {[{}]}}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, NestCount, [Object, {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount - 1,
-     [[{Key, {lists:reverse(Object)}}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, 0, [[], Last | Terms], St}) ->
-    [[Row]] = [[{[{}]}] ++ Last] ++ Terms,
-    send_row(Row, St);
-
-collect_object(end_object, {_, NestCount, [[], Last | Terms], St}) ->
-    {collect_object, NestCount - 1, [[{[{}]}] ++ Last] ++ Terms, St};
-
-collect_object(end_object, {_, 0, [Object, Last | Terms], St}) ->
-    [[Row]] = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
-    send_row(Row, St);
-
-collect_object(end_object, {_, NestCount, [Object, Last | Terms], St}) ->
-    Acc = [[{lists:reverse(Object)}] ++ Last] ++ Terms,
-    {collect_object, NestCount - 1, Acc, St};
-
-collect_object(start_array, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount, [[] | Terms], St};
-
-collect_object(end_array, {_, NestCount, [List, {key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount,
-     [[{Key, lists:reverse(List)}] ++ Last] ++ Terms, St};
-
-collect_object(end_array, {_, NestCount, [List, Last | Terms], St}) ->
-    {collect_object, NestCount, [[lists:reverse(List)] ++ Last] ++ Terms, St};
-
-collect_object({key, Key}, {_, NestCount, Terms, St}) ->
-    {collect_object, NestCount, [{key, Key}] ++ Terms, St};
-
-collect_object({_, Event}, {_, NestCount, [{key, Key}, Last | Terms], St}) ->
-    {collect_object, NestCount, [[{Key, Event}] ++ Last] ++ Terms, St};
-
-collect_object({_, Event}, {_, NestCount, [Last | Terms], St}) ->
-    {collect_object, NestCount, [[Event] ++ Last] ++ Terms, St}.
-
-send_row(Row, #view_stream_state{owner = Owner, ref = Ref} = St) ->
-    Owner ! {Ref, {row, couchbeam_ejson:post_decode(Row)}},
-    maybe_continue_decoding(St).
-
-maybe_continue_decoding(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
-                                            client_ref = ClientRef,
-                                            async = once} = St) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            exit(normal);
-        {Ref, stream_next} ->
-            {wait_rows1, 0, [[]], St};
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            Owner ! {Ref, ok},
-            exit(normal)
-    after 5000 ->
-        erlang:hibernate(?MODULE, maybe_continue_decoding, [St])
-    end;
-
-maybe_continue_decoding(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
-                                            client_ref = ClientRef} = St) ->
-    receive
-        {'DOWN', MRef, _, _, _} ->
-            exit(normal);
-        {Ref, cancel} ->
-            hackney:close(ClientRef),
-            Owner ! {Ref, ok},
-            exit(normal);
-        {Ref, pause} ->
-            erlang:hibernate(?MODULE, maybe_continue_decoding, [St]);
-        {Ref, resume} ->
-            {wait_rows1, 0, [[]], St}
-    after 0 ->
-        {wait_rows1, 0, [[]], St}
     end.
 
 -ifdef(TEST).
