@@ -1486,6 +1486,34 @@ doc_mock_handle_request(post, Url, _Headers, Body) ->
             couchbeam_mocks:set_body(Ref, Results),
             {ok, 201, [], Ref}
     end;
+doc_mock_handle_request(copy, Url, Headers, _Body) ->
+    %% copy_doc - COPY /db/docid with Destination header
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {SourceDoc, _SourceRev} ->
+            %% Get destination from headers
+            DestId = case proplists:get_value(<<"Destination">>, Headers) of
+                undefined -> generate_mock_uuid();
+                DestHeader ->
+                    %% Strip ?rev= if present
+                    case binary:split(DestHeader, <<"?">>) of
+                        [Id | _] -> Id;
+                        _ -> DestHeader
+                    end
+            end,
+            %% Create new doc with destination ID
+            NewRev = generate_mock_rev(),
+            {SourceProps} = SourceDoc,
+            NewDoc = {[{<<"_id">>, DestId}, {<<"_rev">>, NewRev} |
+                       proplists:delete(<<"_rev">>, proplists:delete(<<"_id">>, SourceProps))]},
+            put(mock_docs, maps:put(DestId, {NewDoc, NewRev}, get(mock_docs))),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, {[{<<"ok">>, true}, {<<"id">>, DestId}, {<<"rev">>, NewRev}]}),
+            {ok, 201, [], Ref}
+    end;
 doc_mock_handle_request(_Method, _Url, _Headers, _Body) ->
     {ok, 200, [], make_ref()}.
 
@@ -1507,6 +1535,12 @@ generate_mock_rev() ->
     Counter = get(mock_uuid_counter),
     put(mock_uuid_counter, Counter + 1),
     iolist_to_binary(["1-mock-rev-", integer_to_list(Counter)]).
+
+%% Generate a mock UUID
+generate_mock_uuid() ->
+    Counter = get(mock_uuid_counter),
+    put(mock_uuid_counter, Counter + 1),
+    iolist_to_binary(["mock-uuid-", integer_to_list(Counter)]).
 
 bulk_doc_test() ->
     start_couchbeam_tests(),
@@ -1565,6 +1599,49 @@ bulk_doc_mock_test() ->
     after
         erase(mock_docs),
         erase(mock_uuid_counter),
+        couchbeam_mocks:teardown()
+    end.
+
+copy_doc_mock_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    %% Mock UUIDs for copy_doc without destination
+    meck:new(couchbeam_uuids, [passthrough, no_link]),
+    meck:expect(couchbeam_uuids, get_uuids, fun(_Server, _Count) ->
+        [generate_mock_uuid()]
+    end),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for document operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Create a document to copy
+        Doc = {[{<<"_id">>, <<"original">>}, {<<"test">>, 1}]},
+        {ok, SavedDoc} = couchbeam:save_doc(Db, Doc),
+
+        %% Test copy without destination (generates UUID)
+        {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, SavedDoc),
+        {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
+        ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
+
+        %% Test copy with specific destination
+        {ok, CopyId1, _} = couchbeam:copy_doc(Db, SavedDoc, <<"test_copy">>),
+        ?assertEqual(<<"test_copy">>, CopyId1),
+        {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
+        ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
         couchbeam_mocks:teardown()
     end.
 

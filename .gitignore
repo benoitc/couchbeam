@@ -10,4 +10,4 @@ mime.types
 .rebar
 *.plt
 .idea
-*.iml
+*.imlrebar3.crashdump
