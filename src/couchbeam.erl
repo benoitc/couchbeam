@@ -452,15 +452,21 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
         {ok, _, RespHeaders, Ref} ->
-            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
-                {<<"multipart">>, _, _} ->
-                    %% we get a multipart request, start to parse it.
-                    InitialState =  {Ref, fun() ->
-                                                  couchbeam_httpc:wait_mp_doc(Ref, <<>>)
-                                          end},
-                    {ok, {multipart, InitialState}};
-                _ ->
-                    {ok, couchbeam_httpc:json_body(Ref)}
+            ParsedHeaders = hackney_headers:from_list(RespHeaders),
+            case hackney_headers:get_value(<<"content-type">>, ParsedHeaders) of
+                undefined ->
+                    {ok, couchbeam_httpc:json_body(Ref)};
+                ContentType ->
+                    case hackney_headers:parse_content_type(ContentType) of
+                        {<<"multipart">>, _, _} ->
+                            %% we get a multipart request, start to parse it.
+                            InitialState =  {Ref, fun() ->
+                                                          couchbeam_httpc:wait_mp_doc(Ref, <<>>)
+                                                  end},
+                            {ok, {multipart, InitialState}};
+                        _ ->
+                            {ok, couchbeam_httpc:json_body(Ref)}
+                    end
             end;
         Error ->
             Error
