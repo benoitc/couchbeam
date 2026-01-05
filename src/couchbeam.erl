@@ -458,10 +458,11 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
                     {ok, couchbeam_httpc:json_body(Ref)};
                 ContentType ->
                     case hackney_headers:parse_content_type(ContentType) of
-                        {<<"multipart">>, _, _} ->
+                        {<<"multipart">>, _, Params} ->
                             %% we get a multipart request, start to parse it.
+                            {_, Boundary} = lists:keyfind(<<"boundary">>, 1, Params),
                             InitialState =  {Ref, fun() ->
-                                                          couchbeam_httpc:wait_mp_doc(Ref, <<>>)
+                                                          couchbeam_httpc:wait_mp_doc(Ref, Boundary, <<>>)
                                                   end},
                             {ok, {multipart, InitialState}};
                         _ ->

@@ -13,8 +13,8 @@
          maybe_oauth_header/4]).
 %% urls utils
 -export([server_url/1, db_url/1, doc_url/2]).
-%% atts utols
--export([reply_att/1, wait_mp_doc/2, len_doc_to_mp_stream/3, send_mp_doc/5]).
+%% atts utils
+-export([reply_att/1, wait_mp_doc/3, len_doc_to_mp_stream/3, send_mp_doc/5]).
 
 -include("couchbeam.hrl").
 
@@ -162,53 +162,135 @@ reply_att(Error) ->
     Error.
 
 %% @hidden
-wait_mp_doc(Ref, Buffer) ->
-    %% we are always waiting for the full doc
-    case hackney:stream_multipart(Ref) of
-        {headers, _} ->
-            wait_mp_doc(Ref, Buffer);
-        {body, Data} ->
-            NBuffer = << Buffer/binary, Data/binary >>,
-            wait_mp_doc(Ref, NBuffer);
-        end_of_part when Buffer =:= <<>> ->
-            %% end of part in multipart/mixed
-            wait_mp_doc(Ref, Buffer);
-        end_of_part ->
-            %% decode the doc
-            Doc = couchbeam_ejson:decode(Buffer),
+%% Initialize multipart parsing with boundary and start streaming
+wait_mp_doc(Ref, Boundary, Buffer) ->
+    Parser = hackney_multipart:parser(Boundary),
+    wait_mp_doc_loop(Ref, Parser, Buffer, <<>>).
+
+%% Internal function to handle the multipart parsing state machine
+wait_mp_doc_loop(Ref, Parser, InputBuffer, DocBuffer) ->
+    case Parser(InputBuffer) of
+        {headers, _Headers, BodyCont} ->
+            %% Got headers for a part, now read the body
+            wait_mp_doc_body(Ref, BodyCont, DocBuffer);
+        {more, NewParser} ->
+            %% Need more data from the connection
+            case hackney:stream_body(Ref) of
+                {ok, Data} ->
+                    wait_mp_doc_loop(Ref, NewParser, Data, DocBuffer);
+                done ->
+                    eof;
+                {error, _} = Error ->
+                    Error
+            end;
+        eof ->
+            eof;
+        {eof, _Rest} ->
+            eof
+    end.
+
+%% Read body content for a document part
+wait_mp_doc_body(Ref, BodyCont, DocBuffer) ->
+    case BodyCont() of
+        {body, Data, NextBodyCont} ->
+            NBuffer = <<DocBuffer/binary, Data/binary>>,
+            wait_mp_doc_body(Ref, NextBodyCont, NBuffer);
+        {end_of_part, NextPartCont} when DocBuffer =:= <<>> ->
+            %% Empty part, continue to next
+            wait_mp_doc_next_part(Ref, NextPartCont);
+        {end_of_part, NextPartCont} ->
+            %% Got complete document body, decode it
+            Doc = couchbeam_ejson:decode(DocBuffer),
             case maps:get(<<"_attachments">>, Doc, #{}) of
                 Atts when map_size(Atts) =:= 0 ->
-                    %% not attachments wait for the eof or the next doc
-                    NState = {Ref, fun() -> wait_mp_doc(Ref, <<>>) end},
+                    %% No attachments, wait for the eof or next doc
+                    NState = {Ref, fun() -> wait_mp_doc_next_part(Ref, NextPartCont) end},
                     {doc, Doc, NState};
                 Atts ->
-                    %% start to receive the attachments
-                    %% we get the list of attnames for the versions of
-                    %% couchdb that don't provide the att name in the
-                    %% header.
+                    %% Start receiving attachments
                     AttNames = maps:keys(Atts),
                     NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {nil, AttNames})
+                                    wait_mp_att_next_part(Ref, NextPartCont, {nil, AttNames})
                             end},
                     {doc, Doc, NState}
             end;
+        {more, MoreBodyCont} ->
+            %% Need more data
+            case hackney:stream_body(Ref) of
+                {ok, Data} ->
+                    %% Feed the data and continue
+                    wait_mp_doc_body_with_data(Ref, MoreBodyCont, DocBuffer, Data);
+                done ->
+                    %% Connection done, if we have buffer content, decode it
+                    if DocBuffer =/= <<>> ->
+                        Doc = couchbeam_ejson:decode(DocBuffer),
+                        NState = {Ref, fun() -> eof end},
+                        {doc, Doc, NState};
+                    true ->
+                        eof
+                    end;
+                {error, _} = Error ->
+                    Error
+            end
+    end.
+
+%% Feed new data to body continuation
+wait_mp_doc_body_with_data(Ref, MoreBodyCont, DocBuffer, Data) ->
+    case MoreBodyCont(Data) of
+        {body, BodyData, NextBodyCont} ->
+            NBuffer = <<DocBuffer/binary, BodyData/binary>>,
+            wait_mp_doc_body(Ref, NextBodyCont, NBuffer);
+        {end_of_part, NextPartCont} when DocBuffer =:= <<>> ->
+            wait_mp_doc_next_part(Ref, NextPartCont);
+        {end_of_part, NextPartCont} ->
+            Doc = couchbeam_ejson:decode(DocBuffer),
+            case maps:get(<<"_attachments">>, Doc, #{}) of
+                Atts when map_size(Atts) =:= 0 ->
+                    NState = {Ref, fun() -> wait_mp_doc_next_part(Ref, NextPartCont) end},
+                    {doc, Doc, NState};
+                Atts ->
+                    AttNames = maps:keys(Atts),
+                    NState = {Ref, fun() ->
+                                    wait_mp_att_next_part(Ref, NextPartCont, {nil, AttNames})
+                            end},
+                    {doc, Doc, NState}
+            end;
+        {more, NewMoreBodyCont} ->
+            wait_mp_doc_body(Ref, fun() -> {more, NewMoreBodyCont} end, DocBuffer)
+    end.
+
+%% Move to next part for document parsing
+wait_mp_doc_next_part(Ref, NextPartCont) ->
+    case NextPartCont() of
+        {headers, _Headers, BodyCont} ->
+            wait_mp_doc_body(Ref, BodyCont, <<>>);
+        {more, Parser} ->
+            case hackney:stream_body(Ref) of
+                {ok, Data} ->
+                    wait_mp_doc_loop(Ref, Parser, Data, <<>>);
+                done ->
+                    eof;
+                {error, _} = Error ->
+                    Error
+            end;
         eof ->
+            eof;
+        {eof, _Rest} ->
             eof
     end.
 
 %% @hidden
-wait_mp_att(Ref, {AttName, AttNames}) ->
-    case hackney:stream_multipart(Ref) of
-        {headers, Headers} ->
-            %% old couchdb api doesn't give the content-disposition
-            %% header so we have to use the list of att names given in
-            %% the doc. Hopefully the erlang parser keeps it in order.
+%% Start attachment parsing from a part continuation
+wait_mp_att_next_part(Ref, NextPartCont, {AttName, AttNames}) ->
+    case NextPartCont() of
+        {headers, Headers, BodyCont} ->
+            %% Got headers for attachment part
             case hackney_headers:get_value(<<"content-disposition">>,
                                            hackney_headers:new(Headers)) of
                 undefined ->
                     [Name | Rest] = AttNames,
                     NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {Name, Rest})
+                                    wait_mp_att_body(Ref, BodyCont, {Name, Rest})
                             end},
                     {att, Name, NState};
                 CDisp ->
@@ -216,21 +298,93 @@ wait_mp_att(Ref, {AttName, AttNames}) ->
                     Name = proplists:get_value(<<"filename">>, Props),
                     [_ | Rest] = AttNames,
                     NState = {Ref, fun() ->
-                                    wait_mp_att(Ref, {Name, Rest})
+                                    wait_mp_att_body(Ref, BodyCont, {Name, Rest})
                             end},
                     {att, Name, NState}
             end;
-        {body, Data} ->
-            %% return the attachment par
-            NState = {Ref, fun() -> wait_mp_att(Ref, {AttName, AttNames}) end},
-            {att_body, AttName, Data, NState};
-        end_of_part ->
-            %% wait for the next attachment
-            NState = {Ref, fun() -> wait_mp_att(Ref, {nil, AttNames}) end},
-            {att_eof, AttName, NState};
+        {more, Parser} ->
+            case hackney:stream_body(Ref) of
+                {ok, Data} ->
+                    wait_mp_att_parse(Ref, Parser, Data, {AttName, AttNames});
+                done ->
+                    eof;
+                {error, _} = Error ->
+                    Error
+            end;
         eof ->
-            %% we are done with the multipart request
+            eof;
+        {eof, _Rest} ->
             eof
+    end.
+
+%% Parse more attachment data
+wait_mp_att_parse(Ref, Parser, Data, {AttName, AttNames}) ->
+    case Parser(Data) of
+        {headers, Headers, BodyCont} ->
+            case hackney_headers:get_value(<<"content-disposition">>,
+                                           hackney_headers:new(Headers)) of
+                undefined ->
+                    [Name | Rest] = AttNames,
+                    NState = {Ref, fun() ->
+                                    wait_mp_att_body(Ref, BodyCont, {Name, Rest})
+                            end},
+                    {att, Name, NState};
+                CDisp ->
+                    {_, Props} = content_disposition(CDisp),
+                    Name = proplists:get_value(<<"filename">>, Props),
+                    [_ | Rest] = AttNames,
+                    NState = {Ref, fun() ->
+                                    wait_mp_att_body(Ref, BodyCont, {Name, Rest})
+                            end},
+                    {att, Name, NState}
+            end;
+        {more, NewParser} ->
+            case hackney:stream_body(Ref) of
+                {ok, NewData} ->
+                    wait_mp_att_parse(Ref, NewParser, NewData, {AttName, AttNames});
+                done ->
+                    eof;
+                {error, _} = Error ->
+                    Error
+            end;
+        eof ->
+            eof;
+        {eof, _Rest} ->
+            eof
+    end.
+
+%% Read attachment body
+wait_mp_att_body(Ref, BodyCont, {AttName, AttNames}) ->
+    case BodyCont() of
+        {body, Data, NextBodyCont} ->
+            NState = {Ref, fun() -> wait_mp_att_body(Ref, NextBodyCont, {AttName, AttNames}) end},
+            {att_body, AttName, Data, NState};
+        {end_of_part, NextPartCont} ->
+            NState = {Ref, fun() -> wait_mp_att_next_part(Ref, NextPartCont, {nil, AttNames}) end},
+            {att_eof, AttName, NState};
+        {more, MoreBodyCont} ->
+            case hackney:stream_body(Ref) of
+                {ok, Data} ->
+                    wait_mp_att_body_with_data(Ref, MoreBodyCont, Data, {AttName, AttNames});
+                done ->
+                    NState = {Ref, fun() -> eof end},
+                    {att_eof, AttName, NState};
+                {error, _} = Error ->
+                    Error
+            end
+    end.
+
+%% Feed data to attachment body continuation
+wait_mp_att_body_with_data(Ref, MoreBodyCont, Data, {AttName, AttNames}) ->
+    case MoreBodyCont(Data) of
+        {body, BodyData, NextBodyCont} ->
+            NState = {Ref, fun() -> wait_mp_att_body(Ref, NextBodyCont, {AttName, AttNames}) end},
+            {att_body, AttName, BodyData, NState};
+        {end_of_part, NextPartCont} ->
+            NState = {Ref, fun() -> wait_mp_att_next_part(Ref, NextPartCont, {nil, AttNames}) end},
+            {att_eof, AttName, NState};
+        {more, NewMoreBodyCont} ->
+            wait_mp_att_body(Ref, fun() -> {more, NewMoreBodyCont} end, {AttName, AttNames})
     end.
 
 %% @hidden
