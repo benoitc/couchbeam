@@ -229,12 +229,12 @@ server_uuids(Config) ->
     Server = ?config(server, Config),
 
     %% Get a single UUID
-    {ok, Uuid} = couchbeam:get_uuid(Server),
+    [Uuid] = couchbeam:get_uuid(Server),
     32 = byte_size(Uuid),
     ct:pal("Got single UUID: ~s", [Uuid]),
 
     %% Get multiple UUIDs
-    {ok, Uuids} = couchbeam:get_uuids(Server, 5),
+    Uuids = couchbeam:get_uuids(Server, 5),
     5 = length(Uuids),
     lists:foreach(fun(U) ->
         32 = byte_size(U)
@@ -396,9 +396,9 @@ doc_copy(Config) ->
                   <<"data">> => <<"original">>},
     {ok, SourceSaved} = couchbeam:save_doc(Db, SourceDoc),
 
-    %% Copy to new document
-    {ok, CopyResult} = couchbeam:copy_doc(Db, SourceSaved, <<"copy_target">>),
-    true = maps:is_key(<<"rev">>, CopyResult),
+    %% Copy to new document - returns {ok, NewDocId, NewRev}
+    {ok, <<"copy_target">>, CopyRev} = couchbeam:copy_doc(Db, SourceSaved, <<"copy_target">>),
+    true = is_binary(CopyRev),
 
     %% Verify copy
     {ok, TargetDoc} = couchbeam:open_doc(Db, <<"copy_target">>),

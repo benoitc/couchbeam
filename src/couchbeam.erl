@@ -35,7 +35,7 @@
          delete_docs/2, delete_docs/3,
          copy_doc/2, copy_doc/3,
          lookup_doc_rev/2, lookup_doc_rev/3,
-         fetch_attachment/3, fetch_attachment/4, stream_attachment/1,
+         fetch_attachment/3, fetch_attachment/4, stream_attachment/1, stream_attachment/3,
          delete_attachment/3, delete_attachment/4,
          put_attachment/4, put_attachment/5, send_attachment/2,
          ensure_full_commit/1, ensure_full_commit/2,
@@ -826,6 +826,13 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
               | {error, term()}.
 stream_attachment(Ref) ->
     hackney:stream_body(Ref).
+
+%% @doc Start streaming an attachment. Returns a reference that can be
+%% passed to stream_attachment/1 to receive chunks.
+%% @equiv fetch_attachment(Db, DocId, Name, [stream])
+-spec stream_attachment(db(), binary(), binary()) -> {ok, pid()} | {error, term()}.
+stream_attachment(Db, DocId, Name) ->
+    fetch_attachment(Db, DocId, Name, [stream]).
 
 %% @doc put an attachment
 %% @equiv put_attachment(Db, DocId, Name, Body, [])
