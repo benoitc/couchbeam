@@ -27,7 +27,7 @@
     mref :: reference() | undefined,
     db :: db(),
     options :: list(),
-    client_ref = nil :: reference() | nil,
+    client_ref = nil :: pid() | nil,
     parser = nil :: term(),  %% json_stream_parse state or line buffer
     feed_type = continuous :: continuous | longpoll | normal,
     reconnect_after = 1000 :: integer() | false,

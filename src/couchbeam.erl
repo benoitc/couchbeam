@@ -43,9 +43,8 @@
          get_missing_revs/2,
          find/3]).
 
--type hackney_client() :: #client{}.
-
--opaque doc_stream() :: {hackney_client() | atom(), any()}.
+%% Connection handle is now a pid in hackney process-per-connection branch
+-opaque doc_stream() :: {pid(), any()}.
 -export_type([doc_stream/0]).
 
 -type mp_attachment() :: {Name :: binary(), Bin :: binary()}
@@ -822,7 +821,7 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
 %%      </dl>
 %%
 
--spec stream_attachment(atom()) -> {ok, binary()}
+-spec stream_attachment(pid()) -> {ok, binary()}
               | done
               | {error, term()}.
 stream_attachment(Ref) ->

@@ -18,6 +18,17 @@
 
 -include("couchbeam.hrl").
 
+%% @doc Make an HTTP request via hackney.
+%% Returns vary based on options:
+%% - Normal request: {ok, Status, Headers, Pid}
+%% - HEAD request: {ok, Status, Headers}
+%% - Streaming body (body=stream): {ok, Pid}
+%% - Async request: {ok, Pid}
+-spec request(atom(), binary(), list(), term(), list()) ->
+    {ok, integer(), list(), pid()} |
+    {ok, integer(), list()} |
+    {ok, pid()} |
+    {error, term()}.
 request(Method, Url, Headers, Body, Options) ->
     {FinalHeaders, FinalOpts} = make_headers(Method, Url, Headers,
                                              Options),

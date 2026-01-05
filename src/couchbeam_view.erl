@@ -619,7 +619,7 @@ view_request(#db{options=Opts}, Url, Args) ->
     db :: db(),
     url :: binary(),
     args :: view_query_args(),
-    client_ref = nil :: reference() | nil,
+    client_ref = nil :: pid() | nil,
     parser :: term(),  %% json_stream_parse state
     async = normal :: once | normal
 }).
