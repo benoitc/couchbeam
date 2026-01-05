@@ -1767,17 +1767,17 @@ extract_mock_attachment_info(Url) when is_binary(Url) ->
 %%     Event.
 
 %% Collect multipart results
-collect_mp({doc, Doc, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{doc, Doc}|Acc]);
-collect_mp({att, Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>}|Acc]);
-collect_mp({att_body, Name, Chunk, Next}, Acc) ->
-    Buffer = proplists:get_value(Name, Acc, <<>>),
-    collect_mp(couchbeam:stream_doc(Next), lists:keystore(Name, 1, Acc, {Name, <<Buffer/binary, Chunk/binary>>}));
-collect_mp({att_eof, _Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), Acc);
-collect_mp(eof, Acc) ->
-    Acc.
+%% collect_mp({doc, Doc, Next}, Acc) ->
+%%     collect_mp(couchbeam:stream_doc(Next), [{doc, Doc}|Acc]);
+%% collect_mp({att, Name, Next}, Acc) ->
+%%     collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>}|Acc]);
+%% collect_mp({att_body, Name, Chunk, Next}, Acc) ->
+%%     Buffer = proplists:get_value(Name, Acc, <<>>),
+%%     collect_mp(couchbeam:stream_doc(Next), lists:keystore(Name, 1, Acc, {Name, <<Buffer/binary, Chunk/binary>>}));
+%% collect_mp({att_eof, _Name, Next}, Acc) ->
+%%     collect_mp(couchbeam:stream_doc(Next), Acc);
+%% collect_mp(eof, Acc) ->
+%%     Acc.
 
 %% Replicate test - tests replication document creation and related operations
 replicate_test() ->
