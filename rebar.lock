@@ -2,7 +2,7 @@
 [{<<"certifi">>,{pkg,<<"certifi">>,<<"2.15.0">>},1},
  {<<"hackney">>,
   {git,"https://github.com/benoitc/hackney.git",
-       {ref,"f01361d32c1025d383d7028586e6b2fb89190d93"}},
+       {ref,"d62b00dd8214e7149f5a4b2b043f5b0e300222d9"}},
   0},
  {<<"idna">>,{pkg,<<"idna">>,<<"6.1.1">>},1},
  {<<"metrics">>,{pkg,<<"metrics">>,<<"1.0.1">>},1},
