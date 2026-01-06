@@ -744,8 +744,9 @@ lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, Headers} ->
             HeadersDict = hackney_headers:new(Headers),
-            re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
-                       <<"\"">>, <<>>, [global, {return, binary}]);
+            Rev = re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
+                       <<"\"">>, <<>>, [global, {return, binary}]),
+            {ok, Rev};
         Error ->
             Error
     end.
@@ -1293,7 +1294,7 @@ basic_doc_test() ->
         ?assertEqual({error, conflict}, couchbeam:save_doc(Db, #{<<"_id">> => <<"test">>, <<"test">> => <<"blah">>})),
 
         %% Test lookup_doc_rev
-        Rev = couchbeam:lookup_doc_rev(Db, "test"),
+        {ok, Rev} = couchbeam:lookup_doc_rev(Db, "test"),
         ?assertMatch(<<_/binary>>, Rev),
 
         %% Test open_doc
