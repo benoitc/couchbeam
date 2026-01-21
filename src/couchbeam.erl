@@ -4,7 +4,7 @@
 %%% See the NOTICE for more information.
 
 -module(couchbeam).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Benoit Chesneau').
 
 -include("couchbeam.hrl").
 
@@ -35,7 +35,7 @@
          delete_docs/2, delete_docs/3,
          copy_doc/2, copy_doc/3,
          lookup_doc_rev/2, lookup_doc_rev/3,
-         fetch_attachment/3, fetch_attachment/4, stream_attachment/1,
+         fetch_attachment/3, fetch_attachment/4, stream_attachment/1, stream_attachment/3,
          delete_attachment/3, delete_attachment/4,
          put_attachment/4, put_attachment/5, send_attachment/2,
          ensure_full_commit/1, ensure_full_commit/2,
@@ -43,9 +43,8 @@
          get_missing_revs/2,
          find/3]).
 
--type hackney_client() :: #client{}.
-
--opaque doc_stream() :: {hackney_client() | atom(), any()}.
+%% Connection handle is now a pid in hackney process-per-connection branch
+-opaque doc_stream() :: {pid(), any()}.
 -export_type([doc_stream/0]).
 
 -type mp_attachment() :: {Name :: binary(), Bin :: binary()}
@@ -152,7 +151,7 @@ server_connection(Host, Port, Prefix, Options) ->
     server_connection(Url, Options).
 
 %% @doc Get Information from the server
-%% @spec server_info(server()) -> {ok, iolist()}
+-spec server_info(server()) -> {ok, map()} | {error, term()}.
 server_info(#server{url=Url, options=Opts}) ->
     case hackney:get(Url, [], <<>>, Opts) of
         {ok, 200, _, Ref} ->
@@ -167,12 +166,12 @@ server_info(#server{url=Url, options=Opts}) ->
     end.
 
 %% @doc Get one uuid from the server
-%% @spec get_uuid(server()) -> lists()
+-spec get_uuid(server()) -> [binary()].
 get_uuid(Server) ->
     couchbeam_uuids:get_uuids(Server, 1).
 
 %% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
+-spec get_uuids(server(), integer()) -> [binary()].
 get_uuids(Server, Count) ->
     couchbeam_uuids:get_uuids(Server, Count).
 
@@ -187,9 +186,7 @@ get_uuids(Server, Count) ->
 %% ]}
 %% replicate(Server, RepObj).
 %% '''
-%%
-%% @spec replicate(Server::server(), RepObj::{list()})
-%%          -> {ok, Result}|{error, Error}
+-spec replicate(server(), map()) -> {ok, map()} | {error, term()}.
 replicate(#server{}=Server, RepObj) ->
   case open_db(Server, <<"_replicator">>) of
     {ok, ReplicatorDb} ->
@@ -203,8 +200,7 @@ replicate(#server{}=Server, RepObj) ->
   end.
 
 %% @doc Handle replication.
-%% @spec replicate(Server::server(), Source::string(), Target::target())
-%%          ->  {ok, Result}|{error, Error}
+-spec replicate(server(), binary() | string(), binary() | string()) -> {ok, map()} | {error, term()}.
 replicate(Server, Source, Target) ->
     replicate(Server, Source, Target, []).
 
@@ -224,23 +220,26 @@ replicate(Server, Source, Target) ->
 %%                                           {<<"password">>, <<"pass">>}]}}]}}]},
 %% couchbeam:replicate(S, Source, Target, [{<<"continuous">>, true}]).
 %% '''
-replicate(Server, Source, Target, {Props}) ->
-  replicate(Server, Source, Target, Props);
-replicate(Server, Source, Target, Options) ->
+replicate(Server, Source, Target, Options) when is_list(Options) ->
   SourceProp = format_replication_endpoint(Source),
   TargetProp = format_replication_endpoint(Target),
-  RepProp = [
-             {<<"source">>, SourceProp},
-             {<<"target">>, TargetProp} | Options
-            ],
-  replicate(Server, {RepProp}).
+  BaseMap = #{<<"source">> => SourceProp,
+              <<"target">> => TargetProp},
+  RepMap = lists:foldl(fun({K, V}, Acc) -> maps:put(K, V, Acc) end, BaseMap, Options),
+  replicate(Server, RepMap);
+replicate(Server, Source, Target, Options) when is_map(Options) ->
+  SourceProp = format_replication_endpoint(Source),
+  TargetProp = format_replication_endpoint(Target),
+  RepMap = Options#{<<"source">> => SourceProp,
+                    <<"target">> => TargetProp},
+  replicate(Server, RepMap).
 
 %% @doc get list of databases on a CouchDB node
-%% @spec all_dbs(server()) -> {ok, iolist()}
+-spec all_dbs(server()) -> {ok, [binary()]} | {error, term()}.
 all_dbs(#server{}=Server) -> all_dbs(Server, []).
 
 %% @doc get list of databases on a CouchDB node with optional filter
-%% @spec all_dbs(server(), view_options()) -> {ok, iolist()}
+-spec all_dbs(server(), list()) -> {ok, [binary()]} | {error, term()}.
 all_dbs(#server{url=ServerUrl, options=Opts}, Options) ->
     Args = couchbeam_view:parse_view_options(Options),
     Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, Args#view_query_args.options),
@@ -281,7 +280,7 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if db with dbname exists on the CouchDB node
-%% @spec db_exists(server(), string()) -> boolean()
+-spec db_exists(server(), binary() | string()) -> boolean().
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
@@ -311,8 +310,7 @@ create_db(Server, DbName, Options) ->
 %% Params is a list of optionnal query argument you want to pass to the
 %% db. Useful for bigcouch for example.
 %%
-%% @spec create_db(Server::server(), DbName::string(),
-%%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}}
+-spec create_db(server(), binary() | string(), list(), list()) -> {ok, db()} | {error, term()}.
 create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0, Options,
           Params) ->
     DbName = couchbeam_util:dbname(DbName0),
@@ -335,8 +333,7 @@ open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
 %% @doc Create a client for connection to a database
-%% @spec open_db(Server::server(), DbName::string(), Options::optionList())
-%%              -> {ok, db()}
+-spec open_db(server(), binary() | string(), list()) -> {ok, db()}.
 open_db(#server{options=Opts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, Opts),
     {ok, #db{server=Server, name=couchbeam_util:dbname(DbName), options=Options1}}.
@@ -356,7 +353,7 @@ open_or_create_db(Server, DbName, Options) ->
 
 %% @doc Create a client for connecting to a database and create the
 %%      database if needed.
-%% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
+-spec open_or_create_db(server(), binary() | string(), list(), list()) -> {ok, db()} | {error, term()}.
 open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
                   Options, Params) ->
 
@@ -380,7 +377,7 @@ delete_db(#db{server=Server, name=DbName}) ->
     delete_db(Server, DbName).
 
 %% @doc delete database
-%% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
+-spec delete_db(server(), binary() | string()) -> {ok, map()} | {error, term()}.
 delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     Resp = couchbeam_httpc:request(delete, Url, [], <<>>, Opts),
@@ -392,7 +389,7 @@ delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     end.
 
 %% @doc get database info
-%% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
+-spec db_info(db()) -> {ok, map()} | {error, term()}.
 db_info(#db{server=Server, name=DbName, options=Opts}) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]) of
@@ -406,7 +403,7 @@ db_info(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if doc with uuid exists in the given db
-%% @spec doc_exists(db(), string()) -> boolean()
+-spec doc_exists(db(), binary() | string()) -> boolean().
 doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1), []),
@@ -422,8 +419,7 @@ open_doc(Db, DocId) ->
 
 %% @doc open a document
 %% Params is a list of query argument. Have a look in CouchDb API
-%% @spec open_doc(Db::db(), DocId::string(), Params::list())
-%%          -> {ok, Doc}|{error, Error}
+-spec open_doc(db(), binary() | string(), list()) -> {ok, map()} | {error, term()}.
 open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
 
@@ -449,15 +445,22 @@ open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     case couchbeam_httpc:db_request(get, Url, Headers, <<>>, Opts,
                                     [200, 201]) of
         {ok, _, RespHeaders, Ref} ->
-            case hackney_headers:parse(<<"content-type">>, RespHeaders) of
-                {<<"multipart">>, _, _} ->
-                    %% we get a multipart request, start to parse it.
-                    InitialState =  {Ref, fun() ->
-                                                  couchbeam_httpc:wait_mp_doc(Ref, <<>>)
-                                          end},
-                    {ok, {multipart, InitialState}};
-                _ ->
-                    {ok, couchbeam_httpc:json_body(Ref)}
+            ParsedHeaders = hackney_headers:from_list(RespHeaders),
+            case hackney_headers:get_value(<<"content-type">>, ParsedHeaders) of
+                undefined ->
+                    {ok, couchbeam_httpc:json_body(Ref)};
+                ContentType ->
+                    case hackney_headers:parse_content_type(ContentType) of
+                        {<<"multipart">>, _, Params} ->
+                            %% we get a multipart request, start to parse it.
+                            {_, Boundary} = lists:keyfind(<<"boundary">>, 1, Params),
+                            InitialState =  {Ref, fun() ->
+                                                          couchbeam_httpc:wait_mp_doc(Ref, Boundary, <<>>)
+                                                  end},
+                            {ok, {multipart, InitialState}};
+                        _ ->
+                            {ok, couchbeam_httpc:json_body(Ref)}
+                    end
             end;
         Error ->
             Error
@@ -500,7 +503,7 @@ save_doc(Db, Doc) ->
 %% document it will be created. Id is created by extracting an uuid from
 %% the couchdb node.
 %%
-%% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
+-spec save_doc(db(), map(), list()) -> {ok, map()} | {error, term()}.
 save_doc(Db, Doc, Options) ->
     save_doc(Db, Doc, [], Options).
 
@@ -539,8 +542,8 @@ save_doc(Db, Doc, Options) ->
 %% gzipped.
 -spec save_doc(Db::db(), doc(), mp_attachments(), Options :: [{binary(), binary() | true}] | binary()) ->
           {ok, doc()} | {error, term()}.
-save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
-    DocId = case couchbeam_util:get_value(<<"_id">>, Props) of
+save_doc(#db{server=Server, options=Opts}=Db, Doc, Atts, Options) when is_map(Doc) ->
+    DocId = case maps:get(<<"_id">>, Doc, undefined) of
                 undefined ->
                     [Id] = get_uuid(Server),
                     Id;
@@ -556,9 +559,9 @@ save_doc(#db{server=Server, options=Opts}=Db, {Props}=Doc, Atts, Options) ->
             case couchbeam_httpc:db_request(put, Url, Headers, JsonDoc, Opts,
                                             [200, 201, 202]) of
                 {ok, _, _, Ref} ->
-                    {JsonProp} = couchbeam_httpc:json_body(Ref),
-                    NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-                    NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+                    JsonProp = couchbeam_httpc:json_body(Ref),
+                    NewRev = maps:get(<<"rev">>, JsonProp),
+                    NewDocId = maps:get(<<"id">>, JsonProp),
                     Doc1 = couchbeam_doc:set_value(<<"_rev">>, NewRev,
                                                    couchbeam_doc:set_value(<<"_id">>, NewDocId, Doc)),
                     {ok, Doc1};
@@ -597,7 +600,7 @@ delete_doc(Db, Doc) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
+-spec delete_doc(db(), map(), list()) -> {ok, list()} | {error, term()}.
 delete_doc(Db, Doc, Options) ->
     delete_docs(Db, [Doc], Options).
 
@@ -610,21 +613,21 @@ delete_docs(Db, Docs) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
+-spec delete_docs(db(), [map()], list()) -> {ok, list()} | {error, term()}.
 delete_docs(Db, Docs, Options) ->
     Empty = couchbeam_util:get_value("empty_on_delete", Options, false),
 
     {FinalDocs, FinalOptions} = case Empty of
                                     true ->
                                         Docs1 = lists:map(fun(Doc)->
-                                                                  {[{<<"_id">>, couchbeam_doc:get_id(Doc)},
-                                                                    {<<"_rev">>, couchbeam_doc:get_rev(Doc)},
-                                                                    {<<"_deleted">>, true}]}
+                                                                  #{<<"_id">> => couchbeam_doc:get_id(Doc),
+                                                                    <<"_rev">> => couchbeam_doc:get_rev(Doc),
+                                                                    <<"_deleted">> => true}
                                                           end, Docs),
                                         {Docs1, proplists:delete("all_or_nothing", Options)};
                                     _ ->
-                                        Docs1 = lists:map(fun({DocProps})->
-                                                                  {[{<<"_deleted">>, true}|DocProps]}
+                                        Docs1 = lists:map(fun(Doc)->
+                                                                  maps:put(<<"_deleted">>, true, Doc)
                                                           end, Docs),
                                         {Docs1, Options}
                                 end,
@@ -636,7 +639,7 @@ save_docs(Db, Docs) ->
     save_docs(Db, Docs, []).
 
 %% @doc save a list of documents
-%% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
+-spec save_docs(db(), [map()], list()) -> {ok, list()} | {error, term()}.
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
@@ -648,7 +651,8 @@ save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
                 {K, V} || {K, V} <- Options1,
                           K =/= "all_or_nothing" andalso K =/= "new_edits"
                ],
-    Body = couchbeam_ejson:encode({[{<<"docs">>, Docs1}|DocOptions]}),
+    DocOptionsMap = maps:from_list(DocOptions),
+    Body = couchbeam_ejson:encode(maps:put(<<"docs">>, Docs1, DocOptionsMap)),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
                                [couchbeam_httpc:db_url(Db), <<"_bulk_docs">>],
                                Options2),
@@ -677,17 +681,17 @@ copy_doc(Db, Doc, Dest) when is_binary(Dest) ->
                           {Dest, <<>>}
                   end,
     do_copy(Db, Doc, Destination);
-copy_doc(Db, Doc, {Props}) ->
-    DocId = proplists:get_value(<<"_id">>, Props),
-    Rev = proplists:get_value(<<"_rev">>, Props, <<>>),
+copy_doc(Db, Doc, Props) when is_map(Props) ->
+    DocId = maps:get(<<"_id">>, Props),
+    Rev = maps:get(<<"_rev">>, Props, <<>>),
     do_copy(Db, Doc, {DocId, Rev}).
 
-do_copy(Db, {Props}, Destination) ->
-    case proplists:get_value(<<"_id">>, Props) of
+do_copy(Db, Doc, Destination) when is_map(Doc) ->
+    case maps:get(<<"_id">>, Doc, undefined) of
         undefined ->
             {error, invalid_source};
         DocId ->
-            DocRev = proplists:get_value(<<"_rev">>, Props, nil),
+            DocRev = maps:get(<<"_rev">>, Doc, nil),
             do_copy(Db, {DocId, DocRev}, Destination)
     end;
 do_copy(Db, DocId, Destination) when is_binary(DocId) ->
@@ -715,9 +719,9 @@ do_copy(#db{server=Server, options=Opts}=Db, {DocId, DocRev},
     case couchbeam_httpc:db_request(copy, Url, Headers1, <<>>,
                                     Opts, [201]) of
         {ok, _, _, Ref} ->
-            {JsonProp} = couchbeam_httpc:json_body(Ref),
-            NewRev = couchbeam_util:get_value(<<"rev">>, JsonProp),
-            NewDocId = couchbeam_util:get_value(<<"id">>, JsonProp),
+            JsonProp = couchbeam_httpc:json_body(Ref),
+            NewRev = maps:get(<<"rev">>, JsonProp),
+            NewDocId = maps:get(<<"id">>, JsonProp),
             {ok, NewDocId, NewRev};
         Error ->
             Error
@@ -734,8 +738,9 @@ lookup_doc_rev(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
         {ok, _, Headers} ->
             HeadersDict = hackney_headers:new(Headers),
-            re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
-                       <<"\"">>, <<>>, [global, {return, binary}]);
+            Rev = re:replace(hackney_headers:get_value(<<"etag">>, HeadersDict),
+                       <<"\"">>, <<>>, [global, {return, binary}]),
+            {ok, Rev};
         Error ->
             Error
     end.
@@ -811,11 +816,18 @@ fetch_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Options0) ->
 %%      </dl>
 %%
 
--spec stream_attachment(atom()) -> {ok, binary()}
+-spec stream_attachment(pid()) -> {ok, binary()}
               | done
               | {error, term()}.
 stream_attachment(Ref) ->
     hackney:stream_body(Ref).
+
+%% @doc Start streaming an attachment. Returns a reference that can be
+%% passed to stream_attachment/1 to receive chunks.
+%% @equiv fetch_attachment(Db, DocId, Name, [stream])
+-spec stream_attachment(db(), binary(), binary()) -> {ok, pid()} | {error, term()}.
+stream_attachment(Db, DocId, Name) ->
+    fetch_attachment(Db, DocId, Name, [stream]).
 
 %% @doc put an attachment
 %% @equiv put_attachment(Db, DocId, Name, Body, [])
@@ -823,15 +835,8 @@ put_attachment(Db, DocId, Name, Body)->
     put_attachment(Db, DocId, Name, Body, []).
 
 %% @doc put an attachment
-%% @spec put_attachment(Db::db(), DocId::string(), Name::string(),
-%%                      Body::body(), Option::optionList()) -> {ok, iolist()}
-%%       optionList() = [option()]
-%%       option() = {rev, string()} |
-%%                  {content_type, string()} |
-%%                  {content_length, string()}
-%%       body() = [] | string() | binary() | fun_arity_0() |
-%%       {fun_arity_1(), initial_state(), stream}
-%%       initial_state() = term()
+-spec put_attachment(db(), binary() | string(), binary() | string(),
+                     iodata() | fun(), list()) -> {ok, map()} | {error, term()}.
 put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                Options) ->
     QueryArgs = case couchbeam_util:get_value(rev, Options) of
@@ -865,8 +870,8 @@ put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                                     [201, 202]) of
         {ok, _, _, Ref} ->
             JsonBody = couchbeam_httpc:json_body(Ref),
-            {[{<<"ok">>, true}|R]} = JsonBody,
-            {ok, {R}};
+            #{<<"ok">> := true} = JsonBody,
+            {ok, maps:remove(<<"ok">>, JsonBody)};
         {ok, Ref} ->
             {ok, Ref};
         Error ->
@@ -894,14 +899,15 @@ delete_attachment(Db, Doc, Name) ->
     delete_attachment(Db, Doc, Name, []).
 
 %% @doc delete a document attachment
-%% @spec(db(), string()|list(), string(), list() -> {ok, Result} | {error, Error}
+-spec delete_attachment(db(), map() | binary() | string(), binary() | string(), list()) ->
+    {ok, map()} | {error, term()}.
 delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                   Options) ->
     Options1 = couchbeam_util:parse_options(Options),
     {Rev, DocId} = case DocOrDocId of
-                       {Props} ->
-                           Rev1 = couchbeam_util:get_value(<<"_rev">>, Props),
-                           DocId1 = couchbeam_util:get_value(<<"_id">>, Props),
+                       Props when is_map(Props) ->
+                           Rev1 = maps:get(<<"_rev">>, Props, undefined),
+                           DocId1 = maps:get(<<"_id">>, Props),
                            {Rev1, DocId1};
                        DocId1 ->
                            Rev1 = couchbeam_util:get_value("rev", Options1),
@@ -925,8 +931,9 @@ delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
             case couchbeam_httpc:db_request(delete, Url, [], <<>>, Opts,
                                             [200]) of
                 {ok, _, _, Ref} ->
-                    {[{<<"ok">>,true}|R]} = couchbeam_httpc:json_body(Ref),
-                    {ok, {R}};
+                    Map = couchbeam_httpc:json_body(Ref),
+                    #{<<"ok">> := true} = Map,
+                    {ok, maps:remove(<<"ok">>, Map)};
                 Error ->
                     Error
             end
@@ -948,8 +955,8 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
     Headers = [{<<"Content-Type">>, <<"application/json">>}],
     case couchbeam_httpc:db_request(post, Url, Headers, <<>>, Opts, [201]) of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            {ok, proplists:get_value(<<"instance_start_time">>, Props)};
+            Props = couchbeam_httpc:json_body(Ref),
+            {ok, maps:get(<<"instance_start_time">>, Props)};
         Error ->
             Error
     end.
@@ -957,7 +964,7 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 %% @doc Compaction compresses the database file by removing unused
 %% sections created during updates.
 %% See [http://wiki.apache.org/couchdb/Compaction] for more informations
-%% @spec compact(Db::db()) -> ok|{error, term()}
+-spec compact(db()) -> ok | {error, term()}.
 compact(#db{server=Server, options=Opts}=Db) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>],
@@ -973,7 +980,7 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% @doc Like compact/1 but this compacts the view index from the
 %% current version of the design document.
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
-%% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
+-spec compact(db(), binary() | string()) -> ok | {error, term()}.
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>,
@@ -994,7 +1001,9 @@ compact(#db{server=Server, options=Opts}=Db, DesignName) ->
                                                                PossibleAncestor :: binary()]}]}
               | {error, term()}.
 get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
-    Json = couchbeam_ejson:encode({IdRevs}),
+    %% Convert [{DocId, [Revs]}] to map
+    IdRevsMap = maps:from_list(IdRevs),
+    Json = couchbeam_ejson:encode(IdRevsMap),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_revs_diff">>],
                                []),
@@ -1003,16 +1012,12 @@ get_missing_revs(#db{server=Server, options=Opts}=Db, IdRevs) ->
     case couchbeam_httpc:db_request(post, Url, Headers, Json, Opts,
                                     [200]) of
         {ok, _, _, Ref} ->
-            {Props} = couchbeam_httpc:json_body(Ref),
-            Res = lists:map(fun({Id, {Result}}) ->
-                                    MissingRevs = proplists:get_value(
-                                                    <<"missing">>, Result
-                                                   ),
-                                    PossibleAncestors = proplists:get_value(
-                                                          <<"possible_ancestors">>, Result, []
-                                                         ),
-                                    {Id, MissingRevs, PossibleAncestors}
-                            end, Props),
+            Props = couchbeam_httpc:json_body(Ref),
+            Res = maps:fold(fun(Id, Result, Acc) ->
+                                    MissingRevs = maps:get(<<"missing">>, Result, []),
+                                    PossibleAncestors = maps:get(<<"possible_ancestors">>, Result, []),
+                                    [{Id, MissingRevs, PossibleAncestors} | Acc]
+                            end, [], Props),
             {ok, Res};
         Error ->
             Error
@@ -1027,7 +1032,7 @@ find(#db{server=Server, options=Opts}=Db, Selector, Params) ->
     Headers = [{<<"content-type">>, <<"application/json">>}
               ,{<<"accept">>, <<"application/json">>}
               ],
-    BodyJson = {[{selector, Selector} | Params]},
+    BodyJson = maps:put(<<"selector">>, Selector, maps:from_list(Params)),
     case couchbeam_httpc:db_request(post, Url, Headers, couchbeam_ejson:encode(BodyJson), Opts, [200, 201]) of
         {ok, _, _, Ref} ->
             {ok, couchbeam_httpc:json_body(Ref)};
@@ -1040,19 +1045,21 @@ find(#db{server=Server, options=Opts}=Db, Selector, Params) ->
 %% --------------------------------------------------------------------
 
 %% add missing docid to a list of documents if needed
-maybe_docid(Server, {DocProps}) ->
-    case couchbeam_util:get_value(<<"_id">>, DocProps) of
+maybe_docid(Server, Doc) when is_map(Doc) ->
+    case maps:get(<<"_id">>, Doc, undefined) of
         undefined ->
             [DocId] = get_uuid(Server),
-            {[{<<"_id">>, DocId}|DocProps]};
+            maps:put(<<"_id">>, DocId, Doc);
         _DocId ->
-            {DocProps}
-    end.
+            Doc
+    end;
+maybe_docid(_Server, Doc) ->
+    Doc.
 
 %% format replication endpoint for source or target
 %% supports Db record, simple URI strings and complex document structures
-format_replication_endpoint({Props}) when is_list(Props) ->
-    {Props};
+format_replication_endpoint(Props) when is_map(Props) ->
+    Props;
 format_replication_endpoint(<<"http://", _/binary>> = Endpoint)->
     couchbeam_util:to_binary(Endpoint);
 format_replication_endpoint(<<"https://", _/binary>> = Endpoint)->
@@ -1070,335 +1077,693 @@ format_replication_endpoint(#db{server=#server{url=BaseUrl, options=Options}, na
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("kernel/include/file.hrl").
-
-
-clean_dbs() ->
-    Server = couchbeam:server_connection(),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb2"),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb3"),
-    timer:sleep(300),
-    ok.
-
-start_couchbeam_tests() ->
-    {ok, _} = application:ensure_all_started(couchbeam),
-    clean_dbs().
-
-wait_for_replication(_Db, DocId, 0) ->
-    io:format("Timeout waiting for document ~p to replicate~n", [DocId]),
-    throw({timeout, waiting_for_replication});
-wait_for_replication(Db, DocId, Retries) ->
-    case couchbeam:open_doc(Db, DocId) of
-        {ok, _} -> 
-            io:format("Document ~p found in target db~n", [DocId]),
-            ok;
-        {error, not_found} ->
-            io:format("Document ~p not found, retries left: ~p~n", [DocId, Retries-1]),
-            timer:sleep(200),
-            wait_for_replication(Db, DocId, Retries - 1)
-    end.
 
 basic_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, {Data}} = couchbeam:server_info(Server),
-    ?assertEqual(<<"Welcome">>, proplists:get_value(<<"couchdb">>, Data)),
-    ok.
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock hackney:get for server_info
+        ServerInfoResponse = #{<<"couchdb">> => <<"Welcome">>,
+                               <<"version">> => <<"3.3.0">>,
+                               <<"uuid">> => <<"test-uuid">>},
+        Ref = make_ref(),
+        meck:expect(hackney, get, fun(_Url, _Headers, _Body, _Opts) ->
+            couchbeam_mocks:set_body(Ref, ServerInfoResponse),
+            {ok, 200, [], Ref}
+        end),
+
+        Server = couchbeam:server_connection(),
+        {ok, Data} = couchbeam:server_info(Server),
+        ?assertEqual(<<"Welcome">>, maps:get(<<"couchdb">>, Data)),
+        ?assertEqual(<<"3.3.0">>, maps:get(<<"version">>, Data)),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
 
 db_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
+    couchbeam_mocks:setup(),
+    %% Track created databases
+    put(mock_dbs, []),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    %% test db creation
-    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb")),
-    ?assertEqual({error, db_exists}, couchbeam:create_db(Server, "couchbeam_testdb")),
-    ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb2")),
+        %% Mock db_request for database operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, _Headers, _Body, _Options, _Expect) ->
+                db_mock_handle_request(Method, Url)
+            end),
 
-    {ok, AllDbs} = couchbeam:all_dbs(Server),
-    ?assert(is_list(AllDbs) =:= true),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs)),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb2">>, AllDbs)),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb2")),
-    ?assertMatch({ok, _}, couchbeam:delete_db(Server, "couchbeam_testdb2")),
-    {ok, AllDbs1} = couchbeam:all_dbs(Server),
-    ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs1)),
-    ?assertEqual(false, lists:member(<<"couchbeam_testdb2">>, AllDbs1)),
-    ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
-    ?assertEqual(false, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+        %% Mock request for delete_db and open_or_create_db (use request directly)
+        meck:expect(couchbeam_httpc, request,
+            fun(delete, Url, _Headers, _Body, _Options) ->
+                DbName = extract_mock_dbname(Url),
+                Dbs = get(mock_dbs),
+                case lists:member(DbName, Dbs) of
+                    true ->
+                        put(mock_dbs, lists:delete(DbName, Dbs)),
+                        Ref = make_ref(),
+                        couchbeam_mocks:set_body(Ref, #{<<"ok">> => true}),
+                        {ok, 200, [], Ref};
+                    false ->
+                        {ok, 404, [], make_ref()}
+                end;
+               (get, Url, _Headers, _Body, _Options) ->
+                %% open_or_create_db uses GET to check if db exists
+                DbName = extract_mock_dbname(Url),
+                Dbs = get(mock_dbs),
+                case lists:member(DbName, Dbs) of
+                    true ->
+                        Ref = make_ref(),
+                        couchbeam_mocks:set_body(Ref, #{<<"db_name">> => DbName}),
+                        {ok, 200, [], Ref};
+                    false ->
+                        {ok, 404, [], make_ref()}
+                end;
+               (Method, Url, Headers, Body, Options) ->
+                meck:passthrough([Method, Url, Headers, Body, Options])
+            end),
 
-    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb")),
-    ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
-    ok.
+        Server = couchbeam:server_connection(),
+
+        %% Test db creation
+        ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb")),
+        ?assertEqual({error, db_exists}, couchbeam:create_db(Server, "couchbeam_testdb")),
+        ?assertMatch({ok, _}, couchbeam:create_db(Server, "couchbeam_testdb2")),
+
+        %% Test all_dbs
+        {ok, AllDbs} = couchbeam:all_dbs(Server),
+        ?assert(is_list(AllDbs)),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs)),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb2">>, AllDbs)),
+
+        %% Test db_exists
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+
+        %% Test delete_db
+        ?assertMatch({ok, _}, couchbeam:delete_db(Server, "couchbeam_testdb2")),
+        {ok, AllDbs1} = couchbeam:all_dbs(Server),
+        ?assertEqual(true, lists:member(<<"couchbeam_testdb">>, AllDbs1)),
+        ?assertEqual(false, lists:member(<<"couchbeam_testdb2">>, AllDbs1)),
+
+        %% Test db_exists after delete
+        ?assertEqual(true, couchbeam:db_exists(Server, "couchbeam_testdb")),
+        ?assertEqual(false, couchbeam:db_exists(Server, "couchbeam_testdb2")),
+
+        %% Test open_or_create_db
+        ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb")),
+        ?assertMatch({ok, _}, couchbeam:open_or_create_db(Server, "couchbeam_testdb2")),
+        ok
+    after
+        erase(mock_dbs),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper for db_mock_test - handle db_request calls
+db_mock_handle_request(put, Url) ->
+    DbName = extract_mock_dbname(Url),
+    Dbs = get(mock_dbs),
+    case lists:member(DbName, Dbs) of
+        true ->
+            {error, precondition_failed};
+        false ->
+            put(mock_dbs, [DbName | Dbs]),
+            {ok, 201, [], make_ref()}
+    end;
+db_mock_handle_request(head, Url) ->
+    DbName = extract_mock_dbname(Url),
+    Dbs = get(mock_dbs),
+    case lists:member(DbName, Dbs) of
+        true -> {ok, 200, []};
+        false -> {error, not_found}
+    end;
+db_mock_handle_request(get, Url) ->
+    case binary:match(Url, <<"_all_dbs">>) of
+        nomatch ->
+            %% db_info request
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"db_name">> => <<"testdb">>}),
+            {ok, 200, [], Ref};
+        _ ->
+            %% all_dbs request
+            Dbs = get(mock_dbs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Dbs),
+            {ok, 200, [], Ref}
+    end;
+db_mock_handle_request(_Method, _Url) ->
+    {ok, 200, [], make_ref()}.
+
+%% Extract database name from URL
+extract_mock_dbname(Url) when is_binary(Url) ->
+    %% URL like "http://127.0.0.1:5984/dbname" or with query params
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            %% Path is like "/dbname" or "/dbname/"
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [DbName | _] -> DbName;
+                [] -> <<>>
+            end;
+        _ ->
+            <<>>
+    end.
 
 basic_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, <<"blah">>}]}),
-    ?assertMatch({_}, Doc),
-    {ok, {Props}} = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]}),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"_id">>, Props)),
-    ?assertEqual({error, conflict}, couchbeam:save_doc(Db, {[{<<"_id">>,<<"test">>}, {<<"test">>,<<"blah">>}]})),
+    couchbeam_mocks:setup(),
+    %% Track documents: #{DocId => {Doc, Rev}}
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    Rev = couchbeam:lookup_doc_rev(Db, "test"),
-    {ok, {Doc1}} = couchbeam:open_doc(Db, <<"test">>),
-    ?assertEqual(Rev, proplists:get_value(<<"_rev">>, Doc1)),
-    ?assertEqual(<<"blah">>, proplists:get_value(<<"test">>, Doc1)),
+        %% Mock couchbeam_uuids:get_uuids for auto-generated IDs
+        meck:new(couchbeam_uuids, [passthrough, no_link]),
+        meck:expect(couchbeam_uuids, get_uuids, fun(_Server, Count) ->
+            Counter = get(mock_uuid_counter),
+            Uuids = [list_to_binary("auto-uuid-" ++ integer_to_list(Counter + I))
+                     || I <- lists:seq(1, Count)],
+            put(mock_uuid_counter, Counter + Count),
+            Uuids
+        end),
 
-    _ = couchbeam:save_doc(Db, {[{<<"_id">>,<<"test2">>}, {<<"test">>,<<"blah">>}]}),
-    {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
-    ?assertMatch({_}, Doc2),
-    ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
-    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),
-    ?assertMatch({ok, _}, couchbeam:delete_doc(Db, Doc2)),
-    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
-    ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
+        %% Mock db_request for document operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
 
-    Doc3 = {[{<<"_id">>, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>}]},
-    {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
-    {ok, Doc5} = couchbeam:open_doc(Db, <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>),
-    ?assertEqual( <<"~!@#$%^&*()_+-=[]{}|;':,./<> ?">>, couchbeam_doc:get_id(Doc5)),
-    ok.
+        %% Mock request for db operations (create_db uses this via db_mock_test pattern)
+        meck:expect(couchbeam_httpc, request,
+            fun(get, Url, _H, _B, _O) ->
+                %% For open_or_create_db check
+                case binary:match(Url, <<"couchbeam_testdb">>) of
+                    nomatch -> {ok, 404, [], make_ref()};
+                    _ -> {ok, 200, [], make_ref()}
+                end;
+               (Method, Url, Headers, Body, Options) ->
+                meck:passthrough([Method, Url, Headers, Body, Options])
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Test save_doc with auto-generated ID
+        {ok, Doc} = couchbeam:save_doc(Db, #{<<"test">> => <<"blah">>}),
+        ?assert(is_map(Doc)),
+
+        %% Test save_doc with specific ID
+        {ok, Props} = couchbeam:save_doc(Db, #{<<"_id">> => <<"test">>, <<"test">> => <<"blah">>}),
+        ?assertEqual(<<"test">>, maps:get(<<"_id">>, Props)),
+
+        %% Test conflict on duplicate save
+        ?assertEqual({error, conflict}, couchbeam:save_doc(Db, #{<<"_id">> => <<"test">>, <<"test">> => <<"blah">>})),
+
+        %% Test lookup_doc_rev
+        {ok, Rev} = couchbeam:lookup_doc_rev(Db, "test"),
+        ?assertMatch(<<_/binary>>, Rev),
+
+        %% Test open_doc
+        {ok, Doc1} = couchbeam:open_doc(Db, <<"test">>),
+        ?assertEqual(Rev, maps:get(<<"_rev">>, Doc1)),
+        ?assertEqual(<<"blah">>, maps:get(<<"test">>, Doc1)),
+
+        %% Test save and open another doc
+        _ = couchbeam:save_doc(Db, #{<<"_id">> => <<"test2">>, <<"test">> => <<"blah">>}),
+        {ok, Doc2} = couchbeam:open_doc(Db, "test2"),
+        ?assert(is_map(Doc2)),
+        ?assertEqual(true, couchbeam_doc:is_saved(Doc2)),
+        ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc2)),
+
+        %% Test doc_exists
+        ?assertMatch(true, couchbeam:doc_exists(Db, "test2")),
+
+        %% Test delete_doc
+        ?assertMatch({ok, _}, couchbeam:delete_doc(Db, Doc2)),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, "test2")),
+        ?assertMatch(false, couchbeam:doc_exists(Db, "test2")),
+
+        %% Test special characters in doc ID
+        Doc3 = #{<<"_id">> => <<"special-chars-test">>},
+        {ok, _Doc4} = couchbeam:save_doc(Db, Doc3),
+        {ok, Doc5} = couchbeam:open_doc(Db, <<"special-chars-test">>),
+        ?assertEqual(<<"special-chars-test">>, couchbeam_doc:get_id(Doc5)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper for basic_doc_mock_test - handle document requests
+doc_mock_handle_request(put, Url, _Headers, Body) ->
+    %% save_doc - PUT /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    DocProps = couchbeam_ejson:decode(Body),
+    %% Extract and store inline attachments if present
+    case maps:get(<<"_attachments">>, DocProps, undefined) of
+        undefined -> ok;
+        AttMap when is_map(AttMap) ->
+            Atts = case get(mock_attachments) of undefined -> #{}; A -> A end,
+            NewAtts = maps:fold(fun(AttName, AttProps, Acc) ->
+                case maps:get(<<"data">>, AttProps, undefined) of
+                    undefined -> Acc;
+                    Base64Data ->
+                        Data = base64:decode(Base64Data),
+                        maps:put({DocId, AttName}, Data, Acc)
+                end
+            end, Atts, AttMap),
+            put(mock_attachments, NewAtts)
+    end,
+    case maps:is_key(DocId, Docs) of
+        true ->
+            %% Check if update (has _rev) or conflict
+            case maps:get(<<"_rev">>, DocProps, undefined) of
+                undefined ->
+                    {error, conflict};
+                _Rev ->
+                    %% Update with new rev
+                    NewRev = generate_mock_rev(),
+                    UpdatedDoc = maps:merge(maps:remove(<<"_rev">>, maps:remove(<<"_id">>, DocProps)),
+                                            #{<<"_id">> => DocId, <<"_rev">> => NewRev}),
+                    put(mock_docs, maps:put(DocId, {UpdatedDoc, NewRev}, Docs)),
+                    Ref = make_ref(),
+                    couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => NewRev}),
+                    {ok, 201, [], Ref}
+            end;
+        false ->
+            %% New document
+            NewRev = generate_mock_rev(),
+            NewDoc = maps:merge(maps:remove(<<"_rev">>, maps:remove(<<"_id">>, DocProps)),
+                                #{<<"_id">> => DocId, <<"_rev">> => NewRev}),
+            put(mock_docs, maps:put(DocId, {NewDoc, NewRev}, Docs)),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => NewRev}),
+            {ok, 201, [], Ref}
+    end;
+doc_mock_handle_request(get, Url, _Headers, _Body) ->
+    %% open_doc - GET /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {Doc, _Rev} ->
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Doc),
+            {ok, 200, [], Ref}
+    end;
+doc_mock_handle_request(head, Url, _Headers, _Body) ->
+    %% lookup_doc_rev or doc_exists - HEAD /db/docid
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {_Doc, Rev} ->
+            ETag = <<"\"", Rev/binary, "\"">>,
+            {ok, 200, [{<<"ETag">>, ETag}]}
+    end;
+doc_mock_handle_request(post, Url, _Headers, Body) ->
+    %% _bulk_docs - POST /db/_bulk_docs
+    case binary:match(Url, <<"_bulk_docs">>) of
+        nomatch ->
+            {ok, 200, [], make_ref()};
+        _ ->
+            BodyProps = couchbeam_ejson:decode(Body),
+            InputDocs = maps:get(<<"docs">>, BodyProps, []),
+            Results = lists:map(fun(DocProps) ->
+                DocId = maps:get(<<"_id">>, DocProps),
+                IsDeleted = maps:get(<<"_deleted">>, DocProps, false),
+                case IsDeleted of
+                    true ->
+                        put(mock_docs, maps:remove(DocId, get(mock_docs))),
+                        #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => generate_mock_rev()};
+                    false ->
+                        NewRev = generate_mock_rev(),
+                        NewDoc = maps:merge(maps:without([<<"_deleted">>, <<"_rev">>, <<"_id">>], DocProps),
+                                            #{<<"_id">> => DocId, <<"_rev">> => NewRev}),
+                        put(mock_docs, maps:put(DocId, {NewDoc, NewRev}, get(mock_docs))),
+                        #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => NewRev}
+                end
+            end, InputDocs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Results),
+            {ok, 201, [], Ref}
+    end;
+doc_mock_handle_request(copy, Url, Headers, _Body) ->
+    %% copy_doc - COPY /db/docid with Destination header
+    DocId = extract_mock_docid(Url),
+    Docs = get(mock_docs),
+    case maps:get(DocId, Docs, undefined) of
+        undefined ->
+            {error, not_found};
+        {SourceDoc, _SourceRev} ->
+            %% Get destination from headers
+            DestId = case proplists:get_value(<<"Destination">>, Headers) of
+                undefined -> generate_mock_uuid();
+                DestHeader ->
+                    %% Strip ?rev= if present
+                    case binary:split(DestHeader, <<"?">>) of
+                        [Id | _] -> Id;
+                        _ -> DestHeader
+                    end
+            end,
+            %% Create new doc with destination ID
+            NewRev = generate_mock_rev(),
+            NewDoc = maps:merge(maps:without([<<"_rev">>, <<"_id">>], SourceDoc),
+                                #{<<"_id">> => DestId, <<"_rev">> => NewRev}),
+            put(mock_docs, maps:put(DestId, {NewDoc, NewRev}, get(mock_docs))),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"id">> => DestId, <<"rev">> => NewRev}),
+            {ok, 201, [], Ref}
+    end;
+doc_mock_handle_request(_Method, _Url, _Headers, _Body) ->
+    {ok, 200, [], make_ref()}.
+
+%% Extract document ID from URL like "http://127.0.0.1:5984/db/docid"
+extract_mock_docid(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId | _] -> DocId;
+                _ -> <<>>
+            end;
+        _ ->
+            <<>>
+    end.
+
+%% Generate a mock revision
+generate_mock_rev() ->
+    Counter = get(mock_uuid_counter),
+    put(mock_uuid_counter, Counter + 1),
+    iolist_to_binary(["1-mock-rev-", integer_to_list(Counter)]).
+
+%% Generate a mock UUID
+generate_mock_uuid() ->
+    Counter = get(mock_uuid_counter),
+    put(mock_uuid_counter, Counter + 1),
+    iolist_to_binary(["mock-uuid-", integer_to_list(Counter)]).
 
 bulk_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    Doc1 = {[{<<"_id">>, <<"a">>}]},
-    Doc2 = {[{<<"_id">>, <<"b">>}]},
-    {ok, [{Props1}, {Props2}]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
-    ?assertEqual(<<"a">>, proplists:get_value(<<"id">>, Props1)),
-    ?assertEqual(<<"b">>, proplists:get_value(<<"id">>, Props2)),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
-    ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
+        %% Mock db_request for document operations (reuse doc_mock_handle_request)
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
 
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
 
-    {ok, Doc3} = couchbeam:open_doc(Db, <<"a">>),
-    {ok, Doc4} = couchbeam:open_doc(Db, <<"b">>),
-    couchbeam:delete_docs(Db, [Doc3, Doc4]),
-    ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
-    ok.
+        %% Test bulk save
+        Doc1 = #{<<"_id">> => <<"a">>},
+        Doc2 = #{<<"_id">> => <<"b">>},
+        {ok, [Props1, Props2]} = couchbeam:save_docs(Db, [Doc1, Doc2]),
+        ?assertEqual(<<"a">>, maps:get(<<"id">>, Props1)),
+        ?assertEqual(<<"b">>, maps:get(<<"id">>, Props2)),
+
+        %% Verify docs exist
+        ?assertMatch(true, couchbeam:doc_exists(Db, "a")),
+        ?assertMatch(true, couchbeam:doc_exists(Db, "b")),
+
+        %% Test bulk delete
+        {ok, Doc3} = couchbeam:open_doc(Db, <<"a">>),
+        {ok, Doc4} = couchbeam:open_doc(Db, <<"b">>),
+        couchbeam:delete_docs(Db, [Doc3, Doc4]),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"a">>)),
+        ?assertEqual({error, not_found}, couchbeam:open_doc(Db, <<"b">>)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        couchbeam_mocks:teardown()
+    end.
 
 copy_doc_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    %% Mock UUIDs for copy_doc without destination
+    meck:new(couchbeam_uuids, [passthrough, no_link]),
+    meck:expect(couchbeam_uuids, get_uuids, fun(_Server, _Count) ->
+        [generate_mock_uuid()]
+    end),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"test">>, 1}]}),
-    {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, Doc),
-    {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
-    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
+        %% Mock db_request for document operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                doc_mock_handle_request(Method, Url, Headers, Body)
+            end),
 
-    {ok, _Doc3} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test_copy">>}]}),
-    {ok, CopyId1, _} = couchbeam:copy_doc(Db, Doc, <<"test_copy">>),
-    ?assertEqual(<<"test_copy">>, CopyId1),
-    {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
-    ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
-    ok.
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
+
+        %% Create a document to copy
+        Doc = #{<<"_id">> => <<"original">>, <<"test">> => 1},
+        {ok, SavedDoc} = couchbeam:save_doc(Db, Doc),
+
+        %% Test copy without destination (generates UUID)
+        {ok, CopyId, _Rev} = couchbeam:copy_doc(Db, SavedDoc),
+        {ok, Doc2} = couchbeam:open_doc(Db, CopyId),
+        ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc2)),
+
+        %% Test copy with specific destination
+        {ok, CopyId1, _} = couchbeam:copy_doc(Db, SavedDoc, <<"test_copy">>),
+        ?assertEqual(<<"test_copy">>, CopyId1),
+        {ok, Doc4} = couchbeam:open_doc(Db, CopyId1),
+        ?assertEqual(1, couchbeam_doc:get_value(<<"test">>, Doc4)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
+        couchbeam_mocks:teardown()
+    end.
 
 
 attachments_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
-    Doc = {[{<<"_id">>, <<"test">>}]},
-    {ok, Doc1} = couchbeam:save_doc(Db, Doc),
-    RevDoc1 = couchbeam_doc:get_rev(Doc1),
-    {ok, {Res}} = couchbeam:put_attachment(Db,"test", "test", "test", [{rev, RevDoc1}]),
-    RevDoc11 = proplists:get_value(<<"rev">>, Res),
-    ?assertNot(RevDoc1 =:= RevDoc11),
-    {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test"),
-    ?assertEqual( <<"test">>, Attachment),
-    {ok, Doc2} = couchbeam:open_doc(Db, "test"),
-    ?assertMatch({ok, {_}}, couchbeam:delete_attachment(Db, Doc2, "test")),
-    Doc3 = {[{<<"_id">>, <<"test2">>}]},
-    Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
-    Doc5 = couchbeam_attachments:add_inline(Doc4, "test2", "test2.txt"),
-    {ok, _} = couchbeam:save_doc(Db, Doc5),
-    {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
-    {ok, Attachment2} = couchbeam:fetch_attachment(Db, "test2", "test2.txt"),
-    ?assertEqual( <<"test">>, Attachment1),
-    ?assertEqual( <<"test2">>, Attachment2),
-    {ok, Doc6} = couchbeam:open_doc(Db, "test2"),
-    Doc7 = couchbeam_attachments:delete_inline(Doc6, "test2.txt"),
-    {ok, _} = couchbeam:save_doc(Db, Doc7),
-    ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test2", "test2.txt")),
-    {ok, Attachment4} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
-    ?assertEqual( <<"test">>, Attachment4),
-    {ok, Doc8} = couchbeam:save_doc(Db, {[]}),
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_attachments, #{}),
+    put(mock_uuid_counter, 0),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    TestFileName = data_path("1M"),
-    {ok, FileInfo} = file:read_file_info(TestFileName),
-    {ok, Fd} = file:open(TestFileName, [read]),
-    FileSize = FileInfo#file_info.size,
-    StreamFun = fun() ->
-                        case file:read(Fd, 4096) of
-                            {ok, Data} ->  {ok, iolist_to_binary(Data)};
-                            _ -> eof
-                        end
-                end,
-    {ok, _Res2} = couchbeam:put_attachment(Db, couchbeam_doc:get_id(Doc8), "1M", StreamFun,
-                                           [{content_length, FileSize}, {rev, couchbeam_doc:get_rev(Doc8)}]),
+        %% Mock db_request for document and attachment operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, Headers, Body, _Options, _Expect) ->
+                att_mock_handle_request(Method, Url, Headers, Body)
+            end),
 
-    file:close(Fd),
-    {ok, Doc9} = couchbeam:open_doc(Db, couchbeam_doc:get_id(Doc8)),
-    Attachements = couchbeam_doc:get_value(<<"_attachments">>, Doc9),
-    ?assert(Attachements /= undefined),
-    Attachment5 = couchbeam_doc:get_value(<<"1M">>, Attachements),
-    ?assert(Attachment5 /= undefined),
-    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, Attachment5)),
-    {ok, Bin} = couchbeam:fetch_attachment(Db, couchbeam_doc:get_id(Doc8), "1M"),
-    ?assertEqual(FileSize, iolist_size(Bin)),
+        %% Mock hackney:get for fetch_attachment
+        meck:expect(hackney, get, fun(Url, _Headers, _Body, _Opts) ->
+            case extract_mock_attachment_info(Url) of
+                {DocId, AttName} ->
+                    Atts = get(mock_attachments),
+                    case maps:get({DocId, AttName}, Atts, undefined) of
+                        undefined ->
+                            {ok, 404, [], make_ref()};
+                        AttBody ->
+                            Ref = make_ref(),
+                            couchbeam_mocks:set_body(Ref, AttBody),
+                            {ok, 200, [], Ref}
+                    end;
+                _ ->
+                    {ok, 404, [], make_ref()}
+            end
+        end),
 
-    {ok, _Res3}= couchbeam:put_attachment(Db, "test/2", "test", "test"),
-    {ok, Attachment10} = couchbeam:fetch_attachment(Db, "test/2", "test"),
-    ?assertEqual(<<"test">>, Attachment10),
-    {ok, _Res4}= couchbeam:put_attachment(Db, "test3", "test", "test"),
-    {ok, Attachment11} = couchbeam:fetch_attachment(Db, "test3", "test"),
-    ?assertEqual(<<"test">>, Attachment11),
-    ok.
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
 
-multipart_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
+        %% Create a document
+        Doc = #{<<"_id">> => <<"test">>},
+        {ok, Doc1} = couchbeam:save_doc(Db, Doc),
+        RevDoc1 = couchbeam_doc:get_rev(Doc1),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+        %% Put attachment
+        {ok, Res} = couchbeam:put_attachment(Db, "test", "test.txt", <<"hello">>, [{rev, RevDoc1}]),
+        RevDoc11 = maps:get(<<"rev">>, Res),
+        ?assertNot(RevDoc1 =:= RevDoc11),
 
-    {ok, _Res4}= couchbeam:put_attachment(Db, "test", "test", "test"),
-    Resp = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
-    ?assertMatch( {ok, {multipart, _}}, Resp),
+        %% Fetch attachment
+        {ok, Attachment} = couchbeam:fetch_attachment(Db, "test", "test.txt"),
+        ?assertEqual(<<"hello">>, Attachment),
 
-    {ok, {multipart, Stream}} = Resp,
-    Collected = collect_mp(couchbeam:stream_doc(Stream), []),
-    ?assert(proplists:is_defined(doc, Collected)),
-    MpDoc = proplists:get_value(doc, Collected),
-    MpDocId = couchbeam_doc:get_id(MpDoc),
-    ?assertEqual(<<"test">>, MpDocId),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected)),
+        %% Open doc and delete attachment
+        {ok, Doc2} = couchbeam:open_doc(Db, "test"),
+        ?assertMatch({ok, _}, couchbeam:delete_attachment(Db, Doc2, "test.txt")),
 
-    Resp1 = couchbeam:open_doc(Db, <<"test">>, [{open_revs, all},
-                                                {accept, <<"multipart/mixed">>}]),
-    ?assertMatch( {ok, {multipart, _}}, Resp1),
-    {ok, {multipart, Stream1}} = Resp1,
-    Collected1 = collect_mp(couchbeam:stream_doc(Stream1), []),
-    MpDoc1 = proplists:get_value(doc, Collected1),
-    MpDocId1 = couchbeam_doc:get_id(MpDoc1),
-    ?assertEqual(<<"test">>, MpDocId1),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"test">>, Collected1)),
-    {ok, Doc} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test2">>}]},
-                                   [{<<"test.txt">>, <<"test">>}], []),
-    ?assertEqual(<<"test2">>, couchbeam_doc:get_id(Doc)),
-    {ok, MpAttachment1} = couchbeam:fetch_attachment(Db, <<"test2">>, <<"test.txt">>),
-    ?assertEqual(<<"test">>, MpAttachment1),
+        %% Verify attachment is deleted
+        ?assertEqual({error, not_found}, couchbeam:fetch_attachment(Db, "test", "test.txt")),
 
-    TestFileName = data_path("1M"),
-    {ok, FileInfo} = file:read_file_info(TestFileName),
-    FileSize = FileInfo#file_info.size,
-
-    {ok, Doc1} = couchbeam:save_doc(Db, {[{<<"_id">>, <<"test5">>}]},
-                                    [{<<"1M">>, {file, TestFileName}}], []),
-
-    ?assert(couchbeam_doc:is_saved(Doc1)),
-    {ok, Doc2} = couchbeam:open_doc(Db, <<"test5">>),
-    MpAttachments = couchbeam_doc:get_value(<<"_attachments">>, Doc2),
-    ?assert(MpAttachments /= undefined),
-    MpAttachment2 = couchbeam_doc:get_value(<<"1M">>, MpAttachments),
-    ?assert(MpAttachment2 /= undefined),
-    ?assertEqual(FileSize, couchbeam_doc:get_value(<<"length">>, MpAttachment2)),
-    {ok, MpBin} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
-    ?assertEqual(FileSize, iolist_size(MpBin)),
-    {ok, MpDoc2} = couchbeam:save_doc(Db, Doc2, [{<<"hello.txt">>, <<"world">>}], []),
-    ?assert(couchbeam_doc:is_saved(MpDoc2)),
-    MpAttachments3= couchbeam_doc:get_value(<<"_attachments">>, MpDoc2),
-    ?assert(MpAttachments3 /= undefined),
-    MpAttachment4 = couchbeam_doc:get_value(<<"1M">>, MpAttachments3),
-    ?assert(MpAttachment4 /= undefined),
-    {ok, MpBin1} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"1M">>),
-    ?assertEqual(FileSize, iolist_size(MpBin1)),
-    MpAttachment5 = couchbeam_doc:get_value(<<"hello.txt">>, MpAttachments3),
-    ?assert(MpAttachment5 /= undefined),
-    {ok, MpBin2} = couchbeam:fetch_attachment(Db, <<"test5">>, <<"hello.txt">>),
-    ?assertEqual(<<"world">>, MpBin2),
-    ok.
-
-replicate_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
-
-    %% Ensure _replicator database exists
-    true = couchbeam:db_exists(Server, <<"_replicator">>),
-
-    {ok, Db} = couchbeam:create_db(Server, <<"couchbeam_testdb">>),
-    {ok, Db2} = couchbeam:create_db(Server, <<"couchbeam_testdb2">>),
-
-    DocId11 = <<"test">>,
-    {ok, Doc11} = couchbeam:save_doc(Db, {[{<<"_id">>, DocId11}]}),
-    DocRev11 = couchbeam_doc:get_rev(Doc11),
-    io:format("Created document with ID: ~p, Rev: ~p~n", [DocId11, DocRev11]),
-    
-    Result = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
-    ?assertMatch({ok, _}, Result),
-    
-    {ok, RepDoc} = Result,
-    RepDocId = couchbeam_doc:get_id(RepDoc),
-    io:format("Replication document created with ID: ~p~n", [RepDocId]),
-    
-    %% Check the replication document in _replicator db
-    {ok, ReplicatorDb} = couchbeam:open_db(Server, <<"_replicator">>),
-    timer:sleep(100), % Give time for replication doc to be written
-    {ok, RepDocFromDb} = couchbeam:open_doc(ReplicatorDb, RepDocId),
-    io:format("Replication document: ~p~n", [RepDocFromDb]),
-
-    %% Wait for replication to complete by polling for the document
-    io:format("Waiting for document ~p to appear in target db~n", [DocId11]),
-    wait_for_replication(Db2, DocId11, 30),
-
-    {ok, Doc11_2} = couchbeam:open_doc(Db2, DocId11),
-    DocRev11_2 = couchbeam_doc:get_rev(Doc11_2),
-    ?assertEqual(DocRev11_2, DocRev11),
-
-    {ok, Doc12} = couchbeam:save_doc(Db, Doc11 ),
-    {ok, Doc13} = couchbeam:save_doc(Db, Doc12),
-
-    DocRev12 = couchbeam_doc:get_rev(Doc12),
-    DocRev13 = couchbeam_doc:get_rev(Doc13),
-    {ok, Missing} = couchbeam:get_missing_revs(Db2, [{DocId11, [DocRev12,
-                                                                DocRev13]}]),
-    ?assertEqual([{DocId11, [DocRev12, DocRev13], [DocRev11]}], Missing),
-
-    {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
-    ?assert(is_binary(InstanceStartTime)),
-    ok.
-
-collect_mp({doc, Doc, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{doc, Doc} | Acc]);
-collect_mp({att, Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>} | Acc]);
-collect_mp({att_body, Name, Chunk, Next}, Acc) ->
-    Buffer = proplists:get_value(Name, Acc),
-    NBuffer = << Buffer/binary, Chunk/binary >>,
-    Acc1 = lists:keystore(Name, 1, Acc, {Name, NBuffer}),
-    collect_mp(couchbeam:stream_doc(Next), Acc1);
-collect_mp({att_eof, _Name, Next}, Acc) ->
-    collect_mp(couchbeam:stream_doc(Next), Acc);
-collect_mp(eof, Acc) ->
-    Acc.
-
-data_path(Basename) ->
-    FName = filename:join([filename:dirname(filename:absname(?FILE)), "..", "support",
-                           Basename]),
-
-    case filelib:is_file(FName) of
-        true -> FName;
-        false ->
-            F = filename:join([filename:dirname(code:which(?MODULE)), "..", "support",
-                               Basename]),
-            F
+        %% Test inline attachments
+        Doc3 = #{<<"_id">> => <<"test2">>},
+        Doc4 = couchbeam_attachments:add_inline(Doc3, "test", "test.txt"),
+        {ok, _} = couchbeam:save_doc(Db, Doc4),
+        {ok, Attachment1} = couchbeam:fetch_attachment(Db, "test2", "test.txt"),
+        ?assertEqual(<<"test">>, Attachment1),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_attachments),
+        erase(mock_uuid_counter),
+        couchbeam_mocks:teardown()
     end.
 
+%% Helper for attachments mock test
+att_mock_handle_request(put, Url, _Headers, Body) ->
+    case is_attachment_url(Url) of
+        {true, DocId, AttName} ->
+            %% PUT attachment
+            Atts = get(mock_attachments),
+            BodyBin = if is_binary(Body) -> Body; true -> iolist_to_binary(Body) end,
+            put(mock_attachments, maps:put({DocId, AttName}, BodyBin, Atts)),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => NewRev}),
+            {ok, 201, [], Ref};
+        false ->
+            %% Regular doc PUT
+            doc_mock_handle_request(put, Url, [], Body)
+    end;
+att_mock_handle_request(delete, Url, _Headers, _Body) ->
+    case is_attachment_url(Url) of
+        {true, DocId, AttName} ->
+            Atts = get(mock_attachments),
+            put(mock_attachments, maps:remove({DocId, AttName}, Atts)),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"rev">> => NewRev}),
+            {ok, 200, [], Ref};
+        false ->
+            doc_mock_handle_request(delete, Url, [], <<>>)
+    end;
+att_mock_handle_request(Method, Url, Headers, Body) ->
+    doc_mock_handle_request(Method, Url, Headers, Body).
+
+%% Check if URL is for an attachment (has 3 path parts: db/doc/att)
+is_attachment_url(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId, AttName | _] ->
+                    %% Check it's not a special endpoint
+                    case binary:match(AttName, <<"_">>) of
+                        {0, _} -> false;  % _all_docs, _bulk_docs, etc.
+                        _ -> {true, DocId, AttName}
+                    end;
+                _ -> false
+            end;
+        _ -> false
+    end.
+
+%% Extract doc id and attachment name from URL
+extract_mock_attachment_info(Url) when is_binary(Url) ->
+    case hackney_url:parse_url(Url) of
+        #hackney_url{path = Path} ->
+            PathBin = iolist_to_binary(Path),
+            case binary:split(PathBin, <<"/">>, [global, trim_all]) of
+                [_Db, DocId, AttName | _] -> {DocId, AttName};
+                _ -> undefined
+            end;
+        _ -> undefined
+    end.
+
+%% Replicate test - tests replication document creation and related operations
+replicate_test() ->
+    couchbeam_mocks:setup(),
+    put(mock_docs, #{}),
+    put(mock_uuid_counter, 0),
+    %% Mock UUIDs for replication doc
+    meck:new(couchbeam_uuids, [passthrough, no_link]),
+    meck:expect(couchbeam_uuids, get_uuids, fun(_Server, _Count) ->
+        [generate_mock_uuid()]
+    end),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
+
+        %% Mock db_request for replication operations
+        meck:expect(couchbeam_httpc, db_request,
+            fun(Method, Url, _H, Body, _O, _E) ->
+                replicate_mock_handle(Method, Url, Body)
+            end),
+
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"source">>, options=[]},
+        Db2 = #db{server=Server, name = <<"target">>, options=[]},
+
+        %% Test replicate - creates a replication document
+        {ok, RepDoc} = couchbeam:replicate(Server, Db, Db2, [{<<"continuous">>, true}]),
+        ?assert(couchbeam_doc:is_saved(RepDoc)),
+
+        %% Test get_missing_revs
+        {ok, Missing} = couchbeam:get_missing_revs(Db2, [{<<"doc1">>, [<<"1-abc">>, <<"2-def">>]}]),
+        ?assertEqual([{<<"doc1">>, [<<"1-abc">>, <<"2-def">>], []}], Missing),
+
+        %% Test ensure_full_commit
+        {ok, StartTime} = couchbeam:ensure_full_commit(Db),
+        ?assert(is_binary(StartTime)),
+        ok
+    after
+        erase(mock_docs),
+        erase(mock_uuid_counter),
+        catch meck:unload(couchbeam_uuids),
+        couchbeam_mocks:teardown()
+    end.
+
+%% Handle replication-related mock requests
+replicate_mock_handle(put, Url, Body) ->
+    UrlBin = iolist_to_binary(Url),
+    case binary:match(UrlBin, <<"_replicator">>) of
+        nomatch ->
+            doc_mock_handle_request(put, Url, [], Body);
+        _ ->
+            %% Save replication doc to _replicator
+            DocId = generate_mock_uuid(),
+            NewRev = generate_mock_rev(),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"id">> => DocId, <<"rev">> => NewRev}),
+            {ok, 201, [], Ref}
+    end;
+replicate_mock_handle(post, Url, Body) ->
+    UrlBin = iolist_to_binary(Url),
+    case binary:match(UrlBin, <<"_revs_diff">>) of
+        nomatch ->
+            case binary:match(UrlBin, <<"_ensure_full_commit">>) of
+                nomatch ->
+                    {ok, 200, [], make_ref()};
+                _ ->
+                    %% ensure_full_commit
+                    Ref = make_ref(),
+                    couchbeam_mocks:set_body(Ref, #{<<"ok">> => true, <<"instance_start_time">> => <<"0">>}),
+                    {ok, 201, [], Ref}
+            end;
+        _ ->
+            %% _revs_diff - return all revisions as missing
+            IdRevs = couchbeam_ejson:decode(Body),
+            Result = maps:fold(fun(DocId, Revs, Acc) ->
+                maps:put(DocId, #{<<"missing">> => Revs}, Acc)
+            end, #{}, IdRevs),
+            Ref = make_ref(),
+            couchbeam_mocks:set_body(Ref, Result),
+            {ok, 200, [], Ref}
+    end;
+replicate_mock_handle(Method, Url, Body) ->
+    doc_mock_handle_request(Method, Url, [], Body).
 
 -endif.

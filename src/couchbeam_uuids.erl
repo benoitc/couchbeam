@@ -35,7 +35,7 @@ utc_random() ->
     utc_suffix(hackney_bstr:to_hex(crypto:strong_rand_bytes(9))).
 
 %% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
+-spec get_uuids(server(), integer()) -> [binary()].
 get_uuids(Server, Count) ->
     gen_server:call(?MODULE, {get_uuids, Server, Count}, infinity).
 
@@ -45,7 +45,7 @@ get_uuids(Server, Count) ->
 %%--------------------------------------------------------------------
 %% @doc Starts the couchbeam process linked to the calling process. Usually
 %% invoked by the supervisor couchbeam_sup
-%% @spec start_link() -> {ok, pid()}
+-spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -123,7 +123,7 @@ get_new_uuids(#server{url=ServerUrl, options=Opts}=Server, Backoff, Acc) ->
     case couchbeam_httpc:request(get, Url, [], <<>>, Opts) of
         {ok, 200, _, Ref} ->
             {ok, Body} = hackney:body(Ref),
-            {[{<<"uuids">>, Uuids}]} = couchbeam_ejson:decode(Body),
+            #{<<"uuids">> := Uuids} = couchbeam_ejson:decode(Body),
             ServerUuids = #server_uuids{server_url=ServerUrl,
                                         uuids=(Acc ++ Uuids)},
             ets:insert(couchbeam_uuids, ServerUuids),
@@ -154,3 +154,68 @@ utc_suffix(Suffix) ->
     Then = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
     Prefix = io_lib:format("~14.16.0b", [(Nowsecs - Then) * 1000000 + Micro]),
     list_to_binary(Prefix ++ Suffix).
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+%% Test random UUID generation
+random_test() ->
+    Uuid1 = random(),
+    Uuid2 = random(),
+
+    %% Should be binary
+    ?assert(is_binary(Uuid1)),
+    ?assert(is_binary(Uuid2)),
+
+    %% Should be 32 hex chars (16 bytes * 2)
+    ?assertEqual(32, byte_size(Uuid1)),
+    ?assertEqual(32, byte_size(Uuid2)),
+
+    %% Should be unique
+    ?assertNotEqual(Uuid1, Uuid2),
+
+    %% Should be valid hex
+    ?assertMatch({ok, _}, parse_hex(Uuid1)),
+    ok.
+
+%% Test UTC random UUID generation
+utc_random_test() ->
+    Uuid1 = utc_random(),
+    timer:sleep(1),  %% Ensure different timestamp
+    Uuid2 = utc_random(),
+
+    %% Should be binary
+    ?assert(is_binary(Uuid1)),
+    ?assert(is_binary(Uuid2)),
+
+    %% Should be 32 hex chars (14 prefix + 18 suffix)
+    ?assertEqual(32, byte_size(Uuid1)),
+    ?assertEqual(32, byte_size(Uuid2)),
+
+    %% Should be unique
+    ?assertNotEqual(Uuid1, Uuid2),
+
+    %% UTC UUIDs should sort chronologically
+    %% (earlier UUID should be "less than" later one)
+    ?assert(Uuid1 < Uuid2),
+
+    %% Should be valid hex
+    ?assertMatch({ok, _}, parse_hex(Uuid1)),
+    ok.
+
+%% Test multiple random UUIDs are unique
+random_uniqueness_test() ->
+    Uuids = [random() || _ <- lists:seq(1, 100)],
+    UniqueUuids = lists:usort(Uuids),
+    ?assertEqual(100, length(UniqueUuids)),
+    ok.
+
+%% Helper to validate hex string
+parse_hex(Bin) ->
+    try
+        {ok, binary_to_integer(Bin, 16)}
+    catch
+        _:_ -> {error, invalid_hex}
+    end.
+
+-endif.

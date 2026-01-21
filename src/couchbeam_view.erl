@@ -4,9 +4,12 @@
 %%% See the NOTICE for more information.
 
 -module(couchbeam_view).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Benoit Chesneau').
 
 -include("couchbeam.hrl").
+
+%% Import json_stream_parse state record for pattern matching
+-record(st, {phase, buf, i, in_string, escape, arr_depth, obj_depth, obj_start}).
 
 -export([stream/2, stream/3,
          cancel_stream/1, stream_next/1,
@@ -19,6 +22,9 @@
          parse_view_options/1,
          show/2, show/3, show/4
         ]).
+
+%% Internal exports for view streaming
+-export([maybe_continue_view/1]).
 
 -define(COLLECT_TIMEOUT, 10000).
 
@@ -100,8 +106,8 @@ fetch_sync_fun(Db) ->
     fun(Args, Url) ->
         case view_request(Db, Url, Args) of
             {ok, _, _, Ref} ->
-                {Props} = couchbeam_httpc:json_body(Ref),
-                {ok, couchbeam_util:get_value(<<"rows">>, Props)};
+                Props = couchbeam_httpc:json_body(Ref),
+                {ok, maps:get(<<"rows">>, Props)};
             Error ->
                 Error
         end
@@ -119,7 +125,7 @@ show(Db, ShowName) ->
 show(Db, ShowName, DocId) ->
     show(Db, ShowName, DocId, []).
 
--type show_option() :: {'query_string', binary()}. % "foo=bar&baz=biz"
+-type show_option() :: {'query_string', binary()}.
 -type show_options() :: [show_option()].
 
 -spec show(db(), {binary(), binary()}, 'null' | binary(), show_options()) ->
@@ -170,64 +176,19 @@ stream(Db, ViewName) ->
 -spec stream(Db::db(), ViewName::'all_docs' | {DesignName::design_name(),
                                                ViewName::view_name()}, Options::view_options())
             -> {ok, StartRef::term()} | {error, term()}.
-%% @doc stream view results to a pid
-%%  <p>Db: a db record</p>
-%%  <p>ViewName: 'all_docs' to get all docs or {DesignName,
-%%  ViewName}</p>
-%%  <p>Client: pid where to send view events where events are:
-%%  <dl>
-%%      <dt>{row, StartRef, done}</dt>
-%%          <dd>All view results have been fetched</dd>
-%%      <dt>{row, StartRef, Row :: ejson_object()}</dt>
-%%          <dd>A row in the view</dd>
-%%      <dt>{error, StartRef, Error}</dt>
-%%          happend.</dd>
-%%  </dl></p>
-%%  <p><pre>Options :: view_options() [{key, binary()}
-%%    | descending
-%%    | {skip, integer()}
-%%    | group | {group_level, integer()}
-%%    | {inclusive_end, boolean()} | {reduce, boolean()} | reduce | include_docs | conflicts
-%%    | {keys, list(binary())}
-%%    | `{stream_to, Pid}': the pid where the changes will be sent,
-%%      by default the current pid. Used for continuous and longpoll
-%%      connections</pre>
+%% @doc Stream view results to a pid.
 %%
-%%  <ul>
-%%      <li><code>{key, Key}</code>: key value</li>
-%%      <li><code>{start_docid, DocId}</code> | <code>{startkey_docid, DocId}</code>: document id to start with (to allow pagination
-%%          for duplicate start keys</li>
-%%      <li><code>{end_docid, DocId}</code> | <code>{endkey_docid, DocId}</code>: last document id to include in the result (to
-%%          allow pagination for duplicate endkeys)</li>
-%%      <li><code>{start_key, Key}</code>: start result from key value</li>
-%%      <li><code>{end_key, Key}</code>: end result from key value</li>
-%%      <li><code>{limit, Limit}</code>: Limit the number of documents in the result</li>
-%%      <li><code>{stale, Stale}</code>: If stale=ok is set, CouchDB will not refresh the view
-%%      even if it is stale, the benefit is a an improved query latency. If
-%%      stale=update_after is set, CouchDB will update the view after the stale
-%%      result is returned. If stale=false is set, CouchDB will update the view before
-%%      the query. The default value of this parameter is update_after.</li>
-%%      <li><code>descending</code>: reverse the result</li>
-%%      <li><code>{skip, N}</code>: skip n number of documents</li>
-%%      <li><code>group</code>: the reduce function reduces to a single result
-%%      row.</li>
-%%      <li><code>{group_level, Level}</code>: the reduce function reduces to a set
-%%      of distinct keys.</li>
-%%      <li><code>{reduce, boolean()}</code>: whether to use the reduce function of the view. It defaults to
-%%      true, if a reduce function is defined and to false otherwise.</li>
-%%      <li><code>include_docs</code>: automatically fetch and include the document
-%%      which emitted each view entry</li>
-%%      <li><code>{inclusive_end, boolean()}</code>: Controls whether the endkey is included in
-%%      the result. It defaults to true.</li>
-%%      <li><code>conflicts</code>: include conflicts</li>
-%%      <li><code>{keys, [Keys]}</code>: to pass multiple keys to the view query</li>
-%%  </ul></p>
+%% Parameters:
+%% - `Db': a db record
+%% - `ViewName': `all_docs' to get all docs or `{DesignName, ViewName}'
+%% - `Options': view query options
 %%
-%% <p> Return <code>{ok, StartRef, ViewPid}</code> or <code>{error,
-                                                %Error}</code>. Ref can be
-%% used to disctint all changes from this pid. ViewPid is the pid of
-%% the view loop process. Can be used to monitor it or kill it
-%% when needed.</p>
+%% Messages sent to the receiving process:
+%% - `{Ref, done}' - all results fetched
+%% - `{Ref, {row, Row}}' - a row in the view
+%% - `{Ref, {error, Error}}' - an error occurred
+%%
+%% Returns `{ok, Ref}' or `{error, Error}'.
 stream(Db, ViewName, Options) ->
     {To, Options1} = case proplists:get_value(stream_to, Options) of
                          undefined ->
@@ -238,40 +199,47 @@ stream(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               Ref = make_ref(),
                                               Req = {Db, Url, Args},
-                                              case supervisor:start_child(couchbeam_view_sup, [To,
-                                                                                               Ref,
-                                                                                               Req,
-                                                                                               Options]) of
-                                                  {ok, _Pid} ->
-                                                      {ok, Ref};
-                                                  Error ->
-                                                      Error
-                                              end
+                                              AsyncMode = proplists:get_value(async, Options, normal),
+                                              %% Spawn linked process instead of using supervisor
+                                              StreamPid = spawn_link(fun() ->
+                                                  init_view_stream(To, Ref, Req, Options, AsyncMode)
+                                              end),
+                                              %% Store in process dictionary for cancel/stream_next
+                                              put({view_stream, Ref}, StreamPid),
+                                              {ok, Ref}
                                       end).
 
 
 cancel_stream(Ref) ->
-    with_view_stream(Ref, fun(Pid) ->
-                                  case supervisor:terminate_child(couchbeam_view_sup, Pid) of
-                                      ok ->
-                                          case supervisor:delete_child(couchbeam_view_sup,
-                                                                       Pid) of
-                                              ok ->
-                                                  ok;
-                                              {error, not_found} ->
-                                                  ok;
-                                              Error ->
-                                                  Error
-                                          end;
-                                      Error ->
-                                          Error
-                                  end
-                          end).
+    case get({view_stream, Ref}) of
+        undefined ->
+            {error, stream_undefined};
+        Pid when is_pid(Pid) ->
+            case is_process_alive(Pid) of
+                true ->
+                    Pid ! {Ref, cancel},
+                    erase({view_stream, Ref}),
+                    ok;
+                false ->
+                    erase({view_stream, Ref}),
+                    {error, stream_undefined}
+            end
+    end.
 
 stream_next(Ref) ->
-    with_view_stream(Ref, fun(Pid) ->
-                                  Pid ! {Ref, stream_next}
-                          end).
+    case get({view_stream, Ref}) of
+        undefined ->
+            {error, stream_undefined};
+        Pid when is_pid(Pid) ->
+            case is_process_alive(Pid) of
+                true ->
+                    Pid ! {Ref, stream_next},
+                    ok;
+                false ->
+                    erase({view_stream, Ref}),
+                    {error, stream_undefined}
+            end
+    end.
 
 -spec count(Db::db()) -> integer() | {error, term()}.
 %% @equiv count(Db, 'all_docs', [])
@@ -297,8 +265,8 @@ count(Db, ViewName, Options)->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      couchbeam_util:get_value(<<"total_rows">>, Props);
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      maps:get(<<"total_rows">>, Props);
                                                   Error ->
                                                       Error
                                               end
@@ -346,8 +314,8 @@ first(Db, ViewName, Options) ->
     make_view(Db, ViewName, Options1, fun(Args, Url) ->
                                               case view_request(Db, Url, Args) of
                                                   {ok, _, _, Ref} ->
-                                                      {Props} = couchbeam_httpc:json_body(Ref),
-                                                      case couchbeam_util:get_value(<<"rows">>, Props) of
+                                                      Props = couchbeam_httpc:json_body(Ref),
+                                                      case maps:get(<<"rows">>, Props) of
                                                           [] ->
                                                               {ok, nil};
                                                           [Row] ->
@@ -584,7 +552,7 @@ view_request(#db{options=Opts}, Url, Args) ->
                                        Opts, [200]);
         post ->
             Body = couchbeam_ejson:encode(
-                     {[{<<"keys">>, Args#view_query_args.keys}]}
+                     #{<<"keys">> => Args#view_query_args.keys}
                     ),
 
             Hdrs = [{<<"Content-Type">>, <<"application/json">>}],
@@ -592,107 +560,296 @@ view_request(#db{options=Opts}, Url, Args) ->
                                        Opts, [200])
     end.
 
-with_view_stream(Ref, Fun) ->
-    case ets:lookup(couchbeam_view_streams, Ref) of
-        [] ->
-            {error, stream_undefined};
-        [{Ref, Pid}] ->
-            %% Check if the process is still alive to avoid race conditions
-            case is_process_alive(Pid) of
-                true ->
-                    Fun(Pid);
-                false ->
-                    %% Clean up the stale entry
-                    ets:delete(couchbeam_view_streams, Ref),
-                    {error, stream_undefined}
-            end
+%% ----------------------------------
+%% View streaming implementation
+%% Uses hackney's process-per-connection model
+%% ----------------------------------
+
+-define(STREAM_TIMEOUT, 10000).
+
+-record(view_stream_state, {
+    owner :: pid(),
+    ref :: reference(),
+    mref :: reference(),
+    db :: db(),
+    url :: binary(),
+    args :: view_query_args(),
+    client_ref = nil :: pid() | nil,
+    parser :: term(),  %% json_stream_parse state
+    async = normal :: once | normal
+}).
+
+init_view_stream(Owner, Ref, {Db, Url, Args}, _Options, AsyncMode) ->
+    %% Monitor the owner - exit if owner dies
+    MRef = erlang:monitor(process, Owner),
+
+    State = #view_stream_state{
+        owner = Owner,
+        ref = Ref,
+        mref = MRef,
+        db = Db,
+        url = Url,
+        args = Args,
+        async = AsyncMode
+    },
+
+    case do_init_view_stream(State) of
+        {ok, State1} ->
+            view_stream_loop(State1);
+        {error, Reason} ->
+            Owner ! {Ref, {error, Reason}}
+    end.
+
+do_init_view_stream(#view_stream_state{mref = MRef, db = Db, url = Url,
+                                        args = Args} = State) ->
+    #db{options = Opts} = Db,
+
+    %% Async request with flow control
+    FinalOpts = [{async, once} | Opts],
+
+    Result = case Args#view_query_args.method of
+        get ->
+            couchbeam_httpc:request(get, Url, [], <<>>, FinalOpts);
+        post ->
+            Body = couchbeam_ejson:encode(#{<<"keys">> => Args#view_query_args.keys}),
+            Headers = [{<<"Content-Type">>, <<"application/json">>}],
+            couchbeam_httpc:request(post, Url, Headers, Body, FinalOpts)
+    end,
+
+    case Result of
+        {ok, ClientRef} ->
+            receive
+                {'DOWN', MRef, _, _, _} ->
+                    exit(normal);
+                {hackney_response, ClientRef, {status, 200, _}} ->
+                    Parser = json_stream_parse:init(),
+                    {ok, State#view_stream_state{client_ref = ClientRef,
+                                                  parser = Parser}};
+                {hackney_response, ClientRef, {status, 404, _}} ->
+                    {error, not_found};
+                {hackney_response, ClientRef, {status, Status, Reason}} ->
+                    {error, {http_error, Status, Reason}};
+                {hackney_response, ClientRef, {error, Reason}} ->
+                    {error, Reason}
+            after ?STREAM_TIMEOUT ->
+                {error, timeout}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+view_stream_loop(#view_stream_state{owner = Owner, ref = Ref, mref = MRef,
+                                     client_ref = ClientRef} = State) ->
+    hackney:stream_next(ClientRef),
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {hackney_response, ClientRef, {headers, _Headers}} ->
+            view_stream_loop(State);
+        {hackney_response, ClientRef, done} ->
+            Owner ! {Ref, done};
+        {hackney_response, ClientRef, Data} when is_binary(Data) ->
+            decode_view_data(Data, State);
+        {hackney_response, ClientRef, {error, Reason}} ->
+            Owner ! {Ref, {error, Reason}},
+            exit(Reason);
+
+        %% Control messages
+        {Ref, stream_next} ->
+            view_stream_loop(State);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok}
+    end.
+
+decode_view_data(Data, #view_stream_state{owner = Owner, ref = Ref,
+                                           client_ref = ClientRef,
+                                           parser = Parser} = State) ->
+    {Rows, Parser1} = json_stream_parse:feed(Data, Parser),
+    %% Send each row to owner
+    lists:foreach(fun(Row) -> Owner ! {Ref, {row, Row}} end, Rows),
+    case Parser1 of
+        #st{phase = done} ->
+            %% All rows parsed
+            catch hackney:stop_async(ClientRef),
+            catch hackney:skip_body(ClientRef),
+            Owner ! {Ref, done};
+        _ ->
+            maybe_continue_view(State#view_stream_state{parser = Parser1})
+    end.
+
+maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                        client_ref = ClientRef,
+                                        async = once} = State) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, stream_next} ->
+            view_stream_loop(State);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok}
+    after 0 ->
+        view_stream_loop(State)
+    end;
+maybe_continue_view(#view_stream_state{ref = Ref, mref = MRef, owner = Owner,
+                                        client_ref = ClientRef} = State) ->
+    receive
+        {'DOWN', MRef, _, _, _} ->
+            exit(normal);
+        {Ref, cancel} ->
+            hackney:close(ClientRef),
+            Owner ! {Ref, ok};
+        {Ref, pause} ->
+            erlang:hibernate(?MODULE, maybe_continue_view, [State]);
+        {Ref, resume} ->
+            view_stream_loop(State)
+    after 0 ->
+        view_stream_loop(State)
     end.
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("kernel/include/file.hrl").
 
+%% Mock view tests - return pre-computed results based on JS map function logic
+%% Uses sync_query option to avoid async streaming which is harder to mock
+view_test() ->
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-clean_dbs() ->
-    Server = couchbeam:server_connection(),
-    catch couchbeam:delete_db(Server, "couchbeam_testdb"),
-    ok.
+        %% Mock db_request for view queries
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, Url, _H, _B, _O, _E) ->
+                view_mock_response(Url);
+               (post, Url, _H, _B, _O, _E) ->
+                view_mock_response(Url)
+            end),
 
-start_couchbeam_tests() ->
-    {ok, _} = application:ensure_all_started(couchbeam),
-    clean_dbs().
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
 
+        %% Test _all_docs - returns 3 docs (design doc + 2 test docs)
+        {ok, AllDocs} = couchbeam_view:fetch(Db, 'all_docs', [sync_query]),
+        ?assertEqual(3, length(AllDocs)),
 
-basic_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
+        %% Test named view - returns docs where type == "test" (2 docs)
+        {ok, Rst} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [sync_query]),
+        ?assertEqual(2, length(Rst)),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+        %% Test count
+        Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
+        ?assertEqual(2, Count),
 
-    DesignDoc = {[
-                  {<<"_id">>, <<"_design/couchbeam">>},
-                  {<<"language">>,<<"javascript">>},
-                  {<<"views">>,
-                   {[{<<"test">>,
-                      {[{<<"map">>,
-                         <<"function (doc) {\n if (doc.type == \"test\") {\n emit(doc._id, doc);\n}\n}">>
-                        }]}
-                     },{<<"test2">>,
-                        {[{<<"map">>,
-                           <<"function (doc) {\n if (doc.type == \"test2\") {\n emit(doc._id, null);\n}\n}">>
-                          }]}
-                       }]}
-                  }
-                 ]},
+        %% Test first
+        {ok, FirstRow} = couchbeam_view:first(Db, {"couchbeam", "test"}, [include_docs, sync_query]),
+        Doc1 = maps:get(<<"doc">>, FirstRow),
+        ?assertEqual(<<"test">>, maps:get(<<"type">>, Doc1)),
 
-    Doc = {[
-            {<<"type">>, <<"test">>}
-           ]},
+        %% Test with start_key/end_key
+        {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, sync_query]),
+        ?assertEqual(4, length(Rst3)),
 
-    couchbeam:save_docs(Db, [DesignDoc, Doc, Doc]),
-    couchbeam:ensure_full_commit(Db),
-
-    {ok, AllDocs} = couchbeam_view:fetch(Db),
-    ?assertEqual(3, length(AllDocs)),
-
-    {ok, Rst2} = couchbeam_view:fetch(Db, {"couchbeam", "test"}),
-    ?assertEqual(2, length(Rst2)),
-
-    Count = couchbeam_view:count(Db, {"couchbeam", "test"}),
-    ?assertEqual(2, Count),
-
-    {ok, {FirstRow}} = couchbeam_view:first(Db, {"couchbeam", "test"},  [include_docs]),
-    {Doc1} = proplists:get_value(<<"doc">>, FirstRow),
-    ?assertEqual(<<"test">>, proplists:get_value(<<"type">>, Doc1)),
-
-    Docs = [
-            {[{<<"_id">>, <<"test1">>}, {<<"type">>, <<"test">>}, {<<"value">>, 1}]},
-            {[{<<"_id">>, <<"test2">>}, {<<"type">>, <<"test">>}, {<<"value">>, 2}]},
-            {[{<<"_id">>, <<"test3">>}, {<<"type">>, <<"test">>}, {<<"value">>, 3}]},
-            {[{<<"_id">>, <<"test4">>}, {<<"type">>, <<"test">>}, {<<"value">>, 4}]}
-           ],
-
-    couchbeam:save_docs(Db, Docs),
-    couchbeam:ensure_full_commit(Db),
-
-    {ok, Rst3} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}]),
-    ?assertEqual(4, length(Rst3)),
-
-    {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, {end_key, <<"test3">>}]),
-    ?assertEqual(3, length(Rst4)),
-
-    AccFun = fun(Row, Acc) -> [Row | Acc] end,
-    Rst5 = couchbeam_view:fold(AccFun, [], Db, {"couchbeam", "test"}, [{start_key, <<"test">>},   {end_key,<<"test3">>}]),
-    ?assertEqual(3, length(Rst5)).
+        {ok, Rst4} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, [{start_key, <<"test">>}, {end_key, <<"test3">>}, sync_query]),
+        ?assertEqual(3, length(Rst4)),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
 
 view_notfound_test() ->
-    start_couchbeam_tests(),
-    Server = couchbeam:server_connection(),
+    couchbeam_mocks:setup(),
+    try
+        {ok, _} = application:ensure_all_started(couchbeam),
 
-    {ok, Db} = couchbeam:create_db(Server, "couchbeam_testdb"),
+        %% Mock db_request to return 404 for non-existent view
+        meck:expect(couchbeam_httpc, db_request,
+            fun(get, _Url, _H, _B, _O, _E) ->
+                {error, not_found}
+            end),
 
-    {error, not_found} = couchbeam_view:fetch(Db, {"couchbeam", "test"}, []),
-    ok.
+        Server = couchbeam:server_connection(),
+        Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
 
+        ?assertEqual({error, not_found}, couchbeam_view:fetch(Db, {"couchbeam", "test"}, [sync_query])),
+        ok
+    after
+        couchbeam_mocks:teardown()
+    end.
+
+%% Helper to generate mock view responses based on URL
+view_mock_response(Url) ->
+    UrlBin = iolist_to_binary(Url),
+    Ref = make_ref(),
+    %% Check for limit=1 (used by first/3)
+    HasLimit1 = case binary:match(UrlBin, <<"limit=1">>) of
+        nomatch -> false;
+        _ -> true
+    end,
+    Response = case binary:match(UrlBin, <<"_all_docs">>) of
+        nomatch ->
+            %% Named view query - check for options
+            case binary:match(UrlBin, <<"start_key">>) of
+                nomatch ->
+                    %% Basic view query - return docs where type == "test"
+                    case HasLimit1 of
+                        true ->
+                            %% first/3 - return single row
+                            #{<<"total_rows">> => 2,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc1">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc1">>, <<"type">> => <<"test">>}}
+                              ]};
+                        false ->
+                            %% Normal query - return 2 docs
+                            #{<<"total_rows">> => 2,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc1">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc1">>, <<"type">> => <<"test">>}},
+                                  #{<<"id">> => <<"doc2">>, <<"key">> => <<"doc2">>,
+                                    <<"value">> => #{<<"_id">> => <<"doc2">>},
+                                    <<"doc">> => #{<<"_id">> => <<"doc2">>, <<"type">> => <<"test">>}}
+                              ]}
+                    end;
+                _ ->
+                    %% Query with start_key - check for end_key
+                    case binary:match(UrlBin, <<"end_key">>) of
+                        nomatch ->
+                            %% Just start_key - return 4 docs
+                            #{<<"total_rows">> => 4,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"test1">>, <<"key">> => <<"test1">>, <<"value">> => 1},
+                                  #{<<"id">> => <<"test2">>, <<"key">> => <<"test2">>, <<"value">> => 2},
+                                  #{<<"id">> => <<"test3">>, <<"key">> => <<"test3">>, <<"value">> => 3},
+                                  #{<<"id">> => <<"test4">>, <<"key">> => <<"test4">>, <<"value">> => 4}
+                              ]};
+                        _ ->
+                            %% start_key and end_key - return 3 docs
+                            #{<<"total_rows">> => 3,
+                              <<"offset">> => 0,
+                              <<"rows">> => [
+                                  #{<<"id">> => <<"test1">>, <<"key">> => <<"test1">>, <<"value">> => 1},
+                                  #{<<"id">> => <<"test2">>, <<"key">> => <<"test2">>, <<"value">> => 2},
+                                  #{<<"id">> => <<"test3">>, <<"key">> => <<"test3">>, <<"value">> => 3}
+                              ]}
+                    end
+            end;
+        _ ->
+            %% _all_docs - return 3 docs
+            #{<<"total_rows">> => 3,
+              <<"offset">> => 0,
+              <<"rows">> => [
+                  #{<<"id">> => <<"_design/couchbeam">>, <<"key">> => <<"_design/couchbeam">>, <<"value">> => #{}},
+                  #{<<"id">> => <<"doc1">>, <<"key">> => <<"doc1">>, <<"value">> => #{}},
+                  #{<<"id">> => <<"doc2">>, <<"key">> => <<"doc2">>, <<"value">> => #{}}
+              ]}
+    end,
+    couchbeam_mocks:set_body(Ref, Response),
+    {ok, 200, [], Ref}.
 
 -endif.

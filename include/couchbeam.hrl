@@ -1,5 +1,5 @@
-%% @author Benoît Chesneau <benoitc@e-engura.org>
-%% @copyright 2009 Benoît Chesneau.
+%% @author Benoit Chesneau
+%% @copyright 2009-2026 Benoit Chesneau.
 %%
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,10 +31,11 @@
 -type design_name() :: binary() | string().
 -type view_name() :: binary() | string().
 
+%% JSON types now use maps instead of proplists
 -type ejson() :: ejson_object() | ejson_array().
 
 -type ejson_array() :: [ejson_term()].
--type ejson_object() :: {[{ejson_key(), ejson_term()}]}.
+-type ejson_object() :: map().
 
 -type ejson_key() :: binary() | atom().
 
@@ -148,13 +149,8 @@
         http_options = []}).
 -type changes_args() :: #changes_args{}.
 
--record(gen_changes_state, {
-    stream_ref,
-    last_seq=0,
-    mod,
-    modstate,
-    db,
-    options}).
+%% Note: gen_changes behavior has been removed.
+%% Use couchbeam_changes:follow/2 with message handling instead.
 
 -define(USER_AGENT, "couchbeam/0.9.0").
 

@@ -11,3 +11,7 @@ mime.types
 *.plt
 .idea
 *.iml
+rebar3.crashdump
+rebar.lock
+rebar.log
+doc/

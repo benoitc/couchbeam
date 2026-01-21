@@ -1,6 +1,48 @@
 couchbeam NEWS
 --------------
 
+version 2.0.0 / 2026-01-21
+---------------------------
+
+### Breaking Changes
+
+- **OTP 27+ required**: Uses the new `json` module from OTP stdlib instead of jsx/jiffy
+- **All JSON now represented as maps**: Documents, view results, and all API responses
+  now use Erlang maps instead of proplists (`{Key, Value}` lists)
+- **Removed jsx/jiffy dependencies**: No external JSON libraries required
+- **Simplified streaming architecture**: Uses hackney's process-per-connection model
+  with spawned linked processes instead of gen_server-based stream modules
+
+### Removed Modules
+
+The following modules have been removed as part of the architecture simplification:
+
+- `gen_changes` - behavior for changes handlers
+- `couchbeam_changes_stream` - gen_server for changes streaming
+- `couchbeam_changes_sup` - supervisor for changes streams
+- `couchbeam_view_stream` - gen_server for view streaming
+- `couchbeam_view_sup` - supervisor for view streams
+
+### New Features
+
+- Added `json_stream_parse` module for incremental JSON parsing of streaming responses
+- Streaming now uses simple linked processes with monitors for automatic cleanup
+
+### API Changes
+
+- `couchbeam_doc` functions now work with maps instead of proplists
+- View and changes results are returned as maps
+- Document IDs and revisions are accessed via `maps:get/2,3` instead of proplists functions
+
+### Dependencies
+
+- hackney 2.0.1 (process-per-connection model)
+- OTP 27+ (for stdlib json module)
+
+### Migration
+
+See [doc/MIGRATION.md](doc/MIGRATION.md) for detailed migration instructions from 1.x.
+
 version 1.7.1 / 2025-07-24
 ---------------------------
 
