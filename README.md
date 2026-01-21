@@ -1,64 +1,35 @@
+# Couchbeam
 
+A simple, idiomatic Erlang client for [Apache CouchDB](http://couchdb.apache.org) and [Barrel](https://barrel-db.org).
 
-# Couchbeam - simple Apache CouchDB client library for Erlang applications #
+[![Hex.pm](https://img.shields.io/hexpm/v/couchbeam.svg)](https://hex.pm/packages/couchbeam)
 
-Copyright (c) 2009-2026 Benoit Chesneau.
+## Quick Start
 
-__Version:__ 2.0.0
+```erlang
+%% Connect to CouchDB
+Server = couchbeam:server_connection("http://localhost:5984"),
+{ok, _} = couchbeam:server_info(Server),
 
-# couchbeam
+%% Open a database
+{ok, Db} = couchbeam:open_or_create_db(Server, "mydb"),
 
-Couchbeam is a simple erlang library for [Barrel](https://barrel-db.org) or [Apache CouchDB](http://couchdb.apache.org). Couchbeam provides you a full featured and easy client to access and manage multiple nodes.
+%% Save a document (documents are maps)
+Doc = #{<<"_id">> => <<"hello">>, <<"message">> => <<"world">>},
+{ok, Doc1} = couchbeam:save_doc(Db, Doc),
+
+%% Fetch it back
+{ok, Doc2} = couchbeam:open_doc(Db, "hello").
+```
 
 ## Requirements
 
-- **OTP 27 or later** - Uses the stdlib `json` module for JSON encoding/decoding
-- **hackney 2.0.1** - HTTP client with process-per-connection model
-
-## Main features
-
-- Complete support of the BarrelDB and Apache CouchDB API
-- Stream view results to your app
-- Stream changes feeds
-- Reduced memory usage with streaming
-- Fetch and send attachments in a streaming fashion
-- JSON represented as Erlang maps (OTP 27+ json module)
-- Simple architecture using hackney's process-per-connection model
-
-## Useful modules
-
-- `couchbeam`: The main interface for interaction with this application. Includes functions for managing connections to Apache CouchDB or RCOUCH servers and databases and for performing document creations, updates, deletes, views...
-- `couchbeam_doc`: Module to manipulate document structures (maps). Set values, update keys, etc.
-- `couchbeam_attachments`: Module to manipulate attachments. Add, remove attachments in a document structure (inline attachments).
-- `couchbeam_view`: Module to manage view results.
-- `couchbeam_changes`: Module to manage changes feeds. Follow continuously the changes in a db or get all changes at once.
-
-## Documentation
-
-Full API documentation is available on [HexDocs](https://hexdocs.pm/couchbeam/).
-
-**Guides:**
-- Migration Guide - Migrate from 1.x to 2.0
-- Changes Feed Guide - How to use the changes feed
-- Views Guide - How to query views
-
-Generate documentation locally with:
-
-```sh
-rebar3 ex_doc
-```
+- **OTP 27+** (uses the built-in `json` module)
+- **hackney 2.0.1+**
 
 ## Installation
 
-Download the sources from our [Github repository](http://github.com/benoitc/couchbeam)
-
-To build the application simply run 'make'. This should build .beam, .app
-files and documentation.
-
-To run tests run 'make test'.
-To generate doc, run 'make doc'.
-
-Or add it to your rebar config
+Add to your `rebar.config`:
 
 ```erlang
 {deps, [
@@ -66,304 +37,177 @@ Or add it to your rebar config
 ]}.
 ```
 
-## Basic Usage
+Then run `rebar3 compile`.
 
-### Start couchbeam
+## Features
 
-Couchbeam is an [OTP](http://www.erlang.org/doc/design_principles/users_guide.html)
-application. You have to start it first before using any of the
-functions. The couchbeam application will start the default socket pool
-for you.
+- Full CouchDB and Barrel API support
+- Streaming views and changes feeds with low memory overhead
+- Streaming attachment upload/download
+- Documents represented as native Erlang maps
+- Simple architecture using hackney's process-per-connection model
 
-To start in the console run:
+## Documentation
 
-```sh
-$ erl -pa ebin
-1> couchbeam:start().
-ok
-```
+- [API Reference](https://hexdocs.pm/couchbeam/)
+- [Migration Guide](https://hexdocs.pm/couchbeam/migration.html) - Upgrading from 1.x
+- [Changes Feed Guide](https://hexdocs.pm/couchbeam/changes.html)
+- [Views Guide](https://hexdocs.pm/couchbeam/views.html)
 
-It will start hackney and all of the application it depends on:
+Generate docs locally: `rebar3 ex_doc`
 
-```erlang
-application:start(crypto),
-application:start(asn1),
-application:start(public_key),
-application:start(ssl),
-application:start(hackney),
-application:start(couchbeam).
-```
+## Usage Guide
 
-Or add couchbeam to the applications property of your .app in a release
+### Starting the Application
 
-### Create a connection to the server
-
-To create a connection to a server machine:
+In a release, add `couchbeam` to your application dependencies. For interactive use:
 
 ```erlang
-Url = "http://localhost:5984",
-Options = [],
-S = couchbeam:server_connection(Url, Options).
+1> application:ensure_all_started(couchbeam).
+{ok, [crypto, asn1, public_key, ssl, hackney, couchbeam]}
 ```
 
-Test the connection with `couchbeam:server_info/1`:
+### Connecting to CouchDB
 
 ```erlang
-{ok, _Version} = couchbeam:server_info(S).
+%% Simple connection
+Server = couchbeam:server_connection("http://localhost:5984"),
+
+%% With authentication
+Server = couchbeam:server_connection("http://localhost:5984", [
+    {basic_auth, {"admin", "password"}}
+]).
 ```
 
-### Open or Create a database
-
-All document operations are done in databases. To open a database simply do:
+### Working with Databases
 
 ```erlang
-Options = [],
-{ok, Db} = couchbeam:open_db(Server, "testdb", Options).
+%% Create a database
+{ok, Db} = couchbeam:create_db(Server, "mydb"),
+
+%% Open existing database
+{ok, Db} = couchbeam:open_db(Server, "mydb"),
+
+%% Create if doesn't exist
+{ok, Db} = couchbeam:open_or_create_db(Server, "mydb"),
+
+%% Delete a database
+ok = couchbeam:delete_db(Server, "mydb").
 ```
 
-To create a new one:
+### Documents
+
+Documents are Erlang maps with binary keys:
 
 ```erlang
-Options = [],
-{ok, Db} = couchbeam:create_db(Server, "testdb", Options).
-```
-
-You can also use the shortcut `couchbeam:open_or_create_db/3` that
-will create a database if it does not exist.
-
-### Make a new document
-
-Make a new document (documents are maps in couchbeam 2.0):
-
-```erlang
+%% Create a document
 Doc = #{
-    <<"_id">> => <<"test">>,
-    <<"content">> => <<"some text">>
-}.
-```
-
-And save it to the database:
-
-```erlang
-{ok, Doc1} = couchbeam:save_doc(Db, Doc).
-```
-
-The `couchbeam:save_doc/2` return a new document with updated
-revision and if you do not specify the _id, a unique document id.
-
-To change a document property, use map syntax:
-
-```erlang
-Doc2 = Doc1#{<<"content">> => <<"updated text">>}.
-```
-
-### Retrieve a document
-
-To retrieve a document do:
-
-```erlang
-{ok, Doc2} = couchbeam:open_doc(Db, "test").
-```
-
-If you want a specific revision:
-
-```erlang
-Rev = maps:get(<<"_rev">>, Doc1),
-Options = [{rev, Rev}],
-{ok, Doc3} = couchbeam:open_doc(Db, "test", Options).
-```
-
-Here we get the revision from the document we previously stored. Any
-options from the Apache CouchDB and RCOUCH API can be used.
-
-### Get all documents
-
-To get all documents:
-
-```erlang
-Options = [include_docs],
-{ok, AllDocs} = couchbeam_view:all(Db, Options).
-```
-
-Ex of results:
-
-```erlang
-{ok, [
-    #{
-        <<"id">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
-        <<"key">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
-        <<"value">> => #{<<"rev">> => <<"15-15c0b3c4efa74f9a80d28ac040f18bdb">>},
-        <<"doc">> => #{
-            <<"_id">> => <<"7a0ce91d0d0c5e5b51e904d1ee3266a3">>,
-            <<"_rev">> => <<"15-15c0b3c4efa74f9a80d28ac040f18...">>
-        }
-    },
-    ...
-]}.
-```
-
-All functions to manipulate these results are in the `couchbeam_view` module.
-
-### CouchDB views
-
-Views are working like all_docs. You have to specify the design name and view name:
-
-```erlang
-Options = [],
-DesignName = "designname",
-ViewName = "viewname",
-{ok, ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName}, Options).
-```
-
-Like the `all/2` function, use the functions from `couchbeam_view` module to manipulate results. You can pass any querying options from the [view API](http://docs.rcouch.org/en/latest/api/ddoc/views.html).
-
-Design docs are created like any documents:
-
-```erlang
-DesignDoc = #{
-    <<"_id">> => <<"_design/couchbeam">>,
-    <<"language">> => <<"javascript">>,
-    <<"views">> => #{
-        <<"test">> => #{
-            <<"map">> => <<"function (doc) { if (doc.type == \"test\") { emit(doc._id, doc); }}">>
-        },
-        <<"test2">> => #{
-            <<"map">> => <<"function (doc) { if (doc.type == \"test2\") { emit(doc._id, null); }}">>
-        }
-    }
+    <<"_id">> => <<"mydoc">>,
+    <<"type">> => <<"post">>,
+    <<"title">> => <<"Hello World">>
 },
-{ok, DesignDoc1} = couchbeam:save_doc(Db, DesignDoc).
+{ok, Doc1} = couchbeam:save_doc(Db, Doc),
+
+%% Update it
+Doc2 = Doc1#{<<"title">> => <<"Updated Title">>},
+{ok, Doc3} = couchbeam:save_doc(Db, Doc2),
+
+%% Fetch a document
+{ok, Doc4} = couchbeam:open_doc(Db, "mydoc"),
+
+%% Delete a document
+{ok, _} = couchbeam:delete_doc(Db, Doc4).
 ```
 
-You can also use [couchapp](http://github.com/couchapp/couchapp) to manage them
-more easily.
-
-### Stream View results
-
-While you can get results using `couchbeam_view:fetch/2`, you can also retrieve
-all rows in a streaming fashion:
+Use `couchbeam_doc` helpers for document manipulation:
 
 ```erlang
-ViewFun = fun(Ref, F) ->
-    receive
-        {Ref, done} ->
-            io:format("done~n"),
-            done;
-        {Ref, {row, Row}} ->
-            io:format("got ~p~n", [Row]),
-            F(Ref, F);
-        {error, Ref, Error} ->
-            io:format("error: ~p~n", [Error])
-    end
-end,
-
-{ok, StreamRef} = couchbeam_view:stream(Db, 'all_docs'),
-ViewFun(StreamRef, ViewFun),
-{ok, StreamRef2} = couchbeam_view:stream(Db, 'all_docs', [include_docs]),
-ViewFun(StreamRef2, ViewFun).
+Id = couchbeam_doc:get_id(Doc),
+Rev = couchbeam_doc:get_rev(Doc),
+Value = couchbeam_doc:get_value(<<"title">>, Doc),
+Doc2 = couchbeam_doc:set_value(<<"title">>, <<"New">>, Doc).
 ```
 
-You can of course do the same with a view:
+### Views
+
+Fetch all results at once:
 
 ```erlang
-DesignName = "designname",
-ViewName = "viewname",
-{ok, StreamRef3} = couchbeam_view:stream(Db, {DesignName, ViewName}, [include_docs]),
-ViewFun(StreamRef3, ViewFun).
+%% All documents
+{ok, Rows} = couchbeam_view:all(Db, [include_docs]),
+
+%% Query a view
+{ok, Rows} = couchbeam_view:fetch(Db, {<<"design">>, <<"viewname">>}, [
+    {limit, 10},
+    {startkey, <<"a">>},
+    {endkey, <<"z">>}
+]).
 ```
 
-### Put, Fetch and Delete documents attachments
-
-You can add attachments to any documents. Attachments could be anything.
-
-To send an attachment:
+Stream results for large datasets:
 
 ```erlang
-DocID = "test",
-AttName = "test.txt",
-Att = "some content I want to attach",
-Options = [],
-{ok, _Result} = couchbeam:put_attachment(Db, DocId, AttName, Att, Options).
+{ok, Ref} = couchbeam_view:stream(Db, {<<"design">>, <<"view">>}, []),
+
+%% Receive rows as messages
+receive
+    {Ref, {row, Row}} -> handle_row(Row);
+    {Ref, done} -> done;
+    {Ref, {error, Reason}} -> handle_error(Reason)
+end.
 ```
 
-All attachments are streamed to servers. `Att` could be also be an iolist
-or functions, see `couchbeam:put_attachment/5` for more information.
+### Changes Feed
 
-To fetch an attachment:
+Get changes once:
 
 ```erlang
-{ok, Att1} = couchbeam:fetch_attachment(Db, DocId, AttName).
+{ok, LastSeq, Changes} = couchbeam_changes:follow_once(Db, [include_docs]).
 ```
 
-You can use `couchbeam:stream_fetch_attachment/6` for the stream
-fetch.
-
-To delete an attachment:
+Stream continuous changes:
 
 ```erlang
-{ok, Doc4} = couchbeam:open_doc(Db, DocID),
-ok = couchbeam:delete_attachment(Db, Doc4, AttName).
+{ok, Ref} = couchbeam_changes:follow(Db, [continuous, heartbeat]),
+
+%% Receive changes as messages
+receive
+    {Ref, {change, Change}} -> handle_change(Change);
+    {Ref, {done, LastSeq}} -> done;
+    {Ref, {error, Reason}} -> handle_error(Reason)
+end.
 ```
 
-### Changes
-
-Apache CouchDB and RCOUCH provide a means to get a list of changes made to documents in
-the database. With couchbeam you can get changes using `couchbeam_changes:follow_once/2`.
-This function returns all changes immediately. But you can also retrieve
-all changes rows using longpolling:
+### Attachments
 
 ```erlang
-Options = [],
-{ok, LastSeq, Rows} = couchbeam_changes:follow_once(Db, Options).
+%% Upload an attachment
+{ok, _} = couchbeam:put_attachment(Db, "docid", "file.txt", <<"content">>, []),
+
+%% Download an attachment
+{ok, Data} = couchbeam:fetch_attachment(Db, "docid", "file.txt"),
+
+%% Delete an attachment
+{ok, Doc} = couchbeam:open_doc(Db, "docid"),
+ok = couchbeam:delete_attachment(Db, Doc, "file.txt").
 ```
 
-Options can be any Changes query parameters. See the [change API](http://docs.rcouch.org/en/latest/api/database/changes.html) for more information.
+## Key Modules
 
-You can also get [continuous](http://docs.rcouch.org/en/latest/api/database/changes.html#continuous) changes:
+| Module | Purpose |
+|--------|---------|
+| `couchbeam` | Main API - connections, databases, documents |
+| `couchbeam_doc` | Document manipulation helpers |
+| `couchbeam_view` | View queries and streaming |
+| `couchbeam_changes` | Changes feed |
+| `couchbeam_attachments` | Inline attachment helpers |
 
-```erlang
-ChangesFun = fun(StreamRef, F) ->
-    receive
-        {StreamRef, {done, LastSeq}} ->
-            io:format("stopped, last seq is ~p~n", [LastSeq]),
-            ok;
-        {StreamRef, {change, Change}} ->
-            io:format("change row ~p~n", [Change]),
-            F(StreamRef, F);
-        {StreamRef, Error}->
-            io:format("error ? ~p~n", [Error])
-    end
-end,
-Options = [continuous, heartbeat],
-{ok, StreamRef} = couchbeam_changes:follow(Db, Options),
-ChangesFun(StreamRef, ChangesFun).
-```
+## Contributing
 
-See the [Changes Feed Guide](doc/guides/changes.md) for more details.
+Found a bug or have a feature request? [Open an issue](https://github.com/benoitc/couchbeam/issues).
 
-### Authentication/Connections options
+## License
 
-You can authenticate to the database or Apache CouchDB or RCOUCH server by filling
-options to the Option list in `couchbeam:server_connection/4` for the
-server or in `couchbeam:create_db/3`, `couchbeam:open_db/3`,
-`couchbeam:open_or_create_db/3` functions.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
 
-To set basic_auth on a server:
-
-```erlang
-UserName = "guest",
-Password = "test",
-Url = "http://localhost:5984",
-Options = [{basic_auth, {UserName, Password}}],
-S1 = couchbeam:server_connection(Url, Options).
-```
-
-Couchbeam support SSL, OAuth, Basic Authentication, and Proxy. You can
-also set a cookie. For more information about the options have a look
-in the `couchbeam:server_connection/2` documentation.
-
-## Contribute
-
-For issues, comments or feedback please [create an
-issue](http://github.com/benoitc/couchbeam/issues).
-
+Copyright 2009-2026 Benoit Chesneau.
