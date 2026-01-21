@@ -13,3 +13,4 @@ mime.types
 *.iml
 rebar3.crashdump
 rebar.lock
+rebar.log
