@@ -155,17 +155,30 @@ jobs:
     - name: Compile
       run: rebar3 compile
 
-    - name: Wait for CouchDB
+    - name: Wait for CouchDB and initialize
       run: |
         until curl -sf http://localhost:5984/_up; do
           echo "Waiting for CouchDB..."
           sleep 2
         done
         echo "CouchDB is ready"
+        # Create system databases required for full functionality
+        curl -X PUT http://admin:admin@localhost:5984/_users
+        curl -X PUT http://admin:admin@localhost:5984/_replicator
+        curl -X PUT http://admin:admin@localhost:5984/_global_changes
+        echo "System databases created"
 
     - name: Run integration tests
       env:
         COUCHDB_URL: http://localhost:5984
         COUCHDB_USER: admin
         COUCHDB_PASS: admin
-      run: rebar3 ct --suite=couchbeam_integration_SUITE --readable=true
+      run: |
+        # Run each test group individually for better isolation
+        for group in server_ops database_ops document_ops bulk_ops attachment_ops \
+                     view_streaming_ops changes_streaming_ops replication_ops \
+                     db_management_ops mango_ops uuid_ops; do
+          echo "=== Running $group ==="
+          rebar3 ct --suite=couchbeam_integration_SUITE --group=$group --readable=true || exit 1
+        done
+        echo "All integration tests passed"

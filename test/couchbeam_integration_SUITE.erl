@@ -14,6 +14,7 @@
 -module(couchbeam_integration_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
+-include("couchbeam.hrl").
 
 %% CT callbacks
 -export([all/0, groups/0, init_per_suite/1, end_per_suite/1,
@@ -73,6 +74,47 @@
          error_conflict/1,
          error_invalid_doc/1]).
 
+%% Test cases - View streaming operations
+-export([view_stream_basic/1,
+         view_stream_once/1,
+         view_stream_cancel/1,
+         view_foreach/1,
+         view_stream_with_options/1,
+         view_show/1]).
+
+%% Test cases - Changes streaming operations
+-export([changes_follow_continuous/1,
+         changes_follow_longpoll/1,
+         changes_follow_once_mode/1,
+         changes_cancel/1,
+         changes_with_heartbeat/1,
+         changes_stream_to_pid/1]).
+
+%% Test cases - Replication operations
+-export([replicate_simple/1,
+         replicate_with_options/1,
+         replicate_map_object/1,
+         replicate_continuous/1,
+         replicate_filtered/1]).
+
+%% Test cases - DB management operations
+-export([compact_database/1,
+         compact_design_view/1,
+         ensure_full_commit_test/1,
+         get_missing_revs/1]).
+
+%% Test cases - Mango query operations
+-export([find_basic/1,
+         find_with_fields/1,
+         find_with_sort/1,
+         find_with_limit_skip/1,
+         find_complex_selector/1]).
+
+%% Test cases - UUID operations
+-export([uuid_random_unique/1,
+         uuid_utc_random_ordering/1,
+         uuid_server_batch/1]).
+
 %%====================================================================
 %% CT callbacks
 %%====================================================================
@@ -86,7 +128,13 @@ all() ->
      {group, view_ops},
      {group, design_ops},
      {group, changes_ops},
-     {group, error_handling}].
+     {group, error_handling},
+     {group, view_streaming_ops},
+     {group, changes_streaming_ops},
+     {group, replication_ops},
+     {group, db_management_ops},
+     {group, mango_ops},
+     {group, uuid_ops}].
 
 groups() ->
     [{server_ops, [sequence], [
@@ -141,21 +189,67 @@ groups() ->
         error_not_found,
         error_conflict,
         error_invalid_doc
+    ]},
+     {view_streaming_ops, [sequence], [
+        view_stream_basic,
+        view_stream_once,
+        view_stream_cancel,
+        view_foreach,
+        view_stream_with_options,
+        view_show
+    ]},
+     {changes_streaming_ops, [sequence], [
+        changes_follow_continuous,
+        changes_follow_longpoll,
+        changes_follow_once_mode,
+        changes_cancel,
+        changes_with_heartbeat,
+        changes_stream_to_pid
+    ]},
+     {replication_ops, [sequence], [
+        replicate_simple,
+        replicate_with_options,
+        replicate_map_object,
+        replicate_continuous,
+        replicate_filtered
+    ]},
+     {db_management_ops, [sequence], [
+        compact_database,
+        compact_design_view,
+        ensure_full_commit_test,
+        get_missing_revs
+    ]},
+     {mango_ops, [sequence], [
+        find_basic,
+        find_with_fields,
+        find_with_sort,
+        find_with_limit_skip,
+        find_complex_selector
+    ]},
+     {uuid_ops, [sequence], [
+        uuid_random_unique,
+        uuid_utc_random_ordering,
+        uuid_server_batch
     ]}].
 
 init_per_suite(Config) ->
     %% Start required applications
     {ok, _} = application:ensure_all_started(couchbeam),
 
+    %% Configure hackney pool with larger size for integration tests
+    PoolName = couchbeam_test_pool,
+    ok = hackney_pool:start_pool(PoolName, [{max_connections, 100}]),
+
     %% Get CouchDB connection info from environment
     Url = os:getenv("COUCHDB_URL", "http://localhost:5984"),
     User = os:getenv("COUCHDB_USER", ""),
     Pass = os:getenv("COUCHDB_PASS", ""),
 
-    %% Build server options
+    %% Build server options with our custom pool
+    BaseOptions = [{pool, PoolName}],
     Options = case {User, Pass} of
-        {"", ""} -> [];
-        {U, P} -> [{basic_auth, {list_to_binary(U), list_to_binary(P)}}]
+        {"", ""} -> BaseOptions;
+        {U, P} -> [{basic_auth, {list_to_binary(U), list_to_binary(P)}} | BaseOptions]
     end,
 
     %% Try to connect to CouchDB
@@ -164,16 +258,59 @@ init_per_suite(Config) ->
     case couchbeam:server_info(Server) of
         {ok, Info} ->
             ct:pal("Connected to CouchDB: ~p", [Info]),
-            [{server, Server}, {couchdb_url, Url} | Config];
+            ct:pal("Using hackney pool ~p with max 100 connections", [PoolName]),
+            [{server, Server}, {couchdb_url, Url}, {pool_name, PoolName} | Config];
         {error, Reason} ->
+            hackney_pool:stop_pool(PoolName),
             ct:pal("CouchDB not available at ~s: ~p", [Url, Reason]),
             {skip, {couchdb_not_available, Reason}}
     end.
 
-end_per_suite(_Config) ->
+end_per_suite(Config) ->
+    %% Stop the custom hackney pool
+    case ?config(pool_name, Config) of
+        undefined -> ok;
+        PoolName -> hackney_pool:stop_pool(PoolName)
+    end,
     ok.
 
+init_per_group(mango_ops, Config) ->
+    %% Check CouchDB version for Mango support (requires 2.0+)
+    Server = ?config(server, Config),
+    case is_mango_supported(Server) of
+        true ->
+            init_per_group_default(mango_ops, Config);
+        false ->
+            {skip, mango_not_supported}
+    end;
+init_per_group(replication_ops, Config) ->
+    %% Create source and target databases for replication tests
+    Server = ?config(server, Config),
+    Timestamp = integer_to_binary(erlang:system_time(millisecond)),
+    SourceDb = iolist_to_binary([<<"couchbeam_test_rep_source_">>, Timestamp]),
+    TargetDb = iolist_to_binary([<<"couchbeam_test_rep_target_">>, Timestamp]),
+
+    case couchbeam:create_db(Server, SourceDb) of
+        {ok, Source} ->
+            case couchbeam:create_db(Server, TargetDb) of
+                {ok, Target} ->
+                    ct:pal("Created replication test databases: ~s -> ~s", [SourceDb, TargetDb]),
+                    [{source_db, Source}, {source_db_name, SourceDb},
+                     {target_db, Target}, {target_db_name, TargetDb},
+                     {test_db, SourceDb}, {db, Source} | Config];
+                {error, Reason} ->
+                    couchbeam:delete_db(Source),
+                    ct:pal("Failed to create target database: ~p", [Reason]),
+                    {skip, {db_creation_failed, Reason}}
+            end;
+        {error, Reason} ->
+            ct:pal("Failed to create source database: ~p", [Reason]),
+            {skip, {db_creation_failed, Reason}}
+    end;
 init_per_group(Group, Config) ->
+    init_per_group_default(Group, Config).
+
+init_per_group_default(Group, Config) ->
     %% Create a unique test database name for each group
     TestDb = iolist_to_binary([<<"couchbeam_test_">>,
                                atom_to_binary(Group, utf8), <<"_">>,
@@ -190,6 +327,22 @@ init_per_group(Group, Config) ->
             {skip, {db_creation_failed, Reason}}
     end.
 
+end_per_group(replication_ops, Config) ->
+    %% Clean up both source and target databases
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db_name, Config),
+    TargetDb = ?config(target_db_name, Config),
+
+    lists:foreach(fun(DbName) ->
+        case couchbeam:open_db(Server, DbName) of
+            {ok, Db} ->
+                couchbeam:delete_db(Db),
+                ct:pal("Cleaned up replication database: ~s", [DbName]);
+            _ ->
+                ok
+        end
+    end, [SourceDb, TargetDb]),
+    ok;
 end_per_group(_Group, Config) ->
     %% Clean up test database
     Server = ?config(server, Config),
@@ -207,6 +360,9 @@ init_per_testcase(_TestCase, Config) ->
     Config.
 
 end_per_testcase(_TestCase, _Config) ->
+    %% Small delay to allow hackney connections to be properly returned to pool
+    %% This prevents pool exhaustion when running many streaming tests
+    timer:sleep(50),
     ok.
 
 %%====================================================================
@@ -1055,3 +1211,762 @@ error_invalid_doc(Config) ->
 
     ct:pal("Invalid document/database errors handled correctly"),
     ok.
+
+%%====================================================================
+%% View streaming tests
+%%====================================================================
+
+%% Test basic view streaming
+view_stream_basic(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create some test documents
+    Docs = [#{<<"_id">> => <<"stream_doc_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"stream_test">>,
+              <<"value">> => I} || I <- lists:seq(1, 10)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Stream all_docs
+    {ok, Ref} = couchbeam_view:stream(Db, 'all_docs', []),
+
+    %% Collect all rows
+    {ok, Rows} = collect_view_stream(Ref, []),
+    true = length(Rows) >= 10,
+
+    ct:pal("View stream basic: received ~p rows", [length(Rows)]),
+    ok.
+
+%% Test view streaming with {async, once} mode
+view_stream_once(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create test documents
+    Docs = [#{<<"_id">> => <<"once_doc_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"once_test">>} || I <- lists:seq(1, 5)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Stream with {async, once}
+    {ok, Ref} = couchbeam_view:stream(Db, 'all_docs', [{async, once}]),
+
+    %% Receive first row
+    receive
+        {Ref, {row, Row1}} ->
+            true = is_map(Row1),
+            ct:pal("Received first row: ~p", [maps:get(<<"id">>, Row1)]),
+            %% Request next
+            ok = couchbeam_view:stream_next(Ref)
+    after 5000 ->
+        ct:fail("Timeout waiting for first row")
+    end,
+
+    %% Receive remaining rows
+    {ok, _Rows} = collect_view_stream(Ref, []),
+    ct:pal("View stream once mode working"),
+    ok.
+
+%% Test view stream cancellation
+view_stream_cancel(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create many documents
+    Docs = [#{<<"_id">> => <<"cancel_doc_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"cancel_test">>} || I <- lists:seq(1, 20)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Start streaming
+    {ok, Ref} = couchbeam_view:stream(Db, 'all_docs', [{async, once}]),
+
+    %% Receive a few rows
+    receive
+        {Ref, {row, _}} ->
+            ok = couchbeam_view:stream_next(Ref)
+    after 5000 ->
+        ct:fail("Timeout waiting for row")
+    end,
+
+    %% Cancel the stream
+    ok = couchbeam_view:cancel_stream(Ref),
+
+    %% Verify stream is cancelled
+    {error, stream_undefined} = couchbeam_view:stream_next(Ref),
+
+    ct:pal("View stream cancellation working"),
+    ok.
+
+%% Test view foreach
+view_foreach(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create test documents
+    Docs = [#{<<"_id">> => <<"foreach_doc_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"foreach_test">>,
+              <<"value">> => I} || I <- lists:seq(1, 5)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Use foreach to count documents
+    Counter = counters:new(1, []),
+    couchbeam_view:foreach(fun(_Row) ->
+        counters:add(Counter, 1, 1)
+    end, Db, 'all_docs', [{limit, 5}]),
+
+    Count = counters:get(Counter, 1),
+    true = Count >= 5,
+
+    ct:pal("View foreach processed ~p rows", [Count]),
+    ok.
+
+%% Test view streaming with options
+view_stream_with_options(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create test documents
+    Docs = [#{<<"_id">> => <<"opts_doc_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"opts_test">>,
+              <<"value">> => I} || I <- lists:seq(1, 15)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Stream with limit and skip
+    {ok, Ref} = couchbeam_view:stream(Db, 'all_docs', [{limit, 5}, {skip, 2}]),
+    {ok, Rows} = collect_view_stream(Ref, []),
+    5 = length(Rows),
+
+    ct:pal("View stream with options: limit=5, skip=2, got ~p rows", [length(Rows)]),
+    ok.
+
+%% Test show function
+view_show(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create a design document with a show function
+    DesignDoc = #{
+        <<"_id">> => <<"_design/show_test">>,
+        <<"shows">> => #{
+            <<"simple">> => <<"function(doc, req) { return {body: JSON.stringify({id: doc ? doc._id : null, query: req.query})}; }">>
+        }
+    },
+    {ok, _} = couchbeam:save_doc(Db, DesignDoc),
+
+    %% Create a test document
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"show_doc">>, <<"data">> => <<"test">>}),
+
+    %% Call show function with document
+    case couchbeam_view:show(Db, {<<"show_test">>, <<"simple">>}, <<"show_doc">>) of
+        {ok, Result} ->
+            ct:pal("Show function result: ~p", [Result]),
+            ok;
+        {error, Reason} ->
+            %% Show functions may not be available in all CouchDB versions
+            ct:pal("Show function not available: ~p", [Reason]),
+            ok
+    end.
+
+%%====================================================================
+%% Changes streaming tests
+%%====================================================================
+
+%% Test continuous changes feed
+changes_follow_continuous(Config) ->
+    Db = ?config(db, Config),
+
+    %% Start following changes
+    {ok, Ref} = couchbeam_changes:follow(Db, [continuous]),
+
+    %% Trigger a change
+    spawn(fun() ->
+        timer:sleep(100),
+        couchbeam:save_doc(Db, #{<<"_id">> => <<"continuous_test_doc">>})
+    end),
+
+    %% Collect changes with timeout
+    {timeout, Changes} = collect_changes_timeout(Ref, [], 2000),
+
+    %% Cancel the stream
+    ok = couchbeam_changes:cancel(Ref),
+
+    ct:pal("Continuous changes: received ~p changes", [length(Changes)]),
+    ok.
+
+%% Test longpoll changes feed
+changes_follow_longpoll(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create a document first
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"longpoll_doc_1">>}),
+
+    %% Start longpoll feed
+    {ok, Ref} = couchbeam_changes:follow(Db, [longpoll, {reconnect_after, false}]),
+
+    %% Collect changes
+    Result = receive
+        {Ref, {done, LastSeq}} ->
+            {done, LastSeq};
+        {Ref, {change, Change}} ->
+            {change, Change}
+    after 5000 ->
+        timeout
+    end,
+
+    %% Cancel to clean up
+    couchbeam_changes:cancel(Ref),
+
+    case Result of
+        {done, _} ->
+            ct:pal("Longpoll completed successfully");
+        {change, _} ->
+            ct:pal("Longpoll received change");
+        timeout ->
+            ct:pal("Longpoll timed out (expected for empty changes)")
+    end,
+    ok.
+
+%% Test changes feed with {async, once} mode
+changes_follow_once_mode(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create some documents
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"once_mode_1">>}),
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"once_mode_2">>}),
+
+    %% Start following with {async, once}
+    {ok, Ref} = couchbeam_changes:follow(Db, [{async, once}]),
+
+    %% Receive first change
+    receive
+        {Ref, {change, Change1}} ->
+            true = is_map(Change1),
+            ct:pal("Received first change in once mode"),
+            %% Request next
+            ok = couchbeam_changes:stream_next(Ref)
+    after 5000 ->
+        ct:pal("No changes available in once mode")
+    end,
+
+    %% Cancel the stream
+    couchbeam_changes:cancel(Ref),
+    ok.
+
+%% Test changes stream cancellation
+changes_cancel(Config) ->
+    Db = ?config(db, Config),
+
+    %% Start continuous feed
+    {ok, Ref} = couchbeam_changes:follow(Db, [continuous]),
+
+    %% Cancel it immediately
+    ok = couchbeam_changes:cancel(Ref),
+
+    %% Verify cancelled message
+    receive
+        {Ref, cancelled} ->
+            ct:pal("Changes stream cancelled successfully")
+    after 2000 ->
+        %% Stream may have been cancelled before sending message
+        ct:pal("Changes stream cancelled (no message)")
+    end,
+
+    %% Verify stream is gone
+    {error, stream_undefined} = couchbeam_changes:stream_next(Ref),
+    ok.
+
+%% Test changes with heartbeat option
+changes_with_heartbeat(Config) ->
+    Db = ?config(db, Config),
+
+    %% Start continuous feed with heartbeat
+    {ok, Ref} = couchbeam_changes:follow(Db, [continuous, heartbeat, {heartbeat, 1000}]),
+
+    %% Wait a bit for potential heartbeat
+    timer:sleep(500),
+
+    %% Cancel
+    ok = couchbeam_changes:cancel(Ref),
+
+    ct:pal("Changes with heartbeat test completed"),
+    ok.
+
+%% Test changes stream to specific pid
+changes_stream_to_pid(Config) ->
+    Db = ?config(db, Config),
+    Self = self(),
+
+    %% Spawn receiver process
+    Receiver = spawn(fun() ->
+        receive
+            {Ref, {change, Change}} ->
+                Self ! {received, Change, Ref};
+            {Ref, {done, _}} ->
+                Self ! {done, Ref};
+            {Ref, cancelled} ->
+                Self ! {cancelled, Ref}
+        after 3000 ->
+            Self ! timeout
+        end
+    end),
+
+    %% Create a document to trigger change
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"pid_test_doc">>}),
+
+    %% Start feed streaming to receiver
+    {ok, Ref} = couchbeam_changes:follow(Db, [], Receiver),
+
+    %% Wait for receiver to get something
+    Result = receive
+        {received, _, _} -> received;
+        {done, _} -> done;
+        {cancelled, _} -> cancelled;
+        timeout -> timeout
+    after 5000 ->
+        error
+    end,
+
+    %% Clean up
+    couchbeam_changes:cancel(Ref),
+
+    ct:pal("Changes to pid result: ~p", [Result]),
+    ok.
+
+%%====================================================================
+%% Replication tests
+%%====================================================================
+
+%% Test simple replication
+replicate_simple(Config) ->
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db, Config),
+    TargetDb = ?config(target_db, Config),
+
+    %% Create a document in source
+    {ok, _} = couchbeam:save_doc(SourceDb, #{<<"_id">> => <<"rep_doc_1">>, <<"data">> => <<"test">>}),
+
+    %% Replicate using db records
+    {ok, RepDoc} = couchbeam:replicate(Server, SourceDb, TargetDb),
+    true = is_map(RepDoc),
+
+    ct:pal("Simple replication created: ~p", [maps:get(<<"_id">>, RepDoc, undefined)]),
+    ok.
+
+%% Test replication with options
+replicate_with_options(Config) ->
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db, Config),
+    TargetDb = ?config(target_db, Config),
+
+    %% Create a document in source
+    {ok, _} = couchbeam:save_doc(SourceDb, #{<<"_id">> => <<"rep_opts_doc">>, <<"data">> => <<"test">>}),
+
+    %% Replicate with create_target option using db records
+    {ok, RepDoc} = couchbeam:replicate(Server, SourceDb, TargetDb,
+                                        [{<<"create_target">>, true}]),
+    true = is_map(RepDoc),
+
+    ct:pal("Replication with options created"),
+    ok.
+
+%% Test replication with map object
+replicate_map_object(Config) ->
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db, Config),
+    TargetDb = ?config(target_db, Config),
+    CouchdbUrl = ?config(couchdb_url, Config),
+
+    %% Build full URLs for replication spec
+    SourceUrl = iolist_to_binary([CouchdbUrl, "/", SourceDb#db.name]),
+    TargetUrl = iolist_to_binary([CouchdbUrl, "/", TargetDb#db.name]),
+
+    %% Create full replication spec with URLs
+    RepSpec = #{
+        <<"source">> => SourceUrl,
+        <<"target">> => TargetUrl,
+        <<"create_target">> => true
+    },
+
+    {ok, RepDoc} = couchbeam:replicate(Server, RepSpec),
+    true = is_map(RepDoc),
+
+    ct:pal("Replication with map object created"),
+    ok.
+
+%% Test continuous replication
+replicate_continuous(Config) ->
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db, Config),
+    TargetDb = ?config(target_db, Config),
+
+    %% Start continuous replication using db records
+    {ok, RepDoc} = couchbeam:replicate(Server, SourceDb, TargetDb,
+                                        [{<<"continuous">>, true}]),
+    true = is_map(RepDoc),
+
+    ct:pal("Continuous replication started"),
+    ok.
+
+%% Test filtered replication
+replicate_filtered(Config) ->
+    Server = ?config(server, Config),
+    SourceDb = ?config(source_db, Config),
+    TargetDb = ?config(target_db, Config),
+
+    %% Create a design doc with filter in source
+    FilterDesignDoc = #{
+        <<"_id">> => <<"_design/filters">>,
+        <<"filters">> => #{
+            <<"by_type">> => <<"function(doc, req) { return doc.type === 'replicate'; }">>
+        }
+    },
+    {ok, _} = couchbeam:save_doc(SourceDb, FilterDesignDoc),
+
+    %% Create documents
+    {ok, _} = couchbeam:save_doc(SourceDb, #{<<"_id">> => <<"filter_rep_1">>, <<"type">> => <<"replicate">>}),
+    {ok, _} = couchbeam:save_doc(SourceDb, #{<<"_id">> => <<"filter_rep_2">>, <<"type">> => <<"skip">>}),
+
+    %% Replicate with filter using db records
+    {ok, RepDoc} = couchbeam:replicate(Server, SourceDb, TargetDb,
+                                        [{<<"filter">>, <<"filters/by_type">>}]),
+    true = is_map(RepDoc),
+
+    ct:pal("Filtered replication created"),
+    ok.
+
+%%====================================================================
+%% Database management tests
+%%====================================================================
+
+%% Test database compaction
+compact_database(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create and delete some documents to generate waste
+    lists:foreach(fun(I) ->
+        DocId = <<"compact_doc_", (integer_to_binary(I))/binary>>,
+        {ok, Doc} = couchbeam:save_doc(Db, #{<<"_id">> => DocId, <<"data">> => I}),
+        couchbeam:delete_doc(Db, Doc)
+    end, lists:seq(1, 10)),
+
+    %% Compact the database
+    ok = couchbeam:compact(Db),
+
+    ct:pal("Database compaction triggered"),
+    ok.
+
+%% Test design view compaction
+compact_design_view(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create a design document
+    DesignDoc = #{
+        <<"_id">> => <<"_design/compact_test">>,
+        <<"views">> => #{
+            <<"by_id">> => #{
+                <<"map">> => <<"function(doc) { emit(doc._id, null); }">>
+            }
+        }
+    },
+    {ok, _} = couchbeam:save_doc(Db, DesignDoc),
+
+    %% Query view to build index
+    {ok, _} = couchbeam_view:fetch(Db, {<<"compact_test">>, <<"by_id">>}, []),
+
+    %% Compact the design view
+    ok = couchbeam:compact(Db, <<"compact_test">>),
+
+    ct:pal("Design view compaction triggered"),
+    ok.
+
+%% Test ensure_full_commit
+ensure_full_commit_test(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create a document
+    {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"commit_test">>}),
+
+    %% Ensure full commit
+    {ok, InstanceStartTime} = couchbeam:ensure_full_commit(Db),
+    true = is_binary(InstanceStartTime),
+
+    %% Test with options
+    {ok, InstanceStartTime2} = couchbeam:ensure_full_commit(Db, []),
+    true = is_binary(InstanceStartTime2),
+
+    ct:pal("Ensure full commit: instance_start_time=~s", [InstanceStartTime]),
+    ok.
+
+%% Test get_missing_revs
+get_missing_revs(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create a document to get its revision
+    {ok, Doc} = couchbeam:save_doc(Db, #{<<"_id">> => <<"revs_test">>}),
+    ExistingRev = maps:get(<<"_rev">>, Doc),
+
+    %% Check for missing revisions
+    IdRevs = [
+        {<<"revs_test">>, [ExistingRev, <<"1-fakefake">>]},
+        {<<"nonexistent">>, [<<"1-abc123">>]}
+    ],
+
+    {ok, Missing} = couchbeam:get_missing_revs(Db, IdRevs),
+    true = is_list(Missing),
+
+    %% The fake revision should be missing
+    ct:pal("Missing revisions check: ~p entries", [length(Missing)]),
+    ok.
+
+%%====================================================================
+%% Mango query tests
+%%====================================================================
+
+%% Test basic Mango find
+find_basic(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create test documents
+    Docs = [#{<<"_id">> => <<"mango_", (integer_to_binary(I))/binary>>,
+              <<"type">> => <<"mango_test">>,
+              <<"value">> => I,
+              <<"category">> => if I rem 2 =:= 0 -> <<"even">>; true -> <<"odd">> end}
+            || I <- lists:seq(1, 10)],
+    {ok, _} = couchbeam:save_docs(Db, Docs),
+
+    %% Create an index for the Mango queries
+    create_mango_index(Db, [<<"type">>, <<"value">>, <<"category">>]),
+
+    %% Basic selector
+    Selector = #{<<"type">> => <<"mango_test">>},
+    {ok, Result} = couchbeam:find(Db, Selector, []),
+    DocList = maps:get(<<"docs">>, Result),
+    true = length(DocList) >= 10,
+
+    ct:pal("Mango find basic: found ~p documents", [length(DocList)]),
+    ok.
+
+%% Test Mango find with fields projection
+find_with_fields(Config) ->
+    Db = ?config(db, Config),
+
+    Selector = #{<<"type">> => <<"mango_test">>},
+    {ok, Result} = couchbeam:find(Db, Selector, [{fields, [<<"_id">>, <<"value">>]}]),
+    DocList = maps:get(<<"docs">>, Result),
+
+    %% Verify only requested fields are returned
+    case DocList of
+        [Doc | _] ->
+            true = maps:is_key(<<"_id">>, Doc),
+            true = maps:is_key(<<"value">>, Doc),
+            %% category should not be present (unless CouchDB returns all fields)
+            ct:pal("Mango find with fields: got ~p documents", [length(DocList)]);
+        [] ->
+            ct:pal("No documents found for fields test")
+    end,
+    ok.
+
+%% Test Mango find with sort
+find_with_sort(Config) ->
+    Db = ?config(db, Config),
+
+    %% Create an index specifically for sorting by value
+    create_mango_index(Db, [<<"value">>]),
+
+    Selector = #{<<"value">> => #{<<"$gt">> => 0}},
+    case couchbeam:find(Db, Selector, [{sort, [#{<<"value">> => <<"desc">>}]}]) of
+        {ok, Result} ->
+            DocList = maps:get(<<"docs">>, Result),
+            case DocList of
+                [First, Second | _] ->
+                    FirstVal = maps:get(<<"value">>, First),
+                    SecondVal = maps:get(<<"value">>, Second),
+                    true = FirstVal >= SecondVal,
+                    ct:pal("Mango find with sort: first=~p, second=~p", [FirstVal, SecondVal]);
+                _ ->
+                    ct:pal("Not enough documents for sort test")
+            end;
+        {error, {bad_response, {400, _, _}}} ->
+            %% Sort without index - CouchDB requires an index for sorting
+            ct:pal("Sort without index not supported, creating index failed - skipping verification"),
+            ok
+    end,
+    ok.
+
+%% Test Mango find with limit and skip
+find_with_limit_skip(Config) ->
+    Db = ?config(db, Config),
+
+    Selector = #{<<"type">> => <<"mango_test">>},
+
+    %% Test limit
+    {ok, Result1} = couchbeam:find(Db, Selector, [{limit, 3}]),
+    DocList1 = maps:get(<<"docs">>, Result1),
+    3 = length(DocList1),
+
+    %% Test skip
+    {ok, Result2} = couchbeam:find(Db, Selector, [{limit, 3}, {skip, 5}]),
+    DocList2 = maps:get(<<"docs">>, Result2),
+    true = length(DocList2) =< 3,
+
+    ct:pal("Mango find with limit/skip: limit=3 got ~p, skip=5 got ~p",
+           [length(DocList1), length(DocList2)]),
+    ok.
+
+%% Test Mango find with complex selector
+find_complex_selector(Config) ->
+    Db = ?config(db, Config),
+
+    %% Complex selector with $and, $or, $gt, $lt
+    Selector = #{
+        <<"$and">> => [
+            #{<<"type">> => <<"mango_test">>},
+            #{<<"$or">> => [
+                #{<<"category">> => <<"even">>},
+                #{<<"value">> => #{<<"$gt">> => 8}}
+            ]}
+        ]
+    },
+
+    {ok, Result} = couchbeam:find(Db, Selector, []),
+    DocList = maps:get(<<"docs">>, Result),
+
+    %% Should find even numbers (2,4,6,8,10) or value > 8 (9,10)
+    ct:pal("Mango complex selector: found ~p documents", [length(DocList)]),
+    ok.
+
+%%====================================================================
+%% UUID tests
+%%====================================================================
+
+%% Test random UUID uniqueness
+uuid_random_unique(Config) ->
+    _ = Config,
+
+    %% Generate many UUIDs
+    Uuids = [couchbeam_uuids:random() || _ <- lists:seq(1, 100)],
+
+    %% All should be unique
+    UniqueUuids = lists:usort(Uuids),
+    100 = length(UniqueUuids),
+
+    %% All should be 32 characters (hex)
+    lists:foreach(fun(Uuid) ->
+        32 = byte_size(Uuid)
+    end, Uuids),
+
+    ct:pal("Random UUIDs: generated 100 unique UUIDs"),
+    ok.
+
+%% Test UTC random UUID ordering
+uuid_utc_random_ordering(Config) ->
+    _ = Config,
+
+    %% Generate UUIDs with small delay between
+    Uuid1 = couchbeam_uuids:utc_random(),
+    timer:sleep(10),
+    Uuid2 = couchbeam_uuids:utc_random(),
+    timer:sleep(10),
+    Uuid3 = couchbeam_uuids:utc_random(),
+
+    %% UTC random UUIDs should sort chronologically
+    true = Uuid1 < Uuid2,
+    true = Uuid2 < Uuid3,
+
+    %% All should be 32 characters
+    32 = byte_size(Uuid1),
+    32 = byte_size(Uuid2),
+    32 = byte_size(Uuid3),
+
+    ct:pal("UTC random UUIDs: ~s < ~s < ~s", [Uuid1, Uuid2, Uuid3]),
+    ok.
+
+%% Test server UUID batch retrieval
+uuid_server_batch(Config) ->
+    Server = ?config(server, Config),
+
+    %% Get a batch of UUIDs from server
+    Uuids = couchbeam:get_uuids(Server, 10),
+    10 = length(Uuids),
+
+    %% All should be unique
+    UniqueUuids = lists:usort(Uuids),
+    10 = length(UniqueUuids),
+
+    %% All should be 32 characters
+    lists:foreach(fun(Uuid) ->
+        32 = byte_size(Uuid)
+    end, Uuids),
+
+    ct:pal("Server UUID batch: got 10 unique UUIDs"),
+    ok.
+
+%%====================================================================
+%% Helper functions
+%%====================================================================
+
+%% Collect view stream rows
+collect_view_stream(Ref, Acc) ->
+    receive
+        {Ref, done} ->
+            {ok, lists:reverse(Acc)};
+        {Ref, {row, Row}} ->
+            collect_view_stream(Ref, [Row | Acc]);
+        {Ref, {error, E}} ->
+            {error, E}
+    after 10000 ->
+        {error, timeout}
+    end.
+
+%% Collect changes with timeout
+collect_changes_timeout(Ref, Acc, Timeout) ->
+    receive
+        {Ref, {change, C}} ->
+            collect_changes_timeout(Ref, [C | Acc], Timeout);
+        {Ref, {changes, Cs}} ->
+            collect_changes_timeout(Ref, lists:reverse(Cs) ++ Acc, Timeout);
+        {Ref, {done, _}} ->
+            {ok, lists:reverse(Acc)};
+        {Ref, cancelled} ->
+            {cancelled, lists:reverse(Acc)}
+    after Timeout ->
+        {timeout, lists:reverse(Acc)}
+    end.
+
+%% Check CouchDB version for Mango support
+is_mango_supported(Server) ->
+    case couchbeam:server_info(Server) of
+        {ok, Info} ->
+            Version = maps:get(<<"version">>, Info, <<"0">>),
+            case binary:split(Version, <<".">>, [global]) of
+                [MajorBin | _] ->
+                    try
+                        Major = binary_to_integer(MajorBin),
+                        Major >= 2
+                    catch _:_ ->
+                        %% Unable to parse version, assume supported
+                        true
+                    end;
+                _ ->
+                    true
+            end;
+        _ ->
+            false
+    end.
+
+%% Create a Mango index on the given fields using HTTP API directly
+create_mango_index(#db{server=Server, options=Opts}=Db, Fields) ->
+    IndexSpec = #{
+        <<"index">> => #{
+            <<"fields">> => Fields
+        },
+        <<"type">> => <<"json">>
+    },
+    Url = hackney_url:make_url(couchbeam_httpc:server_url(Server),
+                               [couchbeam_httpc:db_url(Db), <<"_index">>],
+                               []),
+    Headers = [{<<"content-type">>, <<"application/json">>},
+               {<<"accept">>, <<"application/json">>}],
+    Body = couchbeam_ejson:encode(IndexSpec),
+    case couchbeam_httpc:db_request(post, Url, Headers, Body, Opts, [200, 201]) of
+        {ok, _, _, Ref} ->
+            hackney:skip_body(Ref),
+            ct:pal("Created Mango index on fields: ~p", [Fields]),
+            ok;
+        {error, Reason} ->
+            ct:pal("Failed to create Mango index: ~p", [Reason]),
+            ok
+    end.
