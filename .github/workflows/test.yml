@@ -90,13 +90,8 @@ jobs:
       run: rebar3 dialyzer
 
   freebsd:
-    name: FreeBSD OTP ${{ matrix.otp }}
+    name: FreeBSD 14.2 OTP-28
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        otp: ['27']
 
     steps:
     - uses: actions/checkout@v4
@@ -104,10 +99,17 @@ jobs:
     - name: Test on FreeBSD
       uses: vmactions/freebsd-vm@v1
       with:
+        release: "14.2"
         usesh: true
         prepare: |
-          pkg install -y erlang rebar3
+          pkg install -y erlang-runtime28 rebar3 cmake git gmake go llvm18
         run: |
+          # Ensure Erlang 28 is in PATH
+          export PATH="/usr/local/lib/erlang28/bin:$PATH"
+          # Use LLVM 18 clang which fully supports C++20
+          export CC=/usr/local/bin/clang18
+          export CXX=/usr/local/bin/clang++18
+          git config --global --add safe.directory $GITHUB_WORKSPACE
           rebar3 compile
           rebar3 xref
           rebar3 as test eunit
