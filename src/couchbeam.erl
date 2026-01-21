@@ -4,7 +4,7 @@
 %%% See the NOTICE for more information.
 
 -module(couchbeam).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Benoit Chesneau').
 
 -include("couchbeam.hrl").
 
@@ -151,7 +151,7 @@ server_connection(Host, Port, Prefix, Options) ->
     server_connection(Url, Options).
 
 %% @doc Get Information from the server
-%% @spec server_info(server()) -> {ok, iolist()}
+-spec server_info(server()) -> {ok, map()} | {error, term()}.
 server_info(#server{url=Url, options=Opts}) ->
     case hackney:get(Url, [], <<>>, Opts) of
         {ok, 200, _, Ref} ->
@@ -166,12 +166,12 @@ server_info(#server{url=Url, options=Opts}) ->
     end.
 
 %% @doc Get one uuid from the server
-%% @spec get_uuid(server()) -> lists()
+-spec get_uuid(server()) -> [binary()].
 get_uuid(Server) ->
     couchbeam_uuids:get_uuids(Server, 1).
 
 %% @doc Get a list of uuids from the server
-%% @spec get_uuids(server(), integer()) -> lists()
+-spec get_uuids(server(), integer()) -> [binary()].
 get_uuids(Server, Count) ->
     couchbeam_uuids:get_uuids(Server, Count).
 
@@ -186,9 +186,7 @@ get_uuids(Server, Count) ->
 %% ]}
 %% replicate(Server, RepObj).
 %% '''
-%%
-%% @spec replicate(Server::server(), RepObj::{list()})
-%%          -> {ok, Result}|{error, Error}
+-spec replicate(server(), map()) -> {ok, map()} | {error, term()}.
 replicate(#server{}=Server, RepObj) ->
   case open_db(Server, <<"_replicator">>) of
     {ok, ReplicatorDb} ->
@@ -202,8 +200,7 @@ replicate(#server{}=Server, RepObj) ->
   end.
 
 %% @doc Handle replication.
-%% @spec replicate(Server::server(), Source::string(), Target::target())
-%%          ->  {ok, Result}|{error, Error}
+-spec replicate(server(), binary() | string(), binary() | string()) -> {ok, map()} | {error, term()}.
 replicate(Server, Source, Target) ->
     replicate(Server, Source, Target, []).
 
@@ -238,11 +235,11 @@ replicate(Server, Source, Target, Options) when is_map(Options) ->
   replicate(Server, RepMap).
 
 %% @doc get list of databases on a CouchDB node
-%% @spec all_dbs(server()) -> {ok, iolist()}
+-spec all_dbs(server()) -> {ok, [binary()]} | {error, term()}.
 all_dbs(#server{}=Server) -> all_dbs(Server, []).
 
 %% @doc get list of databases on a CouchDB node with optional filter
-%% @spec all_dbs(server(), view_options()) -> {ok, iolist()}
+-spec all_dbs(server(), list()) -> {ok, [binary()]} | {error, term()}.
 all_dbs(#server{url=ServerUrl, options=Opts}, Options) ->
     Args = couchbeam_view:parse_view_options(Options),
     Url = hackney_url:make_url(ServerUrl, <<"_all_dbs">>, Args#view_query_args.options),
@@ -283,7 +280,7 @@ view_cleanup(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if db with dbname exists on the CouchDB node
-%% @spec db_exists(server(), string()) -> boolean()
+-spec db_exists(server(), binary() | string()) -> boolean().
 db_exists(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(head, Url, [], <<>>, Opts, [200]) of
@@ -313,8 +310,7 @@ create_db(Server, DbName, Options) ->
 %% Params is a list of optionnal query argument you want to pass to the
 %% db. Useful for bigcouch for example.
 %%
-%% @spec create_db(Server::server(), DbName::string(),
-%%                 Options::optionList(), Params::list()) -> {ok, db()|{error, Error}}
+-spec create_db(server(), binary() | string(), list(), list()) -> {ok, db()} | {error, term()}.
 create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0, Options,
           Params) ->
     DbName = couchbeam_util:dbname(DbName0),
@@ -337,8 +333,7 @@ open_db(Server, DbName) ->
     open_db(Server, DbName, []).
 
 %% @doc Create a client for connection to a database
-%% @spec open_db(Server::server(), DbName::string(), Options::optionList())
-%%              -> {ok, db()}
+-spec open_db(server(), binary() | string(), list()) -> {ok, db()}.
 open_db(#server{options=Opts}=Server, DbName, Options) ->
     Options1 = couchbeam_util:propmerge1(Options, Opts),
     {ok, #db{server=Server, name=couchbeam_util:dbname(DbName), options=Options1}}.
@@ -358,7 +353,7 @@ open_or_create_db(Server, DbName, Options) ->
 
 %% @doc Create a client for connecting to a database and create the
 %%      database if needed.
-%% @spec open_or_create_db(server(), string(), list(), list()) -> {ok, db()|{error, Error}}
+-spec open_or_create_db(server(), binary() | string(), list(), list()) -> {ok, db()} | {error, term()}.
 open_or_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName0,
                   Options, Params) ->
 
@@ -382,7 +377,7 @@ delete_db(#db{server=Server, name=DbName}) ->
     delete_db(Server, DbName).
 
 %% @doc delete database
-%% @spec delete_db(server(), DbName) -> {ok, iolist()|{error, Error}}
+-spec delete_db(server(), binary() | string()) -> {ok, map()} | {error, term()}.
 delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     Url = hackney_url:make_url(ServerUrl, couchbeam_util:dbname(DbName), []),
     Resp = couchbeam_httpc:request(delete, Url, [], <<>>, Opts),
@@ -394,7 +389,7 @@ delete_db(#server{url=ServerUrl, options=Opts}, DbName) ->
     end.
 
 %% @doc get database info
-%% @spec db_info(db()) -> {ok, iolist()|{error, Error}}
+-spec db_info(db()) -> {ok, map()} | {error, term()}.
 db_info(#db{server=Server, name=DbName, options=Opts}) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_util:dbname(DbName), []),
     case couchbeam_httpc:db_request(get, Url, [], <<>>, Opts, [200]) of
@@ -408,7 +403,7 @@ db_info(#db{server=Server, name=DbName, options=Opts}) ->
     end.
 
 %% @doc test if doc with uuid exists in the given db
-%% @spec doc_exists(db(), string()) -> boolean()
+-spec doc_exists(db(), binary() | string()) -> boolean().
 doc_exists(#db{server=Server, options=Opts}=Db, DocId) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), couchbeam_httpc:doc_url(Db, DocId1), []),
@@ -424,8 +419,7 @@ open_doc(Db, DocId) ->
 
 %% @doc open a document
 %% Params is a list of query argument. Have a look in CouchDb API
-%% @spec open_doc(Db::db(), DocId::string(), Params::list())
-%%          -> {ok, Doc}|{error, Error}
+-spec open_doc(db(), binary() | string(), list()) -> {ok, map()} | {error, term()}.
 open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
 
@@ -509,7 +503,7 @@ save_doc(Db, Doc) ->
 %% document it will be created. Id is created by extracting an uuid from
 %% the couchdb node.
 %%
-%% @spec save_doc(Db::db(), Doc, Options::list()) -> {ok, Doc1}|{error, Error}
+-spec save_doc(db(), map(), list()) -> {ok, map()} | {error, term()}.
 save_doc(Db, Doc, Options) ->
     save_doc(Db, Doc, [], Options).
 
@@ -606,7 +600,7 @@ delete_doc(Db, Doc) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_doc(Db, Doc, Options) -> {ok,Result}|{error,Error}
+-spec delete_doc(db(), map(), list()) -> {ok, list()} | {error, term()}.
 delete_doc(Db, Doc, Options) ->
     delete_docs(Db, [Doc], Options).
 
@@ -619,7 +613,7 @@ delete_docs(Db, Docs) ->
 %% if you want to make sure the doc it emptied on delete, use the option
 %% {empty_on_delete,  true} or pass a doc with just _id and _rev
 %% members.
-%% @spec delete_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
+-spec delete_docs(db(), [map()], list()) -> {ok, list()} | {error, term()}.
 delete_docs(Db, Docs, Options) ->
     Empty = couchbeam_util:get_value("empty_on_delete", Options, false),
 
@@ -645,7 +639,7 @@ save_docs(Db, Docs) ->
     save_docs(Db, Docs, []).
 
 %% @doc save a list of documents
-%% @spec save_docs(Db::db(), Docs::list(),Options::list()) -> {ok, Result}|{error, Error}
+-spec save_docs(db(), [map()], list()) -> {ok, list()} | {error, term()}.
 save_docs(#db{server=Server, options=Opts}=Db, Docs, Options) ->
     Docs1 = [maybe_docid(Server, Doc) || Doc <- Docs],
     Options1 = couchbeam_util:parse_options(Options),
@@ -841,15 +835,8 @@ put_attachment(Db, DocId, Name, Body)->
     put_attachment(Db, DocId, Name, Body, []).
 
 %% @doc put an attachment
-%% @spec put_attachment(Db::db(), DocId::string(), Name::string(),
-%%                      Body::body(), Option::optionList()) -> {ok, iolist()}
-%%       optionList() = [option()]
-%%       option() = {rev, string()} |
-%%                  {content_type, string()} |
-%%                  {content_length, string()}
-%%       body() = [] | string() | binary() | fun_arity_0() |
-%%       {fun_arity_1(), initial_state(), stream}
-%%       initial_state() = term()
+-spec put_attachment(db(), binary() | string(), binary() | string(),
+                     iodata() | fun(), list()) -> {ok, map()} | {error, term()}.
 put_attachment(#db{server=Server, options=Opts}=Db, DocId, Name, Body,
                Options) ->
     QueryArgs = case couchbeam_util:get_value(rev, Options) of
@@ -912,7 +899,8 @@ delete_attachment(Db, Doc, Name) ->
     delete_attachment(Db, Doc, Name, []).
 
 %% @doc delete a document attachment
-%% @spec(db(), string()|list(), string(), list() -> {ok, Result} | {error, Error}
+-spec delete_attachment(db(), map() | binary() | string(), binary() | string(), list()) ->
+    {ok, map()} | {error, term()}.
 delete_attachment(#db{server=Server, options=Opts}=Db, DocOrDocId, Name,
                   Options) ->
     Options1 = couchbeam_util:parse_options(Options),
@@ -976,7 +964,7 @@ ensure_full_commit(#db{server=Server, options=Opts}=Db, Options) ->
 %% @doc Compaction compresses the database file by removing unused
 %% sections created during updates.
 %% See [http://wiki.apache.org/couchdb/Compaction] for more informations
-%% @spec compact(Db::db()) -> ok|{error, term()}
+-spec compact(db()) -> ok | {error, term()}.
 compact(#db{server=Server, options=Opts}=Db) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>],
@@ -992,7 +980,7 @@ compact(#db{server=Server, options=Opts}=Db) ->
 %% @doc Like compact/1 but this compacts the view index from the
 %% current version of the design document.
 %% See [http://wiki.apache.org/couchdb/Compaction#View_compaction] for more informations
-%% @spec compact(Db::db(), ViewName::string()) -> ok|{error, term()}
+-spec compact(db(), binary() | string()) -> ok | {error, term()}.
 compact(#db{server=Server, options=Opts}=Db, DesignName) ->
     Url = hackney_url:make_url(couchbeam_httpc:server_url(Server), [couchbeam_httpc:db_url(Db),
                                                                     <<"_compact">>,
@@ -1695,97 +1683,6 @@ extract_mock_attachment_info(Url) when is_binary(Url) ->
             end;
         _ -> undefined
     end.
-
-%% Multipart test - disabled until hackney stream_multipart is restored
-%% TODO: Re-enable when hackney process-per-connection supports multipart streaming
-%% multipart_test() ->
-%%     couchbeam_mocks:setup(),
-%%     put(mock_mp_state, init),
-%%     try
-%%         {ok, _} = application:ensure_all_started(couchbeam),
-%%
-%%         %% Mock db_request to return multipart response
-%%         meck:expect(couchbeam_httpc, db_request,
-%%             fun(get, _Url, _H, _B, _O, _E) ->
-%%                 Ref = make_ref(),
-%%                 put(mock_mp_ref, Ref),
-%%                 {ok, 200, [{<<"Content-Type">>, <<"multipart/related; boundary=xyz">>}], Ref}
-%%             end),
-%%
-%%         %% Mock hackney_headers:parse to detect multipart
-%%         meck:new(hackney_headers, [passthrough, no_link]),
-%%         meck:expect(hackney_headers, parse, fun(<<"content-type">>, _) ->
-%%             {<<"multipart">>, <<"related">>, [{<<"boundary">>, <<"xyz">>}]}
-%%         end),
-%%
-%%         %% Mock hackney:stream_multipart with state machine
-%%         meck:expect(hackney, stream_multipart, fun(_Ref) ->
-%%             mp_next_event()
-%%         end),
-%%
-%%         Server = couchbeam:server_connection(),
-%%         Db = #db{server=Server, name = <<"couchbeam_testdb">>, options=[]},
-%%
-%%         %% Test multipart response
-%%         {ok, {multipart, Stream}} = couchbeam:open_doc(Db, <<"test">>, [{attachments, true}]),
-%%         Collected = collect_mp(couchbeam:stream_doc(Stream), []),
-%%         ?assert(proplists:is_defined(doc, Collected)),
-%%         MpDoc = proplists:get_value(doc, Collected),
-%%         ?assertEqual(<<"test">>, couchbeam_doc:get_id(MpDoc)),
-%%         ?assertEqual(<<"hello">>, proplists:get_value(<<"test.txt">>, Collected)),
-%%         ok
-%%     after
-%%         erase(mock_mp_state),
-%%         erase(mock_mp_ref),
-%%         catch meck:unload(hackney_headers),
-%%         couchbeam_mocks:teardown()
-%%     end.
-%%
-%% %% State machine for multipart events
-%% mp_next_event() ->
-%%     State = get(mock_mp_state),
-%%     {Event, NextState} = case State of
-%%         init ->
-%%             {{headers, [{<<"Content-Type">>, <<"application/json">>}]}, doc_body};
-%%         doc_body ->
-%%             Doc = couchbeam_ejson:encode(#{
-%%                 <<"_id">> => <<"test">>,
-%%                 <<"_rev">> => <<"1-abc">>,
-%%                 <<"_attachments">> => #{
-%%                     <<"test.txt">> => #{
-%%                         <<"content_type">> => <<"text/plain">>,
-%%                         <<"length">> => 5,
-%%                         <<"follows">> => true
-%%                     }
-%%                 }
-%%             }),
-%%             {{body, Doc}, doc_end};
-%%         doc_end ->
-%%             {end_of_part, att_headers};
-%%         att_headers ->
-%%             {{headers, [{<<"Content-Disposition">>, <<"attachment; filename=\"test.txt\"">>}]}, att_body};
-%%         att_body ->
-%%             {{body, <<"hello">>}, att_end};
-%%         att_end ->
-%%             {end_of_part, done};
-%%         done ->
-%%             {eof, done}
-%%     end,
-%%     put(mock_mp_state, NextState),
-%%     Event.
-
-%% Collect multipart results
-%% collect_mp({doc, Doc, Next}, Acc) ->
-%%     collect_mp(couchbeam:stream_doc(Next), [{doc, Doc}|Acc]);
-%% collect_mp({att, Name, Next}, Acc) ->
-%%     collect_mp(couchbeam:stream_doc(Next), [{Name, <<>>}|Acc]);
-%% collect_mp({att_body, Name, Chunk, Next}, Acc) ->
-%%     Buffer = proplists:get_value(Name, Acc, <<>>),
-%%     collect_mp(couchbeam:stream_doc(Next), lists:keystore(Name, 1, Acc, {Name, <<Buffer/binary, Chunk/binary>>}));
-%% collect_mp({att_eof, _Name, Next}, Acc) ->
-%%     collect_mp(couchbeam:stream_doc(Next), Acc);
-%% collect_mp(eof, Acc) ->
-%%     Acc.
 
 %% Replicate test - tests replication document creation and related operations
 replicate_test() ->

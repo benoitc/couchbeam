@@ -14,3 +14,4 @@ mime.types
 rebar3.crashdump
 rebar.lock
 rebar.log
+doc/

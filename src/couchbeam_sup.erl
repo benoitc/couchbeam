@@ -4,7 +4,7 @@
 %%% See the NOTICE for more information.
 
 -module(couchbeam_sup).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Benoit Chesneau').
 -behaviour(supervisor).
 
 -export([start_link/0, init/1]).

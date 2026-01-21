@@ -4,7 +4,7 @@
 %%% See the NOTICE for more information.
 
 -module(couchbeam_doc).
--author('Benoît Chesneau <benoitc@e-engura.org>').
+-author('Benoit Chesneau').
 -include("couchbeam.hrl").
 
 -export([set_value/3, get_value/2, get_value/3,
