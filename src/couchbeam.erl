@@ -406,7 +406,8 @@ open_doc(Db, DocId) ->
 
 %% @doc open a document
 %% Params is a list of query argument. Have a look in CouchDb API
--spec open_doc(db(), binary() | string(), list()) -> {ok, map()} | {error, term()}.
+-spec open_doc(db(), binary() | string(), list()) ->
+          {ok, map()} | {ok, {multipart, doc_stream()}} | {error, term()}.
 open_doc(#db{server=Server, options=Opts}=Db, DocId, Params) ->
     DocId1 = couchbeam_util:encode_docid(DocId),
 
@@ -490,7 +491,7 @@ decode_stream_doc(Ref) ->
 %% when you get `{ok, {multipart, State}}' from the function
 %% `couchbeam:open_doc/3'.
 -spec stream_doc(doc_stream()) ->
-          {doc, doc()}
+          {doc, doc(), doc_stream()}
               | {att, Name :: binary(), doc_stream()}
               | {att_body, Name :: binary(), Chunk :: binary(), doc_stream()}
               | {att_eof, Name :: binary(), doc_stream()}

@@ -10,8 +10,9 @@
 %%% Replication is resumable: the target persists the last processed source
 %%% sequence under a stable replication id.
 %%%
-%%% Pull only (CouchDB -> app). Attachment bodies are not fetched yet; each
-%%% target entry is `{Doc, #{}}'.
+%%% Pull only (CouchDB -> app). Each target entry is `{Doc, Atts}' where Atts
+%%% maps attachment name to body bytes as delivered by CouchDB (the doc's
+%%% `_attachments' metadata records content type and any encoding, e.g. gzip).
 
 -module(couchbeam_replicator).
 -behaviour(gen_statem).
@@ -243,8 +244,7 @@ changes_to_idrevs(Changes) ->
       [maps:get(<<"rev">>, R) || R <- maps:get(<<"changes">>, C, [])]}
      || C <- Changes].
 
-%% Fetch each missing revision with its revision history (Phase 1: no
-%% attachment bodies, so every entry carries `#{}').
+%% Fetch each missing revision with its revision history and attachment bodies.
 fetch_missing(Source, Missing) ->
     try
         Entries = lists:flatmap(
@@ -256,12 +256,35 @@ fetch_missing(Source, Missing) ->
         throw:{fetch_error, Reason} -> {error, Reason}
     end.
 
+%% A revision with attachments comes back as a multipart stream; one without
+%% attachments (or a deletion) comes back as a plain JSON document.
 fetch_rev(Source, DocId, Rev) ->
-    case couchbeam:open_doc(Source, DocId, [{rev, Rev}, {revs, true}]) of
+    case couchbeam:open_doc(Source, DocId,
+                            [{rev, Rev}, {revs, true}, {"attachments", true}]) of
+        {ok, {multipart, State}} ->
+            collect_multipart(State, undefined, <<>>, #{});
         {ok, Doc} when is_map(Doc) ->
             {Doc, #{}};
         {error, Reason} ->
             throw({fetch_error, {DocId, Rev, Reason}})
+    end.
+
+%% Drive couchbeam:stream_doc/1 to reassemble the document and its attachment
+%% bodies (kept as delivered; encoding is recorded in the doc's _attachments).
+collect_multipart(State, Doc, Buf, Atts) ->
+    case couchbeam:stream_doc(State) of
+        {doc, NewDoc, NState} ->
+            collect_multipart(NState, NewDoc, Buf, Atts);
+        {att, _Name, NState} ->
+            collect_multipart(NState, Doc, <<>>, Atts);
+        {att_body, _Name, Chunk, NState} ->
+            collect_multipart(NState, Doc, <<Buf/binary, Chunk/binary>>, Atts);
+        {att_eof, Name, NState} ->
+            collect_multipart(NState, Doc, <<>>, Atts#{Name => Buf});
+        eof ->
+            {Doc, Atts};
+        {error, Reason} ->
+            throw({fetch_error, {multipart, Reason}})
     end.
 
 %%====================================================================

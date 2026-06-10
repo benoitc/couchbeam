@@ -100,7 +100,10 @@
 
 %% Test cases - Pull replication endpoint (couchbeam_replicator)
 -export([pull_replication_basic/1,
-         pull_replication_resume/1]).
+         pull_replication_resume/1,
+         pull_replication_attachments/1,
+         pull_replication_conflicts/1,
+         pull_replication_continuous/1]).
 
 %% Test cases - DB management operations
 -export([compact_database/1,
@@ -222,7 +225,10 @@ groups() ->
     ]},
      {pull_replication_ops, [sequence], [
         pull_replication_basic,
-        pull_replication_resume
+        pull_replication_resume,
+        pull_replication_attachments,
+        pull_replication_conflicts,
+        pull_replication_continuous
     ]},
      {db_management_ops, [sequence], [
         compact_database,
@@ -1768,6 +1774,109 @@ pull_replication_resume(Config) ->
         ok
     after
         couchbeam:delete_db(Db)
+    end.
+
+%% Attachment bodies are replicated alongside the document.
+pull_replication_attachments(Config) ->
+    Server = ?config(server, Config),
+    DbName = iolist_to_binary([<<"couchbeam_pullatts_">>,
+                               integer_to_binary(erlang:system_time(millisecond))]),
+    {ok, Db} = couchbeam:create_db(Server, DbName),
+    try
+        Content = <<"attachment-body-payload-0123456789">>,
+        {ok, D1} = couchbeam:save_doc(Db, #{<<"_id">> => <<"att1">>, <<"k">> => 1}),
+        Rev0 = couchbeam_doc:get_rev(D1),
+        %% octet-stream so CouchDB returns the bytes verbatim (text/* is gzipped)
+        {ok, _} = couchbeam:put_attachment(Db, <<"att1">>, <<"blob.bin">>, Content,
+                      [{rev, Rev0}, {content_type, <<"application/octet-stream">>}]),
+
+        Tab = new_repl_table(pull_atts),
+        {ok, _} = run_pull_oneshot(Db, Tab, <<"test-atts">>),
+
+        [Rev] = couchbeam_replicator_ets:leaf_revs(Tab, <<"att1">>),
+        {Doc, Atts} = couchbeam_replicator_ets:get_doc(Tab, <<"att1">>, Rev),
+        %% body replicated verbatim
+        Content = maps:get(<<"blob.bin">>, Atts),
+        %% attachment metadata kept on the document
+        Stub = maps:get(<<"blob.bin">>, maps:get(<<"_attachments">>, Doc)),
+        <<"application/octet-stream">> = maps:get(<<"content_type">>, Stub),
+
+        ct:pal("Pull replication attachments passed"),
+        ok
+    after
+        couchbeam:delete_db(Db)
+    end.
+
+%% A conflicted document (multiple leaf revisions) replicates all leaves.
+pull_replication_conflicts(Config) ->
+    Server = ?config(server, Config),
+    DbName = iolist_to_binary([<<"couchbeam_pullconf_">>,
+                               integer_to_binary(erlang:system_time(millisecond))]),
+    {ok, Db} = couchbeam:create_db(Server, DbName),
+    try
+        %% build a rev tree with two conflicting gen-2 leaves sharing one root
+        Root = #{<<"_id">> => <<"conf">>, <<"_rev">> => <<"1-aaa">>,
+                 <<"_revisions">> => #{<<"start">> => 1, <<"ids">> => [<<"aaa">>]},
+                 <<"v">> => 0},
+        LeafA = #{<<"_id">> => <<"conf">>, <<"_rev">> => <<"2-bbb">>,
+                  <<"_revisions">> => #{<<"start">> => 2, <<"ids">> => [<<"bbb">>, <<"aaa">>]},
+                  <<"v">> => 1},
+        LeafB = #{<<"_id">> => <<"conf">>, <<"_rev">> => <<"2-ccc">>,
+                  <<"_revisions">> => #{<<"start">> => 2, <<"ids">> => [<<"ccc">>, <<"aaa">>]},
+                  <<"v">> => 2},
+        {ok, _} = couchbeam:save_docs(Db, [Root, LeafA, LeafB], [{new_edits, false}]),
+
+        Tab = new_repl_table(pull_conf),
+        {ok, _} = run_pull_oneshot(Db, Tab, <<"test-conf">>),
+
+        [<<"2-bbb">>, <<"2-ccc">>] =
+            lists:sort(couchbeam_replicator_ets:leaf_revs(Tab, <<"conf">>)),
+        {DA, #{}} = couchbeam_replicator_ets:get_doc(Tab, <<"conf">>, <<"2-bbb">>),
+        2 = length(maps:get(<<"ids">>, maps:get(<<"_revisions">>, DA))),
+
+        ct:pal("Pull replication conflicts passed"),
+        ok
+    after
+        couchbeam:delete_db(Db)
+    end.
+
+%% Continuous mode keeps importing changes added while it runs.
+pull_replication_continuous(Config) ->
+    Server = ?config(server, Config),
+    DbName = iolist_to_binary([<<"couchbeam_pullcont_">>,
+                               integer_to_binary(erlang:system_time(millisecond))]),
+    {ok, Db} = couchbeam:create_db(Server, DbName),
+    try
+        {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"c1">>, <<"v">> => 1}),
+        Tab = new_repl_table(pull_cont),
+        {ok, Pid} = couchbeam_replicator:start_link(
+                      Db, couchbeam_replicator_ets,
+                      #{table => Tab, backend => ets},
+                      [{mode, continuous}, {interval, 300}, {repl_id, <<"test-cont">>}]),
+        try
+            ok = wait_until(fun() ->
+                couchbeam_replicator_ets:leaf_revs(Tab, <<"c1">>) =/= []
+            end, 15000),
+            %% add a doc while the replication is running
+            {ok, _} = couchbeam:save_doc(Db, #{<<"_id">> => <<"c2">>, <<"v">> => 1}),
+            ok = wait_until(fun() ->
+                couchbeam_replicator_ets:leaf_revs(Tab, <<"c2">>) =/= []
+            end, 15000)
+        after
+            couchbeam_replicator:stop(Pid)
+        end,
+        ct:pal("Pull replication continuous passed"),
+        ok
+    after
+        couchbeam:delete_db(Db)
+    end.
+
+wait_until(Fun, Timeout) when Timeout =< 0 ->
+    case Fun() of true -> ok; _ -> {error, timeout} end;
+wait_until(Fun, Timeout) ->
+    case Fun() of
+        true -> ok;
+        _ -> timer:sleep(100), wait_until(Fun, Timeout - 100)
     end.
 
 %% Create a fresh named ets table owned by the test process so it outlives the
