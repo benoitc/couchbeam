@@ -100,7 +100,8 @@
 
 %% Test cases - Pull replication endpoint (couchbeam_replicator)
 -export([pull_replication_basic/1,
-         pull_replication_resume/1]).
+         pull_replication_resume/1,
+         pull_replication_attachments/1]).
 
 %% Test cases - DB management operations
 -export([compact_database/1,
@@ -222,7 +223,8 @@ groups() ->
     ]},
      {pull_replication_ops, [sequence], [
         pull_replication_basic,
-        pull_replication_resume
+        pull_replication_resume,
+        pull_replication_attachments
     ]},
      {db_management_ops, [sequence], [
         compact_database,
@@ -1765,6 +1767,37 @@ pull_replication_resume(Config) ->
         [_] = couchbeam_replicator_ets:leaf_revs(Tab, <<"r4">>),
 
         ct:pal("Pull replication resume passed"),
+        ok
+    after
+        couchbeam:delete_db(Db)
+    end.
+
+%% Attachment bodies are replicated alongside the document.
+pull_replication_attachments(Config) ->
+    Server = ?config(server, Config),
+    DbName = iolist_to_binary([<<"couchbeam_pullatts_">>,
+                               integer_to_binary(erlang:system_time(millisecond))]),
+    {ok, Db} = couchbeam:create_db(Server, DbName),
+    try
+        Content = <<"attachment-body-payload-0123456789">>,
+        {ok, D1} = couchbeam:save_doc(Db, #{<<"_id">> => <<"att1">>, <<"k">> => 1}),
+        Rev0 = couchbeam_doc:get_rev(D1),
+        %% octet-stream so CouchDB returns the bytes verbatim (text/* is gzipped)
+        {ok, _} = couchbeam:put_attachment(Db, <<"att1">>, <<"blob.bin">>, Content,
+                      [{rev, Rev0}, {content_type, <<"application/octet-stream">>}]),
+
+        Tab = new_repl_table(pull_atts),
+        {ok, _} = run_pull_oneshot(Db, Tab, <<"test-atts">>),
+
+        [Rev] = couchbeam_replicator_ets:leaf_revs(Tab, <<"att1">>),
+        {Doc, Atts} = couchbeam_replicator_ets:get_doc(Tab, <<"att1">>, Rev),
+        %% body replicated verbatim
+        Content = maps:get(<<"blob.bin">>, Atts),
+        %% attachment metadata kept on the document
+        Stub = maps:get(<<"blob.bin">>, maps:get(<<"_attachments">>, Doc)),
+        <<"application/octet-stream">> = maps:get(<<"content_type">>, Stub),
+
+        ct:pal("Pull replication attachments passed"),
         ok
     after
         couchbeam:delete_db(Db)

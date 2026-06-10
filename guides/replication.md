@@ -81,8 +81,9 @@ init(Args)                            -> {ok, State} | {error, term()}.
 revs_diff(IdRevs, State)              -> {ok, Missing, State}.
    %% IdRevs :: [{DocId, [Rev]}]; return the subset not yet stored.
 write_docs(Entries, State)            -> {ok, State} | {error, term()}.
-   %% Entries :: [{Doc, Atts}]; Doc is a map with _id/_rev/_revisions/
-   %% (_deleted); Atts is #{} for now (attachment bodies come in a later phase).
+   %% Entries :: [{Doc, Atts}]; Doc is a map with _id/_rev/_revisions/(_deleted)/
+   %% _attachments; Atts :: #{AttName => Bin} holds the attachment bodies as
+   %% delivered (the doc's _attachments metadata records content type/encoding).
 read_checkpoint(ReplId, State)        -> {ok, Seq | nil, State}.
 write_checkpoint(ReplId, Seq, State)  -> {ok, State}.
 terminate(Reason, State)              -> any().   %% optional
